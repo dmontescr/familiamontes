@@ -591,9 +591,9 @@ function initTreeVisualization() {
     FamilyTree.templates.montesTheme_male.field_4 = FamilyTree.templates.montesTheme.field_4;
     FamilyTree.templates.montesTheme_female.field_4 = FamilyTree.templates.montesTheme.field_4;
 
-    // Fechas vitales y edad
+    // Fechas vitales y edad (alineado en vertical con el nombre del municipio a x=105)
     FamilyTree.templates.montesTheme.field_1 = `
-      <text style="font-size: 12px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="88" y="64">{val}</text>
+      <text style="font-size: 12px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="105" y="64">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_1 = FamilyTree.templates.montesTheme.field_1;
     FamilyTree.templates.montesTheme_female.field_1 = FamilyTree.templates.montesTheme.field_1;
