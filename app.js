@@ -459,6 +459,48 @@ function updateHeaderSummary() {
 // ==========================================================================
 // 3. VISUALIZACIÓN DEL ÁRBOL GENEALÓGICO (FamilyTreeJS)
 // ==========================================================================
+
+/**
+ * Normaliza y sanea las referencias de parentesco para asegurar que FamilyTreeJS
+ * renderice el árbol de forma 100% estable sin excepciones de layout.
+ */
+function cleanAndValidateTreeData(data) {
+  if (!Array.isArray(data)) return [];
+  const personMap = new Map();
+  data.forEach(p => {
+    if (p && p.id) personMap.set(p.id, p);
+  });
+
+  data.forEach(p => {
+    if (!Array.isArray(p.pids)) p.pids = [];
+    
+    // Quitar a uno mismo y IDs inexistentes
+    p.pids = p.pids.filter(pid => pid !== p.id && personMap.has(pid));
+
+    // Validar fid y mid
+    if (p.fid && (!personMap.has(p.fid) || p.fid === p.id)) delete p.fid;
+    if (p.mid && (!personMap.has(p.mid) || p.mid === p.id)) delete p.mid;
+
+    // Si tiene padre y madre, asegurar que ambos padres tengan relación mutua de co-parentesco en pids
+    if (p.fid && p.mid) {
+      const father = personMap.get(p.fid);
+      const mother = personMap.get(p.mid);
+      if (father && !father.pids.includes(p.mid)) father.pids.push(p.mid);
+      if (mother && !mother.pids.includes(p.fid)) mother.pids.push(p.fid);
+    }
+
+    // Asegurar reciprocidad simétrica en pids
+    p.pids.forEach(partnerId => {
+      const partner = personMap.get(partnerId);
+      if (partner && Array.isArray(partner.pids) && !partner.pids.includes(p.id)) {
+        partner.pids.push(p.id);
+      }
+    });
+  });
+
+  return data;
+}
+
 function initTreeVisualization() {
   const container = document.getElementById("tree-canvas");
   if (!container) return;
@@ -477,7 +519,10 @@ function initTreeVisualization() {
   setTimeout(() => {
     container.innerHTML = "";
 
-    // Configuración de plantilla espaciosa y elegante para la Familia Montes (Cajas más altas con nombres multilínea)
+    // Sanear y normalizar el grafo genealógico
+    cleanAndValidateTreeData(AppState.treeData);
+
+    // Configuración de plantilla espaciosa y elegante para la Familia Montes
     FamilyTree.templates.montesTheme = Object.assign({}, FamilyTree.templates.john);
     FamilyTree.templates.montesTheme.size = [250, 114];
     
@@ -509,21 +554,21 @@ function initTreeVisualization() {
     FamilyTree.templates.montesTheme_male.img_0 = FamilyTree.templates.montesTheme.img_0;
     FamilyTree.templates.montesTheme_female.img_0 = FamilyTree.templates.montesTheme.img_0;
 
-    // Nombre Línea 1 (para nombres largos en 2 líneas)
+    // Nombre Línea 1
     FamilyTree.templates.montesTheme.field_0 = `
       <text style="font-size: 13.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="88" y="32">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_0 = FamilyTree.templates.montesTheme.field_0;
     FamilyTree.templates.montesTheme_female.field_0 = FamilyTree.templates.montesTheme.field_0;
 
-    // Nombre Línea 2 (para nombres largos en 2 líneas)
+    // Nombre Línea 2
     FamilyTree.templates.montesTheme.field_3 = `
       <text style="font-size: 13.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="88" y="50">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_3 = FamilyTree.templates.montesTheme.field_3;
     FamilyTree.templates.montesTheme_female.field_3 = FamilyTree.templates.montesTheme.field_3;
 
-    // Nombre en 1 sola línea centrada en el punto medio exacto (y = 42)
+    // Nombre en 1 sola línea centrada
     FamilyTree.templates.montesTheme.field_4 = `
       <text style="font-size: 14.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="88" y="42">{val}</text>
     `;
@@ -572,18 +617,17 @@ function initTreeVisualization() {
     });
 
     try {
-      // Inicializar instancia de FamilyTree con amplia separación para evitar solapamientos
       AppState.treeInstance = new FamilyTree(container, {
         template: "montesTheme",
         mode: "light",
         enableSearch: false,
         mouseScrool: FamilyTree.action.zoom,
         nodeMouseClick: FamilyTree.action.none,
-        siblingSeparation: 65,     // Amplia separación entre hermanos y cónyuges
-        levelSeparation: 90,       // Amplia separación entre generaciones
+        siblingSeparation: 65,
+        levelSeparation: 90,
         subtreeSeparation: 60,
         partnerSeparation: 35,
-        partnerChildrenSearch: true,
+        partnerChildrenSearch: false, // Desactivado para evitar bloqueos con cambios de cónyuge
         scaleInitial: FamilyTree.match.boundary,
         nodeBinding: {
           field_0: "name_l1",
@@ -596,7 +640,7 @@ function initTreeVisualization() {
         nodes: formattedNodes
       });
 
-      // Evento al hacer clic en un nodo: diferenciar clic en foto vs clic en tarjeta
+      // Evento al hacer clic en un nodo
       AppState.treeInstance.onNodeClick((args) => {
         const personId = parseInt(args.node.id, 10);
         const target = args.event && (args.event.target || args.event.srcElement);
@@ -606,19 +650,16 @@ function initTreeVisualization() {
           const clipPath = target.getAttribute ? (target.getAttribute("clip-path") || "") : "";
           const cx = target.getAttribute ? target.getAttribute("cx") : "";
 
-          // Clic sobre la foto circular o su imagen SVG
           if (tagName === "image" || (tagName === "circle" && cx === "48") || clipPath.includes("ulaImg")) {
             openPhotoLightboxById(personId);
             return false;
           }
         }
 
-        // Clic en cualquier otra parte de la tarjeta: abrir panel de perfil
         openPersonDrawer(personId);
         return false;
       });
 
-      // Ajustar la vista a los límites de la pantalla
       setTimeout(() => {
         if (AppState.treeInstance) {
           AppState.treeInstance.fit();
@@ -627,9 +668,19 @@ function initTreeVisualization() {
 
     } catch (err) {
       console.error("Error al inicializar FamilyTree:", err);
-      container.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--color-danger);">
-        Error al renderizar el árbol: ${err.message}
-      </div>`;
+      // Reintento limpio con nodos básicos
+      try {
+        AppState.treeInstance = new FamilyTree(container, {
+          template: "montesTheme",
+          mode: "light",
+          nodes: formattedNodes
+        });
+        AppState.treeInstance.fit();
+      } catch (fallbackErr) {
+        container.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--color-danger);">
+          Error al renderizar el árbol: ${err.message}
+        </div>`;
+      }
     }
   }, 60);
 }
@@ -1289,7 +1340,16 @@ function savePersonFromForm() {
         const newPartner = AppState.treeData.find(p => p.id === manualPid);
         if (newPartner) {
           if (!newPartner.pids) newPartner.pids = [];
-          if (!newPartner.pids.includes(personId)) newPartner.pids.push(personId);
+          // Desvincular a terceros si la nueva pareja tenía otra anterior
+          newPartner.pids.forEach(otherPid => {
+            if (otherPid !== personId) {
+              const otherP = AppState.treeData.find(p => p.id === otherPid);
+              if (otherP && otherP.pids) {
+                otherP.pids = otherP.pids.filter(id => id !== manualPid);
+              }
+            }
+          });
+          newPartner.pids = [personId];
         }
       }
 
@@ -1396,6 +1456,10 @@ function savePersonFromForm() {
     AppState.treeData.push(newPerson);
     showToast(`Se ha añadido a ${name} al árbol genealógico`, "success");
   }
+
+  // Normalizar y sanear datos
+  cleanAndValidateTreeData(AppState.treeData);
+  setUnsavedChanges(true);
 
   // Guardar en caché local y refrescar árbol
   persistLocalTree();
