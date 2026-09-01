@@ -35,13 +35,18 @@ Repositorio oficial: [https://github.com/dmontescr/familiamontes](https://github
 - Formato automático: **`Municipio (Provincia)`** (ej. *Navianos de la Vega (León)*, *La Bañeza (León)*, *Alcalá de Henares (Madrid)*).
 - Geocodificador en vivo para aldeas y pedanías menores.
 
-### 📷 5. Subida y Optimización de Fotos
+### 💼 5. Autocompletado Flexible de Profesiones y Oficios
+- Base de datos con más de **250 profesiones, oficios tradicionales y ocupaciones** (`data/profesiones.json`).
+- Sugerencias inteligentes mientras escribes con texto libre: puedes seleccionar una profesión de la lista o escribir libremente la tuya propia.
+
+### 📷 6. Fotografías, Carpeta `/photos` y Visor en Grande (Lightbox)
 - Carpeta dedicada `/photos` con nombres de archivo estructurados (`photos/nombre_persona.jpg`).
 - Botón directo para subir fotografías desde cualquier dispositivo (móvil u ordenador).
-- Compresión y recorte inteligente en el navegador mediante Canvas (JPEG optimizado) para un rendimiento instantáneo sin saturar almacenamiento.
+- Compresión y recorte inteligente en el navegador mediante Canvas (JPEG optimizado).
+- **Visor Lightbox en Alta Definición:** Al hacer clic en la foto del mapa o del perfil, se abre en grande con fondo difuminado y datos biográficos.
 - Sustitución y eliminación automática de fotografías obsoletas.
 
-### 📄 6. Exportación en PDF Horizontal de Alta Resolución
+### 📄 7. Exportación en PDF Horizontal de Alta Resolución
 - Descarga del mapa genealógico completo en una **única hoja horizontal** de alta definición (*High-DPI*), optimizada para visualización con zoom en pantallas móviles y tablets.
 
 ---
@@ -59,7 +64,8 @@ familiamontes/
 ├── photos/                 # Fotografías de familiares optimizadas
 ├── data/
 │   ├── tree.json           # Datos genealógicos de la Familia Montes
-│   └── municipios.json     # Censo oficial de 8.134 municipios y provincias de España
+│   ├── municipios.json     # Censo oficial de 8.134 municipios y provincias de España
+│   └── profesiones.json    # Catálogo de profesiones y oficios
 ├── functions/
 │   └── api/
 │       └── save.js         # Endpoint Serverless para persistencia en GitHub API

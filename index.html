@@ -380,9 +380,12 @@
           </div>
         </div>
 
-        <div class="form-group">
+        <div class="form-group autocomplete-group">
           <label for="form-profession">Profesión u Ocupación</label>
-          <input type="text" id="form-profession" class="input-control" placeholder="Ej. Agricultor, Maestra...">
+          <div class="autocomplete-wrapper">
+            <input type="text" id="form-profession" class="input-control" placeholder="Ej. Agricultor, Maestra, Ingeniero..." autocomplete="off">
+            <div id="profession-autocomplete-dropdown" class="autocomplete-dropdown" style="display: none;"></div>
+          </div>
         </div>
 
         <div class="form-group">

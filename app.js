@@ -1506,6 +1506,9 @@ function setupModalEvents() {
   // Autocompletado inteligente de Municipios y Provincias
   setupCityAutocomplete();
 
+  // Autocompletado inteligente de Profesiones y Oficios
+  setupProfessionAutocomplete();
+
   // Gestión y subida de fotografías
   setupPhotoUploadHandling();
 
@@ -1737,6 +1740,121 @@ function renderCityAutocomplete(results, input, dropdown) {
       <i data-lucide="map-pin" style="width: 14px; height: 14px; color: var(--color-primary); flex-shrink: 0;"></i>
       <span class="autocomplete-item-city">${item.city}</span>
       <span class="autocomplete-item-province">${item.province}</span>
+    </div>
+  `).join("");
+
+  dropdown.style.display = "flex";
+  refreshIcons();
+
+  dropdown.querySelectorAll(".autocomplete-item").forEach(itemEl => {
+    itemEl.addEventListener("click", () => {
+      input.value = itemEl.dataset.value;
+      dropdown.style.display = "none";
+      dropdown.innerHTML = "";
+    });
+  });
+}
+
+// ==========================================================================
+// 7.2. AUTOCOMPLETADO DE PROFESIONES Y OFICIOS
+// ==========================================================================
+let allProfessionsList = [];
+let isProfessionsLoaded = false;
+let professionDebounceTimer = null;
+
+async function loadProfessionsDataset() {
+  if (isProfessionsLoaded) return;
+  try {
+    const res = await fetch("data/profesiones.json");
+    if (res.ok) {
+      const data = await res.json();
+      allProfessionsList = data.map(item => ({
+        name: item,
+        norm: item.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      }));
+      isProfessionsLoaded = true;
+    }
+  } catch (err) {
+    console.warn("No se pudo cargar data/profesiones.json localmente:", err);
+  }
+}
+
+function setupProfessionAutocomplete() {
+  const professionInput = document.getElementById("form-profession");
+  const dropdown = document.getElementById("profession-autocomplete-dropdown");
+  if (!professionInput || !dropdown) return;
+
+  loadProfessionsDataset();
+
+  professionInput.addEventListener("input", () => {
+    clearTimeout(professionDebounceTimer);
+    const query = professionInput.value.trim();
+
+    if (query.length < 1) {
+      dropdown.style.display = "none";
+      dropdown.innerHTML = "";
+      return;
+    }
+
+    professionDebounceTimer = setTimeout(() => {
+      const results = searchProfessions(query);
+      renderProfessionAutocomplete(results, professionInput, dropdown);
+    }, 60);
+  });
+
+  // Cerrar dropdown al hacer clic fuera
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".autocomplete-group")) {
+      dropdown.style.display = "none";
+    }
+  });
+}
+
+function searchProfessions(query) {
+  const normalizedQuery = query.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const list = [];
+  const seen = new Set();
+
+  if (allProfessionsList.length > 0) {
+    // 1. Coincidencias que empiezan por la consulta
+    for (const item of allProfessionsList) {
+      if (item.norm.startsWith(normalizedQuery)) {
+        if (!seen.has(item.name)) {
+          seen.add(item.name);
+          list.push(item.name);
+          if (list.length >= 8) break;
+        }
+      }
+    }
+
+    // 2. Coincidencias que contienen la consulta en cualquier parte
+    if (list.length < 8) {
+      for (const item of allProfessionsList) {
+        if (item.norm.includes(normalizedQuery)) {
+          if (!seen.has(item.name)) {
+            seen.add(item.name);
+            list.push(item.name);
+            if (list.length >= 8) break;
+          }
+        }
+      }
+    }
+  }
+
+  return list;
+}
+
+function renderProfessionAutocomplete(results, input, dropdown) {
+  if (results.length === 0) {
+    dropdown.style.display = "none";
+    dropdown.innerHTML = "";
+    return;
+  }
+
+  dropdown.innerHTML = results.map(prof => `
+    <div class="autocomplete-item" data-value="${prof}">
+      <i data-lucide="briefcase" style="width: 14px; height: 14px; color: var(--color-gold); flex-shrink: 0;"></i>
+      <span class="autocomplete-item-city" style="font-weight: 500;">${prof}</span>
     </div>
   `).join("");
 
