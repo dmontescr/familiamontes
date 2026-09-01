@@ -937,30 +937,93 @@ function populateParentAndPartnerSelectors(excludePersonId = null, preselected =
 
   if (!fatherSelect || !motherSelect || !partnerSelect) return;
 
-  const candidates = AppState.treeData.filter(p => !excludePersonId || p.id !== excludePersonId);
+  const currentPerson = excludePersonId ? AppState.treeData.find(p => p.id === excludePersonId) : null;
+  const initialFid = preselected.fid !== undefined ? preselected.fid : (currentPerson ? currentPerson.fid : null);
+  const initialMid = preselected.mid !== undefined ? preselected.mid : (currentPerson ? currentPerson.mid : null);
+  const initialPid = preselected.pid !== undefined ? preselected.pid : ((currentPerson && currentPerson.pids && currentPerson.pids.length > 0) ? currentPerson.pids[0] : null);
 
-  // Padres posibles (varones)
-  const maleCandidates = candidates.filter(p => p.gender !== "female");
+  // Función para refrescar candidatos a cónyuge excluyendo padres, hijos y hermanos
+  const refreshPartnerOptions = () => {
+    const selectedFid = fatherSelect.value ? parseInt(fatherSelect.value, 10) : null;
+    const selectedMid = motherSelect.value ? parseInt(motherSelect.value, 10) : null;
+    const currentSelectedPid = partnerSelect.value ? parseInt(partnerSelect.value, 10) : (initialPid ? parseInt(initialPid, 10) : null);
+
+    const forbiddenPartnerIds = new Set();
+    if (excludePersonId) {
+      forbiddenPartnerIds.add(excludePersonId);
+
+      // 1. Excluir Padres (seleccionados en el formulario o en la base de datos)
+      if (selectedFid) forbiddenPartnerIds.add(selectedFid);
+      if (selectedMid) forbiddenPartnerIds.add(selectedMid);
+
+      // 2. Excluir Hijos (quienes tengan a esta persona como padre o madre)
+      AppState.treeData.forEach(p => {
+        if (p.fid === excludePersonId || p.mid === excludePersonId) {
+          forbiddenPartnerIds.add(p.id);
+        }
+      });
+
+      // 3. Excluir Hermanos (quienes compartan padre o madre con esta persona)
+      if (selectedFid || selectedMid) {
+        AppState.treeData.forEach(p => {
+          if (p.id !== excludePersonId) {
+            if ((selectedFid && p.fid === selectedFid) || (selectedMid && p.mid === selectedMid)) {
+              forbiddenPartnerIds.add(p.id);
+            }
+          }
+        });
+      }
+    }
+
+    // Filtrar candidatos a pareja
+    const partnerCandidates = AppState.treeData.filter(p => {
+      if (forbiddenPartnerIds.has(p.id)) return false;
+      // Excluir personas que ya están casadas con un tercero
+      if (p.pids && p.pids.length > 0 && !p.pids.includes(excludePersonId)) {
+        return false;
+      }
+      return true;
+    });
+
+    partnerSelect.innerHTML = '<option value="">-- Sin pareja / cónyuge --</option>' + 
+      partnerCandidates.map(p => `<option value="${p.id}">${p.name} ${p.birth ? `(${p.birth})` : ''}</option>`).join("");
+    
+    if (currentSelectedPid && !forbiddenPartnerIds.has(currentSelectedPid)) {
+      partnerSelect.value = currentSelectedPid.toString();
+    } else {
+      partnerSelect.value = "";
+    }
+  };
+
+  // Conjunto de IDs prohibidos para ser Padres (uno mismo, hijos)
+  const forbiddenParentIds = new Set();
+  if (excludePersonId) {
+    forbiddenParentIds.add(excludePersonId);
+    AppState.treeData.forEach(p => {
+      if (p.fid === excludePersonId || p.mid === excludePersonId) {
+        forbiddenParentIds.add(p.id);
+      }
+    });
+  }
+
+  // 1. Padres posibles (varones no prohibidos)
+  const maleCandidates = AppState.treeData.filter(p => !forbiddenParentIds.has(p.id) && p.gender !== "female");
   fatherSelect.innerHTML = '<option value="">-- Sin padre asignado --</option>' + 
     maleCandidates.map(p => `<option value="${p.id}">${p.name} ${p.birth ? `(${p.birth})` : ''}</option>`).join("");
-  if (preselected.fid) {
-    fatherSelect.value = preselected.fid.toString();
-  }
+  fatherSelect.value = initialFid ? initialFid.toString() : "";
 
-  // Madres posibles (mujeres)
-  const femaleCandidates = candidates.filter(p => p.gender === "female");
+  // 2. Madres posibles (mujeres no prohibidas)
+  const femaleCandidates = AppState.treeData.filter(p => !forbiddenParentIds.has(p.id) && p.gender === "female");
   motherSelect.innerHTML = '<option value="">-- Sin madre asignada --</option>' + 
     femaleCandidates.map(p => `<option value="${p.id}">${p.name} ${p.birth ? `(${p.birth})` : ''}</option>`).join("");
-  if (preselected.mid) {
-    motherSelect.value = preselected.mid.toString();
-  }
+  motherSelect.value = initialMid ? initialMid.toString() : "";
 
-  // Cónyuge / Pareja posible
-  partnerSelect.innerHTML = '<option value="">-- Sin pareja / cónyuge --</option>' + 
-    candidates.map(p => `<option value="${p.id}">${p.name} ${p.birth ? `(${p.birth})` : ''}</option>`).join("");
-  if (preselected.pid) {
-    partnerSelect.value = preselected.pid.toString();
-  }
+  // 3. Poblar cónyuges con las restricciones de parentesco
+  refreshPartnerOptions();
+
+  // Escuchar cambios dinámicos en los selectores de padre y madre
+  fatherSelect.onchange = refreshPartnerOptions;
+  motherSelect.onchange = refreshPartnerOptions;
 }
 
 function openAddDirectionalRelativeModal(targetPersonId, directionalType) {
