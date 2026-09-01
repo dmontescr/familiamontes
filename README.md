@@ -47,14 +47,19 @@ Repositorio oficial: [https://github.com/dmontescr/familiamontes](https://github
 - Catálogo de más de **270 profesiones y oficios** en formato compacto inclusivo (`data/profesiones.json`, ej. *Biólogo/a*, *Ingeniero/a*, *Agricultor/a*).
 - Sugerencias inteligentes mientras escribes con soporte para texto libre personalizado.
 
-### 📷 7. Fotografías, Carpeta `/photos` y Visor en Grande (Lightbox)
+### ✍️ 7. Asistente de Nombres, Tildes y Autocapitalización en Tiempo Real
+- **Autocapitalización en vivo:** La primera letra de cada nombre y apellido se transforma automáticamente a mayúscula conforme vas escribiendo, respetando partículas intermedias (`de`, `del`, `de la`, `y`).
+- **Diccionario de acentuación canónica:** Detección de nombres y apellidos españoles comunes que requieran tilde (*García, Fernández, Rodríguez, Pérez, Gómez, López, Sánchez, Díaz, Álvarez, María, José, Jesús, Raúl, Ángel, Álvaro, Inés, Sofía, Lucía, etc.*).
+- **Sugerencias interactivas:** Muestra una propuesta automática con botón `[Aplicar]` si detecta faltas ortográficas o ausencia de tildes.
+
+### 📷 8. Fotografías, Carpeta `/photos` y Visor en Grande (Lightbox)
 - Carpeta dedicada `/photos` con nombres de archivo estructurados (`photos/nombre_persona.jpg`).
 - Subida directa de fotos desde cualquier móvil u ordenador.
 - Compresión y recorte inteligente en el navegador mediante Canvas (JPEG optimizado).
 - **Visor Lightbox en Alta Definición:** Al pulsar sobre cualquier foto en el árbol o en el perfil, se abre ampliada a pantalla completa con fondo difuminado, fechas y edad.
 - Sustitución y eliminación sincronizada de fotografías obsoletas.
 
-### 📄 8. Exportación a PDF en Ultra Alta Resolución
+### 📄 9. Exportación a PDF en Ultra Alta Resolución
 - **Captura total del árbol:** Cálculo geométrico global (*bounding box*) para incluir **todas las ramas, niveles y generaciones**, sin importar qué parte esté visible en pantalla.
 - **Formato normalizado horizontal:** Relación de aspecto estándar (DIN A3 / A2) centrado con márgenes de seguridad.
 - **Nitidez 300+ DPI (Escala 3.0x):** Renderizado vectorial de máxima calidad para lectura con zoom e impresión en cualquier impresora o copistería.
