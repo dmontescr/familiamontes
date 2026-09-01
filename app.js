@@ -570,30 +570,30 @@ function initTreeVisualization() {
     FamilyTree.templates.montesTheme_male.img_0 = FamilyTree.templates.montesTheme.img_0;
     FamilyTree.templates.montesTheme_female.img_0 = FamilyTree.templates.montesTheme.img_0;
 
-    // Nombre Línea 1
+    // Nombre Línea 1 (para nombres largos en 2 líneas)
     FamilyTree.templates.montesTheme.field_0 = `
-      <text style="font-size: 13.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="88" y="32">{val}</text>
+      <text style="font-size: 13.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="88" y="28">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_0 = FamilyTree.templates.montesTheme.field_0;
     FamilyTree.templates.montesTheme_female.field_0 = FamilyTree.templates.montesTheme.field_0;
 
-    // Nombre Línea 2
+    // Nombre Línea 2 (para nombres largos en 2 líneas)
     FamilyTree.templates.montesTheme.field_3 = `
-      <text style="font-size: 13.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="88" y="50">{val}</text>
+      <text style="font-size: 13.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="88" y="46">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_3 = FamilyTree.templates.montesTheme.field_3;
     FamilyTree.templates.montesTheme_female.field_3 = FamilyTree.templates.montesTheme.field_3;
 
-    // Nombre en 1 sola línea centrada
+    // Nombre en 1 sola línea (centrado y equilibrado)
     FamilyTree.templates.montesTheme.field_4 = `
-      <text style="font-size: 14.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="88" y="42">{val}</text>
+      <text style="font-size: 14.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="88" y="38">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_4 = FamilyTree.templates.montesTheme.field_4;
     FamilyTree.templates.montesTheme_female.field_4 = FamilyTree.templates.montesTheme.field_4;
 
-    // Fechas vitales
+    // Fechas vitales y edad
     FamilyTree.templates.montesTheme.field_1 = `
-      <text style="font-size: 11.5px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="88" y="75">{val}</text>
+      <text style="font-size: 12px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="88" y="64">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_1 = FamilyTree.templates.montesTheme.field_1;
     FamilyTree.templates.montesTheme_female.field_1 = FamilyTree.templates.montesTheme.field_1;
@@ -601,11 +601,11 @@ function initTreeVisualization() {
     // Ubicación / Origen con chincheta roja (map-pin)
     FamilyTree.templates.montesTheme.field_2 = `
       <g>
-        <svg x="88" y="82" width="13" height="13" viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg x="88" y="76" width="13" height="13" viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
           <circle cx="12" cy="10" r="3" fill="#ffffff"></circle>
         </svg>
-        <text style="font-size: 11px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="105" y="93">{val}</text>
+        <text style="font-size: 11.5px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="105" y="87">{val}</text>
       </g>
     `;
     FamilyTree.templates.montesTheme_male.field_2 = FamilyTree.templates.montesTheme.field_2;
@@ -787,8 +787,7 @@ function calculateAge(birthStr, deathStr) {
 function formatVitalDatesWithAge(birth, death) {
   if (!birth && !death) return "";
   const age = calculateAge(birth, death);
-  // Usar espacios no rompibles (\u00A0) para que SVG y HTML no colapsen el espaciado
-  const ageSuffix = age ? `\u00A0\u00A0\u00A0\u00A0(${age})` : "";
+  const ageSuffix = age ? ` (${age})` : "";
 
   // Si está vivo (sin fecha de defunción)
   if (!death) {
