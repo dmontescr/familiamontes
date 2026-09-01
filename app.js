@@ -981,12 +981,6 @@ function setupDrawerEvents() {
     openEditPersonModal(AppState.selectedPersonId);
   });
 
-  // Botón Enfocar / Centrar en persona
-  document.getElementById("drawer-btn-center").addEventListener("click", () => {
-    if (!AppState.selectedPersonId || !AppState.treeInstance) return;
-    AppState.treeInstance.center(AppState.selectedPersonId);
-  });
-
   // Botón Eliminar Persona
   document.getElementById("drawer-btn-delete").addEventListener("click", () => {
     if (!AppState.selectedPersonId) return;
