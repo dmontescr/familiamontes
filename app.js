@@ -1039,7 +1039,7 @@ function openPhotoLightboxById(personId) {
 
   const photoUrl = getPersonPhotoUrl(person.photo, person.gender);
   const datesText = (person.birth || person.death) 
-    ? `${person.birth || '?'} — ${person.death || 'Vivo/a'}` 
+    ? formatVitalDatesWithAge(person.birth, person.death) 
     : (person.city || "Familia Montes");
 
   const lightboxImg = document.getElementById("lightbox-img");
