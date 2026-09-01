@@ -542,23 +542,32 @@ function initTreeVisualization() {
     FamilyTree.templates.montesTheme = Object.assign({}, FamilyTree.templates.john);
     FamilyTree.templates.montesTheme.size = [255, 110];
     
-    // Tarjeta noble con amplio espacio y sombra suave
+    // Tarjeta noble genérica
     FamilyTree.templates.montesTheme.node = `
-      <rect x="0" y="0" height="110" width="255" fill="#ffffff" stroke-width="1.5" stroke="#d5cdbf" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(0,0,0,0.07))"></rect>
-      <rect x="0" y="0" height="110" width="6" fill="#a64b2a" rx="3" ry="3"></rect>
+      <clipPath id="cardClip{id}">
+        <rect x="0" y="0" height="110" width="255" rx="14" ry="14"></rect>
+      </clipPath>
+      <rect x="0" y="0" height="110" width="255" fill="#ffffff" stroke-width="1.5" stroke="#d5cdbf" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(0,0,0,0.06))"></rect>
+      <rect x="0" y="0" height="110" width="6" fill="#a64b2a" clip-path="url(#cardClip{id})"></rect>
     `;
 
-    // Tarjetas diferenciadas por género
+    // Tarjetas diferenciadas por género con integración perfecta en las esquinas redondeadas
     FamilyTree.templates.montesTheme_male = Object.assign({}, FamilyTree.templates.montesTheme);
     FamilyTree.templates.montesTheme_male.node = `
-      <rect x="0" y="0" height="110" width="255" fill="#ffffff" stroke-width="1.5" stroke="#cbd5e1" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(37,99,235,0.08))"></rect>
-      <rect x="0" y="0" height="110" width="6" fill="#2563eb" rx="3" ry="3"></rect>
+      <clipPath id="cardClipM{id}">
+        <rect x="0" y="0" height="110" width="255" rx="14" ry="14"></rect>
+      </clipPath>
+      <rect x="0" y="0" height="110" width="255" fill="#ffffff" stroke-width="1.5" stroke="#cbd5e1" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(37,99,235,0.07))"></rect>
+      <rect x="0" y="0" height="110" width="6" fill="#3b82f6" clip-path="url(#cardClipM{id})"></rect>
     `;
 
     FamilyTree.templates.montesTheme_female = Object.assign({}, FamilyTree.templates.montesTheme);
     FamilyTree.templates.montesTheme_female.node = `
-      <rect x="0" y="0" height="110" width="255" fill="#ffffff" stroke-width="1.5" stroke="#fbcfe8" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(219,39,119,0.08))"></rect>
-      <rect x="0" y="0" height="110" width="6" fill="#db2777" rx="3" ry="3"></rect>
+      <clipPath id="cardClipF{id}">
+        <rect x="0" y="0" height="110" width="255" rx="14" ry="14"></rect>
+      </clipPath>
+      <rect x="0" y="0" height="110" width="255" fill="#ffffff" stroke-width="1.5" stroke="#fbcfe8" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(219,39,119,0.07))"></rect>
+      <rect x="0" y="0" height="110" width="6" fill="#ec4899" clip-path="url(#cardClipF{id})"></rect>
     `;
 
     // Fotografía circular centrada verticalmente con cursor de ampliación
