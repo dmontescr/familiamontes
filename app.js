@@ -780,7 +780,8 @@ function calculateAge(birthStr, deathStr) {
 function formatVitalDatesWithAge(birth, death) {
   if (!birth && !death) return "";
   const age = calculateAge(birth, death);
-  const ageSuffix = age ? `   (${age})` : "";
+  // Usar espacios no rompibles (\u00A0) para que SVG y HTML no colapsen el espaciado
+  const ageSuffix = age ? `\u00A0\u00A0\u00A0\u00A0(${age})` : "";
 
   // Si está vivo (sin fecha de defunción)
   if (!death) {
