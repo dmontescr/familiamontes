@@ -1592,30 +1592,30 @@ function persistLocalTree() {
 }
 
 // ==========================================================================
-// 6. EXPORTACIÓN A PDF HORIZONTAL NORMALIZADO (FORMATO DIN)
+// 6. EXPORTACIÓN A PDF HORIZONTAL DE ALTA RESOLUCIÓN
 // ==========================================================================
 function exportTreeLandscapePDF() {
-  showToast("Generando mapa completo en formato DIN horizontal...", "info", 5000);
+  showToast("Generando PDF del árbol genealógico en alta resolución...", "info", 5000);
 
-  // 1. Si FamilyTree tiene exportPDF nativo, usar formato normalizado A3/A2
+  // 1. Si FamilyTree tiene exportPDF nativo, usar formato normalizado A3
   if (AppState.treeInstance && typeof AppState.treeInstance.exportPDF === "function") {
     try {
       AppState.treeInstance.exportPDF({
-        filename: `arbol_genealogico_familia_montes_DIN_A3.pdf`,
+        filename: "arbol_genealogico_familia_montes.pdf",
         landscape: true,
         fit: "all",
         format: "A3",
         expandChildren: true,
         margin: [15, 15, 15, 15]
       });
-      showToast("¡PDF en formato DIN A3 descargado con éxito!", "success");
+      showToast("¡PDF del árbol genealógico descargado con éxito!", "success");
       return;
     } catch (err) {
-      console.warn("Fallo exportPDF nativo, usando motor jsPDF normalizado DIN:", err);
+      console.warn("Fallo exportPDF nativo de la librería, usando motor jsPDF:", err);
     }
   }
 
-  // 2. Motor de renderizado vectorial de alta resolución en formato normalizado DIN
+  // 2. Motor de renderizado vectorial de ultra alta resolución con proporción estándar
   try {
     const svgEl = document.querySelector("#tree-canvas svg");
     if (!svgEl) {
@@ -1674,7 +1674,8 @@ function exportTreeLandscapePDF() {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
-      const scale = 2.5;
+      // Escala 3.0 para nitidez fotográfica y vectorial superior (300+ DPI)
+      const scale = 3.0;
       const canvas = document.createElement("canvas");
       canvas.width = totalWidth * scale;
       canvas.height = totalHeight * scale;
@@ -1692,16 +1693,10 @@ function exportTreeLandscapePDF() {
       if (window.jspdf && window.jspdf.jsPDF) {
         const { jsPDF } = window.jspdf;
 
-        // Determinar formato normalizado DIN estándar (A4, A3, A2 o A1) según la escala del árbol
+        // Proporción estándar DIN (A3 / A2 según tamaño total)
         let dinFormat = "a3";
-        if (totalWidth > 3000 || totalHeight > 2000) {
-          dinFormat = "a1";
-        } else if (totalWidth > 1800 || totalHeight > 1200) {
+        if (totalWidth > 2200 || totalHeight > 1500) {
           dinFormat = "a2";
-        } else if (totalWidth > 1000 || totalHeight > 700) {
-          dinFormat = "a3";
-        } else {
-          dinFormat = "a4";
         }
 
         const isLandscape = totalWidth >= totalHeight;
@@ -1711,27 +1706,26 @@ function exportTreeLandscapePDF() {
           format: dinFormat
         });
 
-        // Obtener dimensiones reales en milímetros de la página DIN seleccionada
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
 
-        // Margen perimetral normalizado de 12 mm
+        // Margen perimetral limpio de 12 mm
         const marginMm = 12;
         const usableWidth = pageWidth - marginMm * 2;
         const usableHeight = pageHeight - marginMm * 2;
 
-        // Escalar proporcionalmente para encajar en el área imprimible DIN
+        // Escalar proporcionalmente para encajar en el área imprimible
         const scaleFactor = Math.min(usableWidth / totalWidth, usableHeight / totalHeight);
         const renderWidth = totalWidth * scaleFactor;
         const renderHeight = totalHeight * scaleFactor;
 
-        // Centrar en la hoja DIN
+        // Centrado exacto en la página
         const posX = marginMm + (usableWidth - renderWidth) / 2;
         const posY = marginMm + (usableHeight - renderHeight) / 2;
 
         pdf.addImage(imgData, "JPEG", posX, posY, renderWidth, renderHeight);
-        pdf.save(`arbol_genealogico_familia_montes_DIN_${dinFormat.toUpperCase()}.pdf`);
-        showToast(`¡PDF generado con éxito en formato normalizado DIN ${dinFormat.toUpperCase()}!`, "success");
+        pdf.save("arbol_genealogico_familia_montes.pdf");
+        showToast("¡PDF del árbol genealógico descargado con éxito!", "success");
       }
     };
     img.src = url;
