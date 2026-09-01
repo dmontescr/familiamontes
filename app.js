@@ -596,28 +596,27 @@ function initTreeVisualization() {
         nodes: formattedNodes
       });
 
-      // Evento al hacer clic en un nodo: abrir Drawer de información
+      // Evento al hacer clic en un nodo: diferenciar clic en foto vs clic en tarjeta
       AppState.treeInstance.onNodeClick((args) => {
         const personId = parseInt(args.node.id, 10);
+        const target = args.event && (args.event.target || args.event.srcElement);
+
+        if (target) {
+          const tagName = target.tagName ? target.tagName.toLowerCase() : "";
+          const clipPath = target.getAttribute ? (target.getAttribute("clip-path") || "") : "";
+          const cx = target.getAttribute ? target.getAttribute("cx") : "";
+
+          // Clic sobre la foto circular o su imagen SVG
+          if (tagName === "image" || (tagName === "circle" && cx === "48") || clipPath.includes("ulaImg")) {
+            openPhotoLightboxById(personId);
+            return false;
+          }
+        }
+
+        // Clic en cualquier otra parte de la tarjeta: abrir panel de perfil
         openPersonDrawer(personId);
         return false;
       });
-
-      // Evento al hacer clic directamente en la foto del mapa: abrir Lightbox
-      container.addEventListener("click", (e) => {
-        const imgTarget = e.target.closest("image, circle");
-        if (imgTarget) {
-          const clipPath = imgTarget.getAttribute("clip-path") || "";
-          const idMatch = clipPath.match(/ulaImg(\d+)/);
-          if (idMatch && idMatch[1]) {
-            const personId = parseInt(idMatch[1], 10);
-            openPhotoLightboxById(personId);
-            e.stopPropagation();
-            e.preventDefault();
-            return;
-          }
-        }
-      }, true);
 
       // Ajustar la vista a los límites de la pantalla
       setTimeout(() => {
