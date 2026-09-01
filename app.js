@@ -1592,29 +1592,29 @@ function persistLocalTree() {
 }
 
 // ==========================================================================
-// 6. EXPORTACIÓN A PDF HORIZONTAL DE ALTA RESOLUCIÓN
+// 6. EXPORTACIÓN A PDF HORIZONTAL DE ALTA RESOLUCIÓN (ÁRBOL COMPLETO)
 // ==========================================================================
 function exportTreeLandscapePDF() {
-  showToast("Generando mapa completo en PDF horizontal...", "info", 5000);
+  showToast("Generando mapa completo del árbol genealógico en PDF...", "info", 5000);
 
-  // 1. Intentar con exportación nativa de FamilyTree si está disponible
+  // 1. Si FamilyTree tiene exportPDF nativo, usarlo con ajuste completo
   if (AppState.treeInstance && typeof AppState.treeInstance.exportPDF === "function") {
     try {
       AppState.treeInstance.exportPDF({
-        filename: "arbol_genealogico_familia_montes.pdf",
+        filename: `arbol_genealogico_familia_montes_${new Date().toISOString().slice(0, 10)}.pdf`,
         landscape: true,
         fit: "all",
         expandChildren: true,
-        margin: [15, 15, 15, 15]
+        margin: [25, 25, 25, 25]
       });
-      showToast("¡PDF del árbol genealógico descargado con éxito!", "success");
+      showToast("¡PDF del árbol genealógico completo generado con éxito!", "success");
       return;
     } catch (err) {
-      console.warn("Fallo exportPDF nativo, usando renderizador jsPDF:", err);
+      console.warn("Fallo exportPDF nativo de la librería, usando motor vectorial de alta resolución:", err);
     }
   }
 
-  // 2. Fallback de alta resolución con jsPDF y Canvas SVG
+  // 2. Motor de renderizado vectorial de alta resolución (calcula todo el árbol sin recortar)
   try {
     const svgEl = document.querySelector("#tree-canvas svg");
     if (!svgEl) {
@@ -1622,21 +1622,64 @@ function exportTreeLandscapePDF() {
       return;
     }
 
-    const svgData = new XMLSerializer().serializeToString(svgEl);
+    // Calcular el área total del árbol completo
+    let bbox;
+    try {
+      if (svgEl.getBBox) {
+        bbox = svgEl.getBBox();
+      }
+    } catch (e) {
+      console.warn("getBBox warn:", e);
+    }
+
+    if (!bbox || bbox.width <= 0 || bbox.height <= 0) {
+      const nodes = svgEl.querySelectorAll("rect, g[data-n-id]");
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      nodes.forEach(el => {
+        if (el.getBBox) {
+          const b = el.getBBox();
+          if (b.width > 0 && b.height > 0) {
+            minX = Math.min(minX, b.x);
+            minY = Math.min(minY, b.y);
+            maxX = Math.max(maxX, b.x + b.width);
+            maxY = Math.max(maxY, b.y + b.height);
+          }
+        }
+      });
+      if (minX !== Infinity) {
+        bbox = { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+      } else {
+        bbox = { x: 0, y: 0, width: 2600, height: 1600 };
+      }
+    }
+
+    const padding = 80;
+    const cropX = bbox.x - padding;
+    const cropY = bbox.y - padding;
+    const totalWidth = Math.max(bbox.width + padding * 2, 800);
+    const totalHeight = Math.max(bbox.height + padding * 2, 500);
+
+    const clonedSvg = svgEl.cloneNode(true);
+    clonedSvg.setAttribute("width", totalWidth);
+    clonedSvg.setAttribute("height", totalHeight);
+    clonedSvg.setAttribute("viewBox", `${cropX} ${cropY} ${totalWidth} ${totalHeight}`);
+    clonedSvg.style.background = "#f8f6f0";
+
+    const svgData = new XMLSerializer().serializeToString(clonedSvg);
     const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
     const DOMURL = window.URL || window.webkitURL || window;
     const url = DOMURL.createObjectURL(svgBlob);
 
     const img = new Image();
+    img.crossOrigin = "anonymous";
     img.onload = () => {
-      // Escala 2.5x para máxima nitidez en zoom de móviles
-      const scale = 2.5;
+      const scale = 2;
       const canvas = document.createElement("canvas");
-      canvas.width = (img.width || 2400) * scale;
-      canvas.height = (img.height || 1400) * scale;
+      canvas.width = totalWidth * scale;
+      canvas.height = totalHeight * scale;
 
       const ctx = canvas.getContext("2d");
-      ctx.fillStyle = "#f6f3ee";
+      ctx.fillStyle = "#f8f6f0";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       ctx.scale(scale, scale);
@@ -1647,19 +1690,20 @@ function exportTreeLandscapePDF() {
 
       if (window.jspdf && window.jspdf.jsPDF) {
         const { jsPDF } = window.jspdf;
-        // Crear documento PDF horizontal
+        const isLandscape = totalWidth >= totalHeight;
         const pdf = new jsPDF({
-          orientation: "landscape",
+          orientation: isLandscape ? "landscape" : "portrait",
           unit: "px",
-          format: [canvas.width / scale, canvas.height / scale]
+          format: [totalWidth, totalHeight]
         });
 
-        pdf.addImage(imgData, "JPEG", 0, 0, canvas.width / scale, canvas.height / scale);
-        pdf.save(`arbol_genealogico_familia_montes_${new Date().toISOString().slice(0, 10)}.pdf`);
-        showToast("¡PDF horizontal generado con alta resolución!", "success");
+        pdf.addImage(imgData, "JPEG", 0, 0, totalWidth, totalHeight);
+        pdf.save(`arbol_genealogico_familia_montes_completo.pdf`);
+        showToast("¡PDF del árbol completo descargado con éxito!", "success");
       }
     };
     img.src = url;
+
   } catch (error) {
     console.error("Error al exportar PDF:", error);
     showToast("Error al generar el PDF: " + error.message, "error");
