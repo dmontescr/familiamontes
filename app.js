@@ -2419,6 +2419,39 @@ function correctSpanishName(rawName) {
   return correctedWords.join(" ");
 }
 
+function autoCapitalizeInput(input) {
+  const cursorPos = input.selectionStart;
+  const originalValue = input.value;
+  if (!originalValue) return;
+
+  // Dividir conservando los espacios exactos
+  const parts = originalValue.split(/(\s+)/);
+  let wordCount = 0;
+
+  const transformed = parts.map(part => {
+    if (/^\s+$/.test(part) || !part) return part;
+    const lower = part.toLowerCase();
+
+    // Partículas intermedias se mantienen en minúscula (ej: "de", "del", "y")
+    if (wordCount > 0 && LOWERCASE_PARTICLES.has(lower)) {
+      wordCount++;
+      return lower;
+    }
+
+    wordCount++;
+    // Poner automáticamente la primera letra de cada nombre/apellido en mayúscula
+    return part.charAt(0).toUpperCase() + part.slice(1);
+  });
+
+  const newValue = transformed.join("");
+  if (newValue !== originalValue) {
+    input.value = newValue;
+    if (cursorPos !== null) {
+      input.setSelectionRange(cursorPos, cursorPos);
+    }
+  }
+}
+
 function setupNameAutoCorrection() {
   const nameInput = document.getElementById("form-name");
   const fixBtn = document.getElementById("btn-fix-name");
@@ -2436,7 +2469,7 @@ function setupNameAutoCorrection() {
     }
 
     const corrected = correctSpanishName(rawValue);
-    // Mostrar sugerencia si hay diferencias de tilde o formato
+    // Mostrar sugerencia si hay diferencias de tildes o acentos
     if (corrected && corrected !== rawValue.trim()) {
       if (suggestionText) suggestionText.textContent = corrected;
       if (suggestionBox) suggestionBox.style.display = "flex";
@@ -2446,9 +2479,10 @@ function setupNameAutoCorrection() {
     }
   }
 
-  // Escuchar entrada con debounce
+  // Capitalización automática en tiempo real mientras se escribe y detección de sugerencias
   let debounceTimer;
   nameInput.addEventListener("input", () => {
+    autoCapitalizeInput(nameInput);
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(evaluateCorrection, 150);
   });
@@ -2482,10 +2516,10 @@ function setupNameAutoCorrection() {
     });
   }
 
-  // Al salir del campo (blur), si el usuario escribió todo en minúsculas/mayúsculas, auto-capitalizar
+  // Al salir del campo (blur), aplicar formato canónico completo
   nameInput.addEventListener("blur", () => {
     const val = nameInput.value.trim();
-    if (val.length >= 3 && (val === val.toLowerCase() || val === val.toUpperCase())) {
+    if (val.length >= 3) {
       nameInput.value = correctSpanishName(val);
       if (suggestionBox) suggestionBox.style.display = "none";
     }
