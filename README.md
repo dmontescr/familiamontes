@@ -9,10 +9,10 @@ Repositorio oficial: [https://github.com/dmontescr/familiamontes](https://github
 ## ✨ Características Principales
 
 ### 🔐 1. Seguridad y Acceso Restringido
-- **Pantalla de autenticación privada** para familiares.
+- **Pantalla de autenticación privada** para familiares autorizados.
 - **Control de seguridad:** Límite de **10 intentos fallidos por día**.
 - **Bloqueo de seguridad:** Mensaje informativo tras 10 intentos: *"Acceso bloqueado. Contacte con el administrador de la web."*
-- **Credenciales:** Usuario `navianos` · Contraseña `delavega` (persistencia de sesión segura en `sessionStorage`).
+- **Persistencia de sesión:** Sesión protegida y validada en `sessionStorage`.
 
 ### 🌿 2. Visualizador Interactivo de Alta Fidelidad
 - Visualización fluida con zoom, arrastre y centrado automático con **FamilyTreeJS**.
@@ -36,9 +36,10 @@ Repositorio oficial: [https://github.com/dmontescr/familiamontes](https://github
 - Geocodificador en vivo para aldeas y pedanías menores.
 
 ### 📷 5. Subida y Optimización de Fotos
+- Carpeta dedicada `/photos` con nombres de archivo estructurados (`photos/nombre_persona.jpg`).
 - Botón directo para subir fotografías desde cualquier dispositivo (móvil u ordenador).
 - Compresión y recorte inteligente en el navegador mediante Canvas (JPEG optimizado) para un rendimiento instantáneo sin saturar almacenamiento.
-- Opción para retirar o sustituir la fotografía en cualquier momento.
+- Sustitución y eliminación automática de fotografías obsoletas.
 
 ### 📄 6. Exportación en PDF Horizontal de Alta Resolución
 - Descarga del mapa genealógico completo en una **única hoja horizontal** de alta definición (*High-DPI*), optimizada para visualización con zoom en pantallas móviles y tablets.
@@ -55,6 +56,7 @@ familiamontes/
 ├── assets/
 │   ├── escudo_familia_montes.png   # Escudo heráldico oficial
 │   └── favicon.svg                 # Icono del árbol
+├── photos/                 # Fotografías de familiares optimizadas
 ├── data/
 │   ├── tree.json           # Datos genealógicos de la Familia Montes
 │   └── municipios.json     # Censo oficial de 8.134 municipios y provincias de España
@@ -78,4 +80,4 @@ python3 -m http.server 8080
 npx serve .
 ```
 
-Abre **`http://localhost:8080`** en tu navegador e ingresa con las credenciales familiares (`navianos` / `delavega`).
+Abre **`http://localhost:8080`** en tu navegador e ingresa con las credenciales familiares autorizadas.
