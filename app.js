@@ -1276,6 +1276,9 @@ function openAddDirectionalRelativeModal(targetPersonId, directionalType) {
   document.getElementById("form-photo-preview").src = getDefaultAvatar(genderSelect.value);
   document.getElementById("btn-remove-photo").style.display = "none";
 
+  const suggestionBox = document.getElementById("name-suggestion-box");
+  if (suggestionBox) suggestionBox.style.display = "none";
+
   openModal("modal-person");
 }
 
@@ -1294,6 +1297,9 @@ function openAddRootPersonModal() {
   document.getElementById("form-photo-file").value = "";
   document.getElementById("form-photo-preview").src = getDefaultAvatar("male");
   document.getElementById("btn-remove-photo").style.display = "none";
+
+  const suggestionBox = document.getElementById("name-suggestion-box");
+  if (suggestionBox) suggestionBox.style.display = "none";
 
   // Poblar selectores de padre, madre y cónyuge
   populateParentAndPartnerSelectors(null, {});
@@ -1326,6 +1332,9 @@ function openEditPersonModal(personId) {
   const hasPhoto = Boolean(person.photo);
   document.getElementById("form-photo-preview").src = person.photo || getDefaultAvatar(person.gender);
   document.getElementById("btn-remove-photo").style.display = hasPhoto ? "inline-flex" : "none";
+
+  const suggestionBox = document.getElementById("name-suggestion-box");
+  if (suggestionBox) suggestionBox.style.display = "none";
 
   // Poblar selectores con los datos actuales
   populateParentAndPartnerSelectors(personId, {
@@ -1875,6 +1884,9 @@ function setupModalEvents() {
   // Autocompletado inteligente de Profesiones y Oficios
   setupProfessionAutocomplete();
 
+  // Asistente inteligente de corrección de nombres y tildes
+  setupNameAutoCorrection();
+
   // Gestión y subida de fotografías
   setupPhotoUploadHandling();
 
@@ -2315,7 +2327,173 @@ function closeAllModals() {
 }
 
 // ==========================================================================
-// 8. SISTEMA DE NOTIFICACIONES TOAST
+// 8. ASISTENTE INTELIGENTE DE CORRECCIÓN DE NOMBRES, TILDES Y ERRATAS
+// ==========================================================================
+
+const SPANISH_ACCENTED_NAMES_MAP = {
+  // Nombres masculinos y femeninos frecuentes con tildes canónicas
+  "maria": "María", "jose": "José", "jesus": "Jesús", "angel": "Ángel", "alvaro": "Álvaro",
+  "raul": "Raúl", "ruben": "Rubén", "ivan": "Iván", "oscar": "Óscar", "adrian": "Adrián",
+  "ines": "Inés", "sofia": "Sofía", "lucia": "Lucía", "ramon": "Ramón", "joaquin": "Joaquín",
+  "cesar": "César", "hector": "Héctor", "andres": "Andrés", "victor": "Víctor", "tomas": "Tomás",
+  "julian": "Julián", "felix": "Félix", "matias": "Matías", "belen": "Belén", "agustin": "Agustín",
+  "damian": "Damián", "german": "Germán", "nestor": "Néstor", "simon": "Simón", "fabian": "Fabián",
+  "sebastian": "Sebastián", "cristian": "Cristián", "rocio": "Rocío", "monica": "Mónica", "veronica": "Verónica",
+  "inmaculada": "Inmaculada", "concepcion": "Concepción", "asuncion": "Asunción", "encarnacion": "Encarnación",
+  "estefania": "Estefanía", "valentin": "Valentín", "martin": "Martín", "gonzalo": "Gonzalo",
+  "rodrigo": "Rodrigo", "guillermo": "Guillermo", "antonio": "Antonio", "manuel": "Manuel",
+  "francisco": "Francisco", "david": "David", "javier": "Javier", "carlos": "Carlos",
+  "daniel": "Daniel", "alejandro": "Alejandro", "miguel": "Miguel", "pedro": "Pedro",
+  "fernando": "Fernando", "jorge": "Jorge", "luis": "Luis", "alberto": "Alberto",
+  "sergio": "Sergio", "juan": "Juan", "diego": "Diego", "pablo": "Pablo",
+  "ignacio": "Ignacio", "jaime": "Jaime", "marcos": "Marcos", "lucas": "Lucas",
+  "pilar": "Pilar", "carmen": "Carmen", "teresa": "Teresa", "elena": "Elena", "angela": "Ángela",
+  "mercedes": "Mercedes", "rosario": "Rosario", "dolores": "Dolores", "consuelo": "Consuelo",
+  "amalia": "Amalia", "cecilia": "Cecilia", "celia": "Celia", "claudia": "Claudia",
+
+  // Apellidos españoles frecuentes con tildes canónicas
+  "garcia": "García", "fernandez": "Fernández", "gonzalez": "González", "rodriguez": "Rodríguez",
+  "lopez": "López", "martinez": "Martínez", "sanchez": "Sánchez", "perez": "Pérez",
+  "gomez": "Gómez", "ruiz": "Ruiz", "hernandez": "Hernández", "diaz": "Díaz",
+  "alvarez": "Álvarez", "munoz": "Muñoz", "dominguez": "Domínguez", "vazquez": "Vázquez",
+  "ramirez": "Ramírez", "nunez": "Núñez", "mendez": "Méndez", "cortes": "Cortés",
+  "marquez": "Márquez", "gimenez": "Giménez", "ibanez": "Ibáñez", "duran": "Durán",
+  "benitez": "Benítez", "roman": "Román", "saez": "Sáez", "millan": "Millán",
+  "beltran": "Beltrán", "marin": "Marín", "rubin": "Rubín", "montez": "Montes", "montes": "Montes",
+  "alonso": "Alonso", "gutierrez": "Gutiérrez", "navarro": "Navarro", "torres": "Torres",
+  "ramos": "Ramos", "gil": "Gil", "serrano": "Serrano", "blanco": "Blanco", "molina": "Molina",
+  "morales": "Morales", "suarez": "Suárez", "ortega": "Ortega", "delgado": "Delgado",
+  "castro": "Castro", "ortiz": "Ortiz", "sanz": "Sanz", "iglesias": "Iglesias",
+  "garrido": "Garrido", "lozano": "Lozano", "santos": "Santos", "cano": "Cano",
+  "cruz": "Cruz", "prieto": "Prieto", "calvo": "Calvo", "gallego": "Gallego",
+  "vidal": "Vidal", "leon": "León", "cabrera": "Cabrera", "pena": "Peña",
+  "flores": "Flores", "campos": "Campos", "vega": "Vega", "fuentes": "Fuentes",
+  "carrasco": "Carrasco", "caballero": "Caballero", "nieto": "Nieto", "reyes": "Reyes",
+  "aguilar": "Aguilar", "pascual": "Pascual", "santana": "Santana", "herrero": "Herrero",
+  "montero": "Montero", "hidalgo": "Hidalgo", "mora": "Mora", "vicente": "Vicente",
+  "arias": "Arias", "carmona": "Carmona", "crespo": "Crespo", "pastor": "Pastor",
+  "soto": "Soto", "velasco": "Velasco", "soler": "Soler", "moya": "Moya",
+  "esteban": "Esteban", "parra": "Parra", "bravo": "Bravo", "gallardo": "Gallardo",
+  "rojas": "Rojas", "pardo": "Pardo", "franco": "Franco", "cordero": "Cordero",
+  "rivas": "Rivas", "silva": "Silva", "luque": "Luque", "cuesta": "Cuesta",
+  "maya": "Maya", "otero": "Otero", "valle": "Valle", "diez": "Díez"
+};
+
+const LOWERCASE_PARTICLES = new Set(["de", "del", "de la", "de los", "de las", "y", "e", "i", "la", "los", "las"]);
+
+function normalizeTokenForLookup(token) {
+  return token.toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zñ]/g, "");
+}
+
+function correctSpanishName(rawName) {
+  if (!rawName || typeof rawName !== "string") return "";
+  const cleaned = rawName.trim().replace(/\s+/g, " ");
+  if (!cleaned) return "";
+
+  const words = cleaned.split(" ");
+  const correctedWords = [];
+
+  for (let i = 0; i < words.length; i++) {
+    const rawWord = words[i];
+    const lowerWord = rawWord.toLowerCase();
+
+    // Mantener partículas intermedias en minúscula (ej. "de la", "del", "y")
+    if (i > 0 && LOWERCASE_PARTICLES.has(lowerWord)) {
+      correctedWords.push(lowerWord);
+      continue;
+    }
+
+    const lookupKey = normalizeTokenForLookup(rawWord);
+    if (SPANISH_ACCENTED_NAMES_MAP[lookupKey]) {
+      correctedWords.push(SPANISH_ACCENTED_NAMES_MAP[lookupKey]);
+    } else {
+      // Capitalizar primera letra de forma estándar (Title Case)
+      const capitalized = rawWord.charAt(0).toUpperCase() + rawWord.slice(1).toLowerCase();
+      correctedWords.push(capitalized);
+    }
+  }
+
+  return correctedWords.join(" ");
+}
+
+function setupNameAutoCorrection() {
+  const nameInput = document.getElementById("form-name");
+  const fixBtn = document.getElementById("btn-fix-name");
+  const suggestionBox = document.getElementById("name-suggestion-box");
+  const suggestionText = document.getElementById("name-suggestion-text");
+  const applyBtn = document.getElementById("btn-apply-name-suggestion");
+
+  if (!nameInput) return;
+
+  function evaluateCorrection() {
+    const rawValue = nameInput.value;
+    if (!rawValue || rawValue.trim().length < 3) {
+      if (suggestionBox) suggestionBox.style.display = "none";
+      return;
+    }
+
+    const corrected = correctSpanishName(rawValue);
+    // Mostrar sugerencia si hay diferencias de tilde o formato
+    if (corrected && corrected !== rawValue.trim()) {
+      if (suggestionText) suggestionText.textContent = corrected;
+      if (suggestionBox) suggestionBox.style.display = "flex";
+      refreshIcons();
+    } else {
+      if (suggestionBox) suggestionBox.style.display = "none";
+    }
+  }
+
+  // Escuchar entrada con debounce
+  let debounceTimer;
+  nameInput.addEventListener("input", () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(evaluateCorrection, 150);
+  });
+
+  // Aplicar sugerencia con el botón
+  if (applyBtn) {
+    applyBtn.addEventListener("click", () => {
+      const corrected = correctSpanishName(nameInput.value);
+      if (corrected) {
+        nameInput.value = corrected;
+        if (suggestionBox) suggestionBox.style.display = "none";
+        nameInput.focus();
+        showToast("Nombre corregido con tildes ortográficas", "info", 2000);
+      }
+    });
+  }
+
+  // Botón superior "Corregir tildes"
+  if (fixBtn) {
+    fixBtn.addEventListener("click", () => {
+      const rawValue = nameInput.value;
+      if (!rawValue || !rawValue.trim()) {
+        showToast("Escribe primero un nombre para corregirlo", "info");
+        return;
+      }
+      const corrected = correctSpanishName(rawValue);
+      nameInput.value = corrected;
+      if (suggestionBox) suggestionBox.style.display = "none";
+      nameInput.focus();
+      showToast("Formato y tildes aplicados", "success", 2000);
+    });
+  }
+
+  // Al salir del campo (blur), si el usuario escribió todo en minúsculas/mayúsculas, auto-capitalizar
+  nameInput.addEventListener("blur", () => {
+    const val = nameInput.value.trim();
+    if (val.length >= 3 && (val === val.toLowerCase() || val === val.toUpperCase())) {
+      nameInput.value = correctSpanishName(val);
+      if (suggestionBox) suggestionBox.style.display = "none";
+    }
+  });
+}
+
+// ==========================================================================
+// 9. SISTEMA DE NOTIFICACIONES TOAST
 // ==========================================================================
 function showToast(message, type = "info", duration = 4000) {
   const container = document.getElementById("toast-container");
@@ -2344,3 +2522,4 @@ function showToast(message, type = "info", duration = 4000) {
     }, 300);
   }, duration);
 }
+

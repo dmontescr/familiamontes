@@ -310,8 +310,27 @@
         </div>
 
         <div class="form-group">
-          <label for="form-name">Nombre Completo *</label>
-          <input type="text" id="form-name" class="input-control" placeholder="Ej. Francisco Montes Fernández" required>
+          <div class="form-label-row">
+            <label for="form-name">Nombre Completo *</label>
+            <button type="button" id="btn-fix-name" class="btn-text-action" title="Corregir mayúsculas y tildes automáticamente">
+              <i data-lucide="sparkles" style="width: 13px; height: 13px;"></i>
+              <span>Corregir tildes</span>
+            </button>
+          </div>
+          <input type="text" id="form-name" class="input-control" placeholder="Ej. Francisco Montes Fernández" required autocomplete="off">
+          
+          <!-- Caja de sugerencia inteligente en tiempo real para tildes y erratas -->
+          <div id="name-suggestion-box" class="name-suggestion-box" style="display: none;">
+            <div class="suggestion-content">
+              <i data-lucide="wand-2" style="width: 14px; height: 14px; color: var(--color-primary);"></i>
+              <span class="suggestion-intro">¿Quisiste escribir:</span>
+              <strong id="name-suggestion-text" class="suggestion-highlight"></strong>
+            </div>
+            <button type="button" id="btn-apply-name-suggestion" class="btn-suggestion-apply">
+              <i data-lucide="check" style="width: 13px; height: 13px;"></i>
+              <span>Aplicar</span>
+            </button>
+          </div>
         </div>
 
         <div class="form-grid-2">
