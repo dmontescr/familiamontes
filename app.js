@@ -608,7 +608,7 @@ function initTreeVisualization() {
     // Mapeo de datos a formato FamilyTreeJS
     const formattedNodes = AppState.treeData.map(person => {
       const datesStr = (person.birth || person.death) 
-        ? `${person.birth || '?'} — ${person.death || 'Vivo'}` 
+        ? formatVitalDatesWithAge(person.birth, person.death, "Vivo") 
         : "";
       
       const locationStr = person.city || "";
@@ -744,6 +744,48 @@ function getDefaultAvatar(gender) {
   return "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80";
 }
 
+/**
+ * Extrae el año numérico de 4 dígitos de un string de fecha (ej. "1960", "15/04/1989", etc.)
+ */
+function extractYear(dateStr) {
+  if (!dateStr) return null;
+  const match = dateStr.toString().match(/\b(18\d{2}|19\d{2}|20\d{2})\b/);
+  return match ? parseInt(match[0], 10) : null;
+}
+
+/**
+ * Calcula la edad actual para familiares vivos o la edad alcanzada al fallecer
+ */
+function calculateAge(birthStr, deathStr) {
+  const birthYear = extractYear(birthStr);
+  if (!birthYear) return null;
+
+  const deathYear = extractYear(deathStr);
+  const currentYear = new Date().getFullYear();
+
+  if (deathYear) {
+    const ageAtDeath = deathYear - birthYear;
+    return ageAtDeath >= 0 ? `${ageAtDeath} años` : null;
+  } else {
+    const currentAge = currentYear - birthYear;
+    return currentAge >= 0 ? `${currentAge} años` : null;
+  }
+}
+
+/**
+ * Formatea las fechas vitales agregando la edad entre paréntesis
+ * Ej: "1989 — Vivo (37 años)" o "1932 — 2017 (85 años)"
+ */
+function formatVitalDatesWithAge(birth, death, aliveLabel = "Vivo") {
+  if (!birth && !death) return "";
+  const birthText = birth || "?";
+  const deathText = death || aliveLabel;
+  const age = calculateAge(birth, death);
+  
+  const baseDates = `${birthText} — ${deathText}`;
+  return age ? `${baseDates} (${age})` : baseDates;
+}
+
 // ==========================================================================
 // 4. GESTIÓN DEL PANEL LATERAL (DRAWER) Y RELACIONES DIRECCIONALES
 // ==========================================================================
@@ -757,7 +799,7 @@ function openPersonDrawer(personId) {
   document.getElementById("drawer-person-img").src = getPersonPhotoUrl(person.photo, person.gender);
 
   const datesText = (person.birth || person.death) 
-    ? `${person.birth || '?'} — ${person.death || 'Vivo/a'}`
+    ? formatVitalDatesWithAge(person.birth, person.death, "Vivo/a")
     : "Sin fechas registradas";
   document.getElementById("drawer-person-dates").querySelector("span").textContent = datesText;
 
@@ -1647,7 +1689,7 @@ function setupSearchEvents() {
         <img class="search-item-avatar" src="${p.photo || getDefaultAvatar(p.gender)}" alt="${p.name}">
         <div class="search-item-info">
           <div class="search-item-name">${p.name}</div>
-          <div class="search-item-meta">${p.city || ''} ${p.birth ? '· ' + p.birth : ''}</div>
+          <div class="search-item-meta">${p.city || ''} ${p.birth ? '· ' + formatVitalDatesWithAge(p.birth, p.death, 'Vivo') : ''}</div>
         </div>
       </div>
     `).join("");
