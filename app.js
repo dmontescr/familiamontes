@@ -1485,19 +1485,40 @@ function setupToolbarEvents() {
 }
 
 function setupModalEvents() {
-  // Cerrar modales con botones de clase modal-close-trigger
+  // Cerrar modales con botones de clase modal-close-trigger (botones Cancelar y X)
   document.querySelectorAll(".modal-close-trigger").forEach(btn => {
     btn.addEventListener("click", closeAllModals);
   });
 
-  // Cerrar al hacer clic en el fondo oscuro
+  // Cerrar al hacer clic deliberado en el fondo oscuro (mousedown y mouseup en el backdrop)
   document.querySelectorAll(".modal-backdrop").forEach(backdrop => {
-    backdrop.addEventListener("click", (e) => {
-      if (e.target === backdrop) closeAllModals();
+    let startedOnBackdrop = false;
+
+    backdrop.addEventListener("mousedown", (e) => {
+      startedOnBackdrop = (e.target === backdrop);
+    });
+
+    backdrop.addEventListener("mouseup", (e) => {
+      // Para el formulario de edición, no cerrar por clic accidental fuera para no perder datos
+      if (backdrop.id === "modal-person") return;
+
+      if (startedOnBackdrop && e.target === backdrop) {
+        closeAllModals();
+      }
+      startedOnBackdrop = false;
     });
   });
 
-  // Guardar persona desde el modal
+  // Evitar que el envío estándar del formulario recargue o cierre el modal
+  const personForm = document.getElementById("form-person");
+  if (personForm) {
+    personForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      savePersonFromForm();
+    });
+  }
+
+  // Guardar persona desde el botón principal
   document.getElementById("btn-save-person").addEventListener("click", savePersonFromForm);
 
   // Confirmar eliminación
@@ -1515,8 +1536,16 @@ function setupModalEvents() {
   // Cerrar con tecla Escape
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
+      // Si hay un desplegable de autocompletado abierto, solo cerrarlo a él
+      const cityDropdown = document.getElementById("city-autocomplete-dropdown");
+      const profDropdown = document.getElementById("profession-autocomplete-dropdown");
+      if ((cityDropdown && cityDropdown.style.display !== "none") || 
+          (profDropdown && profDropdown.style.display !== "none")) {
+        if (cityDropdown) cityDropdown.style.display = "none";
+        if (profDropdown) profDropdown.style.display = "none";
+        return;
+      }
       closeAllModals();
-      closePersonDrawer();
     }
   });
 }
