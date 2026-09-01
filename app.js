@@ -538,62 +538,62 @@ function initTreeVisualization() {
     // Sanear y normalizar el grafo genealógico
     cleanAndValidateTreeData(AppState.treeData);
 
-    // Configuración de plantilla espaciosa y elegante para la Familia Montes
+    // Configuración de plantilla compacta y equilibrada para la Familia Montes (255 x 110 px)
     FamilyTree.templates.montesTheme = Object.assign({}, FamilyTree.templates.john);
-    FamilyTree.templates.montesTheme.size = [285, 114];
+    FamilyTree.templates.montesTheme.size = [255, 110];
     
     // Tarjeta noble con amplio espacio y sombra suave
     FamilyTree.templates.montesTheme.node = `
-      <rect x="0" y="0" height="114" width="285" fill="#ffffff" stroke-width="1.5" stroke="#d5cdbf" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(0,0,0,0.07))"></rect>
-      <rect x="0" y="0" height="114" width="7" fill="#a64b2a" rx="4" ry="4"></rect>
+      <rect x="0" y="0" height="110" width="255" fill="#ffffff" stroke-width="1.5" stroke="#d5cdbf" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(0,0,0,0.07))"></rect>
+      <rect x="0" y="0" height="110" width="6" fill="#a64b2a" rx="3" ry="3"></rect>
     `;
 
     // Tarjetas diferenciadas por género
     FamilyTree.templates.montesTheme_male = Object.assign({}, FamilyTree.templates.montesTheme);
     FamilyTree.templates.montesTheme_male.node = `
-      <rect x="0" y="0" height="114" width="285" fill="#ffffff" stroke-width="1.5" stroke="#cbd5e1" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(37,99,235,0.08))"></rect>
-      <rect x="0" y="0" height="114" width="7" fill="#2563eb" rx="4" ry="4"></rect>
+      <rect x="0" y="0" height="110" width="255" fill="#ffffff" stroke-width="1.5" stroke="#cbd5e1" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(37,99,235,0.08))"></rect>
+      <rect x="0" y="0" height="110" width="6" fill="#2563eb" rx="3" ry="3"></rect>
     `;
 
     FamilyTree.templates.montesTheme_female = Object.assign({}, FamilyTree.templates.montesTheme);
     FamilyTree.templates.montesTheme_female.node = `
-      <rect x="0" y="0" height="114" width="285" fill="#ffffff" stroke-width="1.5" stroke="#fbcfe8" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(219,39,119,0.08))"></rect>
-      <rect x="0" y="0" height="114" width="7" fill="#db2777" rx="4" ry="4"></rect>
+      <rect x="0" y="0" height="110" width="255" fill="#ffffff" stroke-width="1.5" stroke="#fbcfe8" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(219,39,119,0.08))"></rect>
+      <rect x="0" y="0" height="110" width="6" fill="#db2777" rx="3" ry="3"></rect>
     `;
 
     // Fotografía circular centrada verticalmente con cursor de ampliación
     FamilyTree.templates.montesTheme.img_0 = `
-      <clipPath id="ulaImg{id}"><circle cx="48" cy="57" r="30"></circle></clipPath>
-      <circle cx="48" cy="57" r="32" fill="none" stroke="#e2d9cd" stroke-width="2"></circle>
-      <image preserveAspectRatio="xMidYMid slice" clip-path="url(#ulaImg{id})" xlink:href="{val}" x="18" y="27" width="60" height="60" style="cursor: zoom-in; pointer-events: all;"></image>
+      <clipPath id="ulaImg{id}"><circle cx="46" cy="55" r="28"></circle></clipPath>
+      <circle cx="46" cy="55" r="30" fill="none" stroke="#e2d9cd" stroke-width="2"></circle>
+      <image preserveAspectRatio="xMidYMid slice" clip-path="url(#ulaImg{id})" xlink:href="{val}" x="18" y="27" width="56" height="56" style="cursor: zoom-in; pointer-events: all;"></image>
     `;
     FamilyTree.templates.montesTheme_male.img_0 = FamilyTree.templates.montesTheme.img_0;
     FamilyTree.templates.montesTheme_female.img_0 = FamilyTree.templates.montesTheme.img_0;
 
     // Nombre Línea 1 (para nombres largos en 2 líneas)
     FamilyTree.templates.montesTheme.field_0 = `
-      <text style="font-size: 13.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="88" y="28">{val}</text>
+      <text style="font-size: 13px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="84" y="28">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_0 = FamilyTree.templates.montesTheme.field_0;
     FamilyTree.templates.montesTheme_female.field_0 = FamilyTree.templates.montesTheme.field_0;
 
     // Nombre Línea 2 (para nombres largos en 2 líneas)
     FamilyTree.templates.montesTheme.field_3 = `
-      <text style="font-size: 13.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="88" y="46">{val}</text>
+      <text style="font-size: 13px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="84" y="44">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_3 = FamilyTree.templates.montesTheme.field_3;
     FamilyTree.templates.montesTheme_female.field_3 = FamilyTree.templates.montesTheme.field_3;
 
     // Nombre en 1 sola línea (centrado y equilibrado)
     FamilyTree.templates.montesTheme.field_4 = `
-      <text style="font-size: 14.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="88" y="38">{val}</text>
+      <text style="font-size: 14px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="84" y="38">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_4 = FamilyTree.templates.montesTheme.field_4;
     FamilyTree.templates.montesTheme_female.field_4 = FamilyTree.templates.montesTheme.field_4;
 
-    // Fechas vitales y edad (alineado en vertical con el nombre del municipio a x=105)
+    // Fechas vitales y edad
     FamilyTree.templates.montesTheme.field_1 = `
-      <text style="font-size: 12px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="105" y="64">{val}</text>
+      <text style="font-size: 11.5px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="84" y="64">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_1 = FamilyTree.templates.montesTheme.field_1;
     FamilyTree.templates.montesTheme_female.field_1 = FamilyTree.templates.montesTheme.field_1;
@@ -601,11 +601,11 @@ function initTreeVisualization() {
     // Ubicación / Origen con chincheta roja (map-pin)
     FamilyTree.templates.montesTheme.field_2 = `
       <g>
-        <svg x="88" y="76" width="13" height="13" viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg x="84" y="74" width="13" height="13" viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
           <circle cx="12" cy="10" r="3" fill="#ffffff"></circle>
         </svg>
-        <text style="font-size: 11.5px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="105" y="87">{val}</text>
+        <text style="font-size: 11px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="100" y="85">{val}</text>
       </g>
     `;
     FamilyTree.templates.montesTheme_male.field_2 = FamilyTree.templates.montesTheme.field_2;
@@ -645,9 +645,9 @@ function initTreeVisualization() {
         enableSearch: false,
         mouseScrool: FamilyTree.action.zoom,
         nodeMouseClick: FamilyTree.action.none,
-        siblingSeparation: 65,
+        siblingSeparation: 55,
         levelSeparation: 90,
-        subtreeSeparation: 60,
+        subtreeSeparation: 55,
         partnerSeparation: 35,
         scaleInitial: FamilyTree.match.boundary,
         nodeBinding: {
@@ -721,12 +721,12 @@ function formatPersonNameLines(fullName) {
   const trimmed = fullName.trim();
   const words = trimmed.split(/\s+/);
   
-  // Nombres de longitud estándar (hasta 25 caracteres) se mantienen en 1 sola línea
-  if (trimmed.length <= 25) {
+  // Nombres de hasta 22 caracteres se mantienen en 1 sola línea
+  if (trimmed.length <= 22) {
     return { line1: trimmed, line2: "" };
   }
 
-  // Nombres realmente largos se dividen armónicamente en 2 líneas
+  // Nombres largos se dividen armónicamente en 2 líneas
   let line1 = "";
   let line2 = "";
 
@@ -734,7 +734,7 @@ function formatPersonNameLines(fullName) {
     const word = words[i];
     if (i === 0) {
       line1 = word;
-    } else if ((line1 + " " + word).length <= 22 && line2 === "") {
+    } else if ((line1 + " " + word).length <= 20 && line2 === "") {
       line1 += " " + word;
     } else {
       line2 += (line2 ? " " : "") + word;
