@@ -11,8 +11,33 @@ const AppState = {
   treeInstance: null,
   selectedPersonId: null,
   hasUnsavedChanges: false,
-  isAuthenticated: false
+  isAuthenticated: false,
+  photosCache: {},      // Mapeo de 'photos/nombre_persona.jpg' -> base64 DataURL
+  deletedPhotos: new Set() // Set de 'photos/...' marcadas para eliminar
 };
+
+// Generar nombre de archivo limpio para la carpeta photos/
+function slugifyPersonName(name) {
+  if (!name) return "familiar";
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+// Obtener URL de imagen (sea base64 local, ruta de photos/ o avatar por defecto)
+function getPersonPhotoUrl(photoValue, gender) {
+  if (!photoValue) return getDefaultAvatar(gender);
+  if (photoValue.startsWith("photos/")) {
+    if (AppState.photosCache && AppState.photosCache[photoValue]) {
+      return AppState.photosCache[photoValue];
+    }
+    return photoValue;
+  }
+  return photoValue;
+}
 
 // Credenciales de acceso Gatekeeper
 const AUTH_CREDENTIALS = {
@@ -360,6 +385,20 @@ function setupAuthEvents() {
 // 2. CARGA Y PERSISTENCIA DE DATOS
 // ==========================================================================
 async function loadTreeData() {
+  // Cargar caché local de fotos y eliminaciones
+  const cachedPhotos = localStorage.getItem("montes_photos_cache");
+  if (cachedPhotos) {
+    try {
+      AppState.photosCache = JSON.parse(cachedPhotos);
+    } catch (e) {}
+  }
+  const cachedDeletions = localStorage.getItem("montes_photos_deletions");
+  if (cachedDeletions) {
+    try {
+      AppState.deletedPhotos = new Set(JSON.parse(cachedDeletions));
+    } catch (e) {}
+  }
+
   // 1. Intentar cargar desde el archivo data/tree.json
   try {
     const response = await fetch("data/tree.json?nocache=" + Date.now());
@@ -418,15 +457,16 @@ function updateHeaderSummary() {
 }
 
 // ==========================================================================
-// 3. VISUALIZADOR DEL ÁRBOL (FamilyTreeJS)
+// 3. VISUALIZACIÓN DEL ÁRBOL GENEALÓGICO (FamilyTreeJS)
 // ==========================================================================
 function initTreeVisualization() {
   const container = document.getElementById("tree-canvas");
   if (!container) return;
 
   if (typeof FamilyTree === "undefined") {
-    console.error("FamilyTreeJS no está disponible en la ventana global.");
-    container.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--color-danger); font-family: var(--font-sans);">
+    container.innerHTML = `
+    <div style="text-align: center; padding: 4rem 2rem; color: #a64b2a;">
+      <i data-lucide="alert-circle" style="width: 48px; height: 48px; margin: 0 auto 1rem;"></i>
       <h3>Error al cargar la librería del árbol interactivo</h3>
       <p style="margin-top: 0.5rem; font-size: 0.9rem;">Por favor, comprueba tu conexión a Internet para cargar la librería desde el CDN.</p>
     </div>`;
@@ -478,39 +518,39 @@ function initTreeVisualization() {
 
     // Nombre Línea 2 (para nombres largos en 2 líneas)
     FamilyTree.templates.montesTheme.field_3 = `
-      <text style="font-size: 13px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="88" y="50">{val}</text>
+      <text style="font-size: 13.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="88" y="50">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_3 = FamilyTree.templates.montesTheme.field_3;
     FamilyTree.templates.montesTheme_female.field_3 = FamilyTree.templates.montesTheme.field_3;
 
-    // Nombre Línea Única (centrado en el punto intermedio vertical para nombres cortos)
+    // Nombre en 1 sola línea centrada en el punto medio exacto (y = 42)
     FamilyTree.templates.montesTheme.field_4 = `
-      <text style="font-size: 14px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="88" y="42">{val}</text>
+      <text style="font-size: 14.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="88" y="42">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_4 = FamilyTree.templates.montesTheme.field_4;
     FamilyTree.templates.montesTheme_female.field_4 = FamilyTree.templates.montesTheme.field_4;
 
     // Fechas vitales
     FamilyTree.templates.montesTheme.field_1 = `
-      <text style="font-size: 11px; font-family: 'Outfit', sans-serif;" fill="#64748b" x="88" y="73">{val}</text>
+      <text style="font-size: 11.5px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="88" y="75">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_1 = FamilyTree.templates.montesTheme.field_1;
     FamilyTree.templates.montesTheme_female.field_1 = FamilyTree.templates.montesTheme.field_1;
 
-    // Lugar u origen
+    // Ubicación / Origen
     FamilyTree.templates.montesTheme.field_2 = `
-      <text style="font-size: 10px; font-weight: 600; font-family: 'Outfit', sans-serif;" fill="#a64b2a" x="88" y="93">{val}</text>
+      <text style="font-size: 11px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#94a3b8" x="88" y="93">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_2 = FamilyTree.templates.montesTheme.field_2;
     FamilyTree.templates.montesTheme_female.field_2 = FamilyTree.templates.montesTheme.field_2;
 
-    // Mapear datos para FamilyTree: nombres cortos en punto intermedio y nombres largos en 2 líneas
+    // Mapeo de datos a formato FamilyTreeJS
     const formattedNodes = AppState.treeData.map(person => {
       const datesStr = (person.birth || person.death) 
-        ? `${person.birth || '?'} — ${person.death || 'Presente'}` 
-        : (person.profession || 'Familia Montes');
+        ? `${person.birth || '?'} — ${person.death || 'Vivo'}` 
+        : "";
       
-      const locationStr = person.city ? `📍 ${person.city.split('/')[0].trim()}` : '';
+      const locationStr = person.city || "";
       const nameParts = formatPersonNameLines(person.name);
       const isSingleLine = !nameParts.line2;
 
@@ -526,7 +566,7 @@ function initTreeVisualization() {
         name: person.name,
         title: datesStr,
         subtitle: locationStr,
-        photo: person.photo || getDefaultAvatar(person.gender),
+        photo: getPersonPhotoUrl(person.photo, person.gender),
         raw: person
       };
     });
@@ -625,7 +665,7 @@ function openPersonDrawer(personId) {
   AppState.selectedPersonId = personId;
 
   document.getElementById("drawer-person-name").textContent = person.name;
-  document.getElementById("drawer-person-img").src = person.photo || getDefaultAvatar(person.gender);
+  document.getElementById("drawer-person-img").src = getPersonPhotoUrl(person.photo, person.gender);
 
   const datesText = (person.birth || person.death) 
     ? `${person.birth || '?'} — ${person.death || 'Vivo/a'}`
@@ -1023,6 +1063,34 @@ function savePersonFromForm() {
     return;
   }
 
+  // Manejo de fotografías nombradas en la carpeta photos/
+  let finalPhoto = photo;
+
+  if (photo && photo.startsWith("data:image")) {
+    const photoPath = `photos/${slugifyPersonName(name)}.jpg`;
+    AppState.photosCache[photoPath] = photo;
+    finalPhoto = photoPath;
+
+    // Si se está editando y tenía una foto previa diferente en photos/, marcar la antigua para eliminar
+    if (idInput) {
+      const personId = parseInt(idInput, 10);
+      const oldPerson = AppState.treeData.find(p => p.id === personId);
+      if (oldPerson && oldPerson.photo && oldPerson.photo.startsWith("photos/") && oldPerson.photo !== photoPath) {
+        AppState.deletedPhotos.add(oldPerson.photo);
+        delete AppState.photosCache[oldPerson.photo];
+      }
+    }
+  } else if (!photo && idInput) {
+    // Si se eliminó la foto existente
+    const personId = parseInt(idInput, 10);
+    const oldPerson = AppState.treeData.find(p => p.id === personId);
+    if (oldPerson && oldPerson.photo && oldPerson.photo.startsWith("photos/")) {
+      AppState.deletedPhotos.add(oldPerson.photo);
+      delete AppState.photosCache[oldPerson.photo];
+    }
+    finalPhoto = "";
+  }
+
   // CASO A: EDITAR PERSONA EXISTENTE
   if (idInput) {
     const personId = parseInt(idInput, 10);
@@ -1057,7 +1125,7 @@ function savePersonFromForm() {
         birth,
         death,
         profession,
-        photo: photo || oldPerson.photo || getDefaultAvatar(gender),
+        photo: finalPhoto,
         notes,
         fid: manualFid || undefined,
         mid: manualMid || undefined,
@@ -1081,7 +1149,7 @@ function savePersonFromForm() {
       birth,
       death,
       profession,
-      photo: photo || getDefaultAvatar(gender),
+      photo: finalPhoto,
       notes,
       pids: []
     };
@@ -1170,6 +1238,12 @@ function deleteSelectedPerson() {
   const person = AppState.treeData.find(p => p.id === personId);
   const name = person ? person.name : "la persona";
 
+  // Si la persona tenía una foto en photos/, marcarla para eliminar en GitHub
+  if (person && person.photo && person.photo.startsWith("photos/")) {
+    AppState.deletedPhotos.add(person.photo);
+    delete AppState.photosCache[person.photo];
+  }
+
   // Eliminar persona del array
   AppState.treeData = AppState.treeData.filter(p => p.id !== personId);
 
@@ -1199,6 +1273,8 @@ function generateNextId() {
 
 function persistLocalTree() {
   localStorage.setItem("montes_tree_cache", JSON.stringify(AppState.treeData));
+  localStorage.setItem("montes_photos_cache", JSON.stringify(AppState.photosCache || {}));
+  localStorage.setItem("montes_photos_deletions", JSON.stringify(Array.from(AppState.deletedPhotos || [])));
 }
 
 // ==========================================================================
