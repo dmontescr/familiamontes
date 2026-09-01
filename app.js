@@ -928,8 +928,84 @@ function openPhotoLightboxById(personId) {
 }
 
 // ==========================================================================
-// 5. CRUD DE FAMILIARES Y MODALES
+// 5. MOTOR DE PARENTESCO DIRECTO Y CRUD DE FAMILIARES
 // ==========================================================================
+
+/**
+ * Calcula el conjunto de todos los familiares de sangre directos (ancestros,
+ * descendientes, hermanos, tíos y sobrinos) para evitar emparejamientos biológicos directos.
+ */
+function getDirectBloodRelatives(personId, overrideFid = null, overrideMid = null) {
+  const relatives = new Set();
+  if (!personId) return relatives;
+  relatives.add(personId);
+
+  const person = AppState.treeData.find(p => p.id === personId);
+  const fid = (overrideFid !== undefined && overrideFid !== null) ? overrideFid : (person ? person.fid : null);
+  const mid = (overrideMid !== undefined && overrideMid !== null) ? overrideMid : (person ? person.mid : null);
+
+  // 1. Ancestros en todos los niveles (Padres, Abuelos, Bisabuelos, etc.)
+  function collectAncestors(currentFid, currentMid) {
+    const parentIds = [currentFid, currentMid].filter(Boolean);
+    for (const pId of parentIds) {
+      if (!relatives.has(pId)) {
+        relatives.add(pId);
+        const parent = AppState.treeData.find(p => p.id === pId);
+        if (parent) {
+          collectAncestors(parent.fid, parent.mid);
+        }
+      }
+    }
+  }
+  collectAncestors(fid, mid);
+
+  // 2. Descendientes en todos los niveles (Hijos, Nietos, Bisnietos, etc.)
+  function collectDescendants(ancestorId) {
+    AppState.treeData.forEach(p => {
+      if (p.fid === ancestorId || p.mid === ancestorId) {
+        if (!relatives.has(p.id)) {
+          relatives.add(p.id);
+          collectDescendants(p.id);
+        }
+      }
+    });
+  }
+  collectDescendants(personId);
+
+  // 3. Hermanos/as y toda su descendencia (Sobrinos, Sobrinos-nietos)
+  const siblingIds = new Set();
+  if (fid || mid) {
+    AppState.treeData.forEach(p => {
+      if (p.id !== personId) {
+        if ((fid && p.fid === fid) || (mid && p.mid === mid)) {
+          siblingIds.add(p.id);
+          relatives.add(p.id);
+        }
+      }
+    });
+  }
+  siblingIds.forEach(sibId => {
+    collectDescendants(sibId);
+  });
+
+  // 4. Tíos/as directos (Hermanos de los padres)
+  const parents = [fid, mid].filter(Boolean);
+  parents.forEach(pId => {
+    const parent = AppState.treeData.find(p => p.id === pId);
+    if (parent && (parent.fid || parent.mid)) {
+      AppState.treeData.forEach(p => {
+        if (p.id !== pId) {
+          if ((parent.fid && p.fid === parent.fid) || (parent.mid && p.mid === parent.mid)) {
+            relatives.add(p.id);
+          }
+        }
+      });
+    }
+  });
+
+  return relatives;
+}
+
 function populateParentAndPartnerSelectors(excludePersonId = null, preselected = {}) {
   const fatherSelect = document.getElementById("form-select-father");
   const motherSelect = document.getElementById("form-select-mother");
@@ -942,38 +1018,20 @@ function populateParentAndPartnerSelectors(excludePersonId = null, preselected =
   const initialMid = preselected.mid !== undefined ? preselected.mid : (currentPerson ? currentPerson.mid : null);
   const initialPid = preselected.pid !== undefined ? preselected.pid : ((currentPerson && currentPerson.pids && currentPerson.pids.length > 0) ? currentPerson.pids[0] : null);
 
-  // Función para refrescar candidatos a cónyuge excluyendo padres, hijos y hermanos
+  // Refrescar candidatos a cónyuge excluyendo a toda la familia directa (ancestros, descendientes, hermanos, tíos, sobrinos)
   const refreshPartnerOptions = () => {
     const selectedFid = fatherSelect.value ? parseInt(fatherSelect.value, 10) : null;
     const selectedMid = motherSelect.value ? parseInt(motherSelect.value, 10) : null;
     const currentSelectedPid = partnerSelect.value ? parseInt(partnerSelect.value, 10) : (initialPid ? parseInt(initialPid, 10) : null);
 
-    const forbiddenPartnerIds = new Set();
-    if (excludePersonId) {
-      forbiddenPartnerIds.add(excludePersonId);
+    // Obtener todos los familiares de sangre prohibidos
+    const forbiddenPartnerIds = excludePersonId 
+      ? getDirectBloodRelatives(excludePersonId, selectedFid, selectedMid)
+      : new Set();
 
-      // 1. Excluir Padres (seleccionados en el formulario o en la base de datos)
-      if (selectedFid) forbiddenPartnerIds.add(selectedFid);
-      if (selectedMid) forbiddenPartnerIds.add(selectedMid);
-
-      // 2. Excluir Hijos (quienes tengan a esta persona como padre o madre)
-      AppState.treeData.forEach(p => {
-        if (p.fid === excludePersonId || p.mid === excludePersonId) {
-          forbiddenPartnerIds.add(p.id);
-        }
-      });
-
-      // 3. Excluir Hermanos (quienes compartan padre o madre con esta persona)
-      if (selectedFid || selectedMid) {
-        AppState.treeData.forEach(p => {
-          if (p.id !== excludePersonId) {
-            if ((selectedFid && p.fid === selectedFid) || (selectedMid && p.mid === selectedMid)) {
-              forbiddenPartnerIds.add(p.id);
-            }
-          }
-        });
-      }
-    }
+    if (excludePersonId) forbiddenPartnerIds.add(excludePersonId);
+    if (selectedFid) forbiddenPartnerIds.add(selectedFid);
+    if (selectedMid) forbiddenPartnerIds.add(selectedMid);
 
     // Filtrar candidatos a pareja
     const partnerCandidates = AppState.treeData.filter(p => {
@@ -995,15 +1053,22 @@ function populateParentAndPartnerSelectors(excludePersonId = null, preselected =
     }
   };
 
-  // Conjunto de IDs prohibidos para ser Padres (uno mismo, hijos)
+  // Conjunto de IDs prohibidos para ser Padres (uno mismo y todos sus descendientes: hijos, nietos, bisnietos)
   const forbiddenParentIds = new Set();
   if (excludePersonId) {
     forbiddenParentIds.add(excludePersonId);
-    AppState.treeData.forEach(p => {
-      if (p.fid === excludePersonId || p.mid === excludePersonId) {
-        forbiddenParentIds.add(p.id);
-      }
-    });
+    
+    function addAllDescendants(ancestorId) {
+      AppState.treeData.forEach(p => {
+        if (p.fid === ancestorId || p.mid === ancestorId) {
+          if (!forbiddenParentIds.has(p.id)) {
+            forbiddenParentIds.add(p.id);
+            addAllDescendants(p.id);
+          }
+        }
+      });
+    }
+    addAllDescendants(excludePersonId);
   }
 
   // 1. Padres posibles (varones no prohibidos)
