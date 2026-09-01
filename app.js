@@ -540,24 +540,24 @@ function initTreeVisualization() {
 
     // Configuración de plantilla espaciosa y elegante para la Familia Montes
     FamilyTree.templates.montesTheme = Object.assign({}, FamilyTree.templates.john);
-    FamilyTree.templates.montesTheme.size = [250, 114];
+    FamilyTree.templates.montesTheme.size = [285, 114];
     
     // Tarjeta noble con amplio espacio y sombra suave
     FamilyTree.templates.montesTheme.node = `
-      <rect x="0" y="0" height="114" width="250" fill="#ffffff" stroke-width="1.5" stroke="#d5cdbf" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(0,0,0,0.07))"></rect>
+      <rect x="0" y="0" height="114" width="285" fill="#ffffff" stroke-width="1.5" stroke="#d5cdbf" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(0,0,0,0.07))"></rect>
       <rect x="0" y="0" height="114" width="7" fill="#a64b2a" rx="4" ry="4"></rect>
     `;
 
     // Tarjetas diferenciadas por género
     FamilyTree.templates.montesTheme_male = Object.assign({}, FamilyTree.templates.montesTheme);
     FamilyTree.templates.montesTheme_male.node = `
-      <rect x="0" y="0" height="114" width="250" fill="#ffffff" stroke-width="1.5" stroke="#cbd5e1" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(37,99,235,0.08))"></rect>
+      <rect x="0" y="0" height="114" width="285" fill="#ffffff" stroke-width="1.5" stroke="#cbd5e1" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(37,99,235,0.08))"></rect>
       <rect x="0" y="0" height="114" width="7" fill="#2563eb" rx="4" ry="4"></rect>
     `;
 
     FamilyTree.templates.montesTheme_female = Object.assign({}, FamilyTree.templates.montesTheme);
     FamilyTree.templates.montesTheme_female.node = `
-      <rect x="0" y="0" height="114" width="250" fill="#ffffff" stroke-width="1.5" stroke="#fbcfe8" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(219,39,119,0.08))"></rect>
+      <rect x="0" y="0" height="114" width="285" fill="#ffffff" stroke-width="1.5" stroke="#fbcfe8" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(219,39,119,0.08))"></rect>
       <rect x="0" y="0" height="114" width="7" fill="#db2777" rx="4" ry="4"></rect>
     `;
 
@@ -715,11 +715,12 @@ function formatPersonNameLines(fullName) {
   const trimmed = fullName.trim();
   const words = trimmed.split(/\s+/);
   
-  // Si el nombre es corto, se mantiene en una sola línea
-  if (words.length <= 2 && trimmed.length <= 18) {
+  // Nombres de longitud estándar (hasta 25 caracteres) se mantienen en 1 sola línea
+  if (trimmed.length <= 25) {
     return { line1: trimmed, line2: "" };
   }
 
+  // Nombres realmente largos se dividen armónicamente en 2 líneas
   let line1 = "";
   let line2 = "";
 
@@ -727,7 +728,7 @@ function formatPersonNameLines(fullName) {
     const word = words[i];
     if (i === 0) {
       line1 = word;
-    } else if ((line1 + " " + word).length <= 18 && line2 === "") {
+    } else if ((line1 + " " + word).length <= 22 && line2 === "") {
       line1 += " " + word;
     } else {
       line2 += (line2 ? " " : "") + word;
