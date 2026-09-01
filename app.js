@@ -2454,7 +2454,6 @@ function autoCapitalizeInput(input) {
 
 function setupNameAutoCorrection() {
   const nameInput = document.getElementById("form-name");
-  const fixBtn = document.getElementById("btn-fix-name");
   const suggestionBox = document.getElementById("name-suggestion-box");
   const suggestionText = document.getElementById("name-suggestion-text");
   const applyBtn = document.getElementById("btn-apply-name-suggestion");
@@ -2497,22 +2496,6 @@ function setupNameAutoCorrection() {
         nameInput.focus();
         showToast("Nombre corregido con tildes ortográficas", "info", 2000);
       }
-    });
-  }
-
-  // Botón superior "Corregir tildes"
-  if (fixBtn) {
-    fixBtn.addEventListener("click", () => {
-      const rawValue = nameInput.value;
-      if (!rawValue || !rawValue.trim()) {
-        showToast("Escribe primero un nombre para corregirlo", "info");
-        return;
-      }
-      const corrected = correctSpanishName(rawValue);
-      nameInput.value = corrected;
-      if (suggestionBox) suggestionBox.style.display = "none";
-      nameInput.focus();
-      showToast("Formato y tildes aplicados", "success", 2000);
     });
   }
 
