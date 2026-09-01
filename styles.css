@@ -1499,3 +1499,59 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* --------------------------------------------------------------------------
+   BANNER DE DIAGNÓSTICO Y ERROR DEL ÁRBOL
+   -------------------------------------------------------------------------- */
+.tree-error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  padding: 2rem;
+}
+
+.tree-error-card {
+  background: var(--color-surface);
+  border: 1.5px solid rgba(220, 38, 38, 0.25);
+  border-radius: var(--radius-lg);
+  padding: 2.25rem 2rem;
+  max-width: 520px;
+  text-align: center;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.08);
+  animation: fadeIn 0.3s ease;
+}
+
+.tree-error-icon {
+  width: 58px;
+  height: 58px;
+  background: rgba(220, 38, 38, 0.1);
+  color: var(--color-danger);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+}
+
+.tree-error-card h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin-bottom: 0.5rem;
+}
+
+.tree-error-card p {
+  font-size: 0.92rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+
+.tree-error-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}

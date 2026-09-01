@@ -477,29 +477,45 @@ function cleanAndValidateTreeData(data) {
     // Quitar a uno mismo y IDs inexistentes
     p.pids = p.pids.filter(pid => pid !== p.id && personMap.has(pid));
 
-    // Validar fid y mid
+    // Validar fid y mid (eliminar si apuntan a sí mismos o IDs inexistentes)
     if (p.fid && (!personMap.has(p.fid) || p.fid === p.id)) delete p.fid;
     if (p.mid && (!personMap.has(p.mid) || p.mid === p.id)) delete p.mid;
 
-    // Si tiene padre y madre, asegurar que ambos padres tengan relación mutua de co-parentesco en pids
-    if (p.fid && p.mid) {
-      const father = personMap.get(p.fid);
-      const mother = personMap.get(p.mid);
-      if (father && !father.pids.includes(p.mid)) father.pids.push(p.mid);
-      if (mother && !mother.pids.includes(p.fid)) mother.pids.push(p.fid);
+    // Si tiene más de una pareja, dejar solo la primera para evitar conflictos de layout
+    if (p.pids.length > 1) {
+      p.pids = [p.pids[0]];
     }
+  });
 
-    // Asegurar reciprocidad simétrica en pids
-    p.pids.forEach(partnerId => {
+  // Asegurar simetría estricta en parejas
+  data.forEach(p => {
+    if (p.pids && p.pids.length > 0) {
+      const partnerId = p.pids[0];
       const partner = personMap.get(partnerId);
-      if (partner && Array.isArray(partner.pids) && !partner.pids.includes(p.id)) {
-        partner.pids.push(p.id);
+      if (partner) {
+        if (!Array.isArray(partner.pids)) partner.pids = [];
+        if (partner.pids[0] !== p.id) {
+          partner.pids = [p.id];
+        }
+      } else {
+        p.pids = [];
       }
-    });
+    }
   });
 
   return data;
 }
+
+window.restoreLastValidTree = function() {
+  if (AppState.lastValidTreeData && AppState.lastValidTreeData.length > 0) {
+    AppState.treeData = JSON.parse(JSON.stringify(AppState.lastValidTreeData));
+    persistLocalTree();
+    initTreeVisualization();
+    showToast("Se ha restaurado la versión anterior del árbol", "info");
+  } else {
+    loadTreeData();
+  }
+};
 
 function initTreeVisualization() {
   const container = document.getElementById("tree-canvas");
@@ -627,7 +643,6 @@ function initTreeVisualization() {
         levelSeparation: 90,
         subtreeSeparation: 60,
         partnerSeparation: 35,
-        partnerChildrenSearch: false, // Desactivado para evitar bloqueos con cambios de cónyuge
         scaleInitial: FamilyTree.match.boundary,
         nodeBinding: {
           field_0: "name_l1",
@@ -639,6 +654,9 @@ function initTreeVisualization() {
         },
         nodes: formattedNodes
       });
+
+      // Guardar copia del estado válido
+      AppState.lastValidTreeData = JSON.parse(JSON.stringify(AppState.treeData));
 
       // Evento al hacer clic en un nodo
       AppState.treeInstance.onNodeClick((args) => {
@@ -668,19 +686,24 @@ function initTreeVisualization() {
 
     } catch (err) {
       console.error("Error al inicializar FamilyTree:", err);
-      // Reintento limpio con nodos básicos
-      try {
-        AppState.treeInstance = new FamilyTree(container, {
-          template: "montesTheme",
-          mode: "light",
-          nodes: formattedNodes
-        });
-        AppState.treeInstance.fit();
-      } catch (fallbackErr) {
-        container.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--color-danger);">
-          Error al renderizar el árbol: ${err.message}
-        </div>`;
-      }
+      container.innerHTML = `
+        <div class="tree-error-banner">
+          <div class="tree-error-card">
+            <div class="tree-error-icon">
+              <i data-lucide="alert-triangle" style="width: 28px; height: 28px;"></i>
+            </div>
+            <h3>No se pudo organizar el mapa</h3>
+            <p>El cambio de parentesco generó un conflicto en el árbol: <strong>${err.message}</strong></p>
+            <div class="tree-error-actions">
+              <button type="button" class="btn-primary" onclick="restoreLastValidTree()">
+                <i data-lucide="rotate-ccw" style="width: 16px; height: 16px;"></i>
+                <span>Restaurar versión anterior</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      refreshIcons();
     }
   }, 60);
 }
