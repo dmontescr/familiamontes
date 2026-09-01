@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Árbol Genealógico — Familia Montes</title>
+  <meta name="description" content="Plataforma interactiva del árbol genealógico y memoria histórica de la Familia Montes (Navianos de la Vega, León).">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="assets/escudo_familia_montes.png">
+
+  <!-- Google Fonts: Cinzel & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- FamilyTreeJS CDN -->
+  <script src="https://balkan.app/js/FamilyTree.js"></script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- jsPDF CDN para exportación a PDF de alta resolución -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- Hoja de Estilos -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- =========================================================================
+       1. PANTALLA DE LOGIN (GATEKEEPER)
+       ========================================================================= -->
+  <div id="login-screen" class="login-screen">
+    <div class="login-card">
+      <div class="login-crest">
+        <img src="assets/escudo_familia_montes.png" alt="Escudo Heráldico de la Familia Montes" class="login-crest-img">
+      </div>
+      
+      <h2 class="login-title">Familia Montes</h2>
+      <p class="login-subtitle">Memoria y Genealogía · Navianos de la Vega</p>
+
+      <form id="login-form" class="login-form" onsubmit="return false;">
+        <div class="form-group">
+          <label for="login-user">Usuario de Familia</label>
+          <div class="input-wrapper">
+            <i data-lucide="user"></i>
+            <input type="text" id="login-user" class="input-control" placeholder="Introduce el usuario" autocomplete="username" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="login-pass">Contraseña de Acceso</label>
+          <div class="input-wrapper">
+            <i data-lucide="key-round"></i>
+            <input type="password" id="login-pass" class="input-control" placeholder="Introduce la contraseña" autocomplete="current-password" required>
+          </div>
+        </div>
+
+        <div id="login-error-msg" class="login-error">
+          <i data-lucide="alert-circle" style="width: 16px; height: 16px;"></i>
+          <span>Usuario o contraseña incorrectos.</span>
+        </div>
+
+        <button type="submit" id="btn-submit-login" class="btn-primary">
+          <span>Acceder al Árbol</span>
+          <i data-lucide="arrow-right" style="width: 18px; height: 18px;"></i>
+        </button>
+      </form>
+
+      <div class="login-hint">
+        🔒 Acceso exclusivo para familiares.
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       2. APLICACIÓN PRINCIPAL
+       ========================================================================= -->
+  <div id="app-container" class="app-container" style="display: none;">
+    
+    <!-- HEADER SUPERIOR -->
+    <header class="app-header">
+      <div class="brand-section">
+        <div class="brand-icon">
+          <img src="assets/escudo_familia_montes.png" alt="Escudo Montes" class="brand-crest-img">
+        </div>
+        <div class="brand-info">
+          <h1>Familia Montes</h1>
+          <span id="header-tree-summary">Cargando familiares...</span>
+        </div>
+      </div>
+
+      <!-- BARRA DE HERRAMIENTAS -->
+      <div class="toolbar-section">
+        <!-- Buscador -->
+        <div class="search-box">
+          <i data-lucide="search"></i>
+          <input type="text" id="search-input" placeholder="Buscar por nombre..." autocomplete="off">
+          <div id="search-results" class="search-results"></div>
+        </div>
+
+        <!-- Botón Añadir Persona Independiente -->
+        <button id="btn-add-root-person" class="btn-tool btn-accent">
+          <i data-lucide="user-plus" style="width: 16px; height: 16px;"></i>
+          <span>Nueva Persona</span>
+        </button>
+
+        <!-- Botón Exportar PDF Horizontal -->
+        <button id="btn-export-pdf" class="btn-tool btn-primary-tool" title="Descargar mapa completo del árbol genealógico en PDF horizontal">
+          <i data-lucide="file-text" style="width: 15px; height: 15px;"></i>
+          <span>Exportar PDF</span>
+        </button>
+
+        <!-- Cerrar Sesión -->
+        <button id="btn-logout" class="btn-icon btn-logout" title="Cerrar Sesión">
+          <i data-lucide="log-out" style="width: 18px; height: 18px;"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- ÁREA DEL ÁRBOL GENEALÓGICO -->
+    <main class="tree-viewport">
+      <div id="tree-canvas"></div>
+
+      <!-- Controles Flotantes -->
+      <div class="floating-controls">
+        <button id="ctrl-zoom-in" class="floating-btn" title="Acercar (Zoom In)">
+          <i data-lucide="plus" style="width: 18px; height: 18px;"></i>
+        </button>
+        <button id="ctrl-zoom-out" class="floating-btn" title="Alejar (Zoom Out)">
+          <i data-lucide="minus" style="width: 18px; height: 18px;"></i>
+        </button>
+        <button id="ctrl-center" class="floating-btn" title="Centrar y ajustar árbol">
+          <i data-lucide="maximize" style="width: 18px; height: 18px;"></i>
+        </button>
+      </div>
+
+      <!-- Leyenda informativa -->
+      <div class="floating-legend">
+        <div class="legend-item">
+          <span class="legend-dot male"></span>
+          <span>Varón</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot female"></span>
+          <span>Mujer</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot deceased"></span>
+          <span>Fallecido/a</span>
+        </div>
+      </div>
+    </main>
+
+    <!-- DRAWER / PANEL LATERAL DE DETALLE DE PERSONA -->
+    <aside id="person-drawer" class="person-drawer">
+      <div class="drawer-header">
+        <button id="drawer-close-btn" class="drawer-close-btn" title="Cerrar panel">
+          <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+        </button>
+        <img id="drawer-person-img" class="drawer-avatar" src="" alt="Foto familiar">
+      </div>
+
+      <div class="drawer-content">
+        <div>
+          <h2 id="drawer-person-name" class="drawer-name">Nombre</h2>
+          <div id="drawer-person-dates" class="drawer-subtitle">
+            <i data-lucide="calendar" style="width: 14px; height: 14px;"></i>
+            <span>Fechas</span>
+          </div>
+        </div>
+
+        <!-- Acciones primarias de la persona -->
+        <div class="drawer-actions-grid">
+          <button id="drawer-btn-edit" class="drawer-action-btn" title="Editar datos biográficos">
+            <i data-lucide="edit-3" style="width: 16px; height: 16px;"></i>
+            <span>Editar Datos</span>
+          </button>
+          <button id="drawer-btn-center" class="drawer-action-btn" title="Centrar y enfocar en el árbol">
+            <i data-lucide="crosshair" style="width: 16px; height: 16px;"></i>
+            <span>Enfocar</span>
+          </button>
+          <button id="drawer-btn-delete" class="drawer-action-btn" style="color: var(--color-danger); grid-column: span 2;" title="Eliminar del árbol">
+            <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+            <span>Eliminar del Árbol</span>
+          </button>
+        </div>
+
+        <!-- Bloque Principal de Familiares Directos Vinculados -->
+        <div class="drawer-family-section">
+          <div class="drawer-section-title">
+            <i data-lucide="users" style="width: 16px; height: 16px;"></i>
+            <span>Familiares Directos</span>
+          </div>
+          <div id="drawer-val-family" class="drawer-family-content">
+            <!-- Renderizado dinámico estructurado por categorías -->
+          </div>
+        </div>
+
+        <!-- Sección de Adición de Familiares -->
+        <div class="drawer-directional-section">
+          <div class="drawer-section-title">
+            <i data-lucide="user-plus" style="width: 16px; height: 16px;"></i>
+            <span>Añadir Familiar</span>
+          </div>
+
+          <!-- Categoría: Padres -->
+          <div class="directional-group">
+            <span class="directional-label">Padres</span>
+            <div class="directional-buttons">
+              <button id="btn-dir-add-father" class="btn-directional" title="Añadir Padre">
+                <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
+                <span>Padre</span>
+              </button>
+              <button id="btn-dir-add-mother" class="btn-directional" title="Añadir Madre">
+                <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
+                <span>Madre</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Categoría: Cónyuge -->
+          <div class="directional-group">
+            <span class="directional-label">Cónyuge</span>
+            <div class="directional-buttons" style="grid-template-columns: 1fr;">
+              <button id="btn-dir-add-partner" class="btn-directional" title="Añadir Pareja o Cónyuge">
+                <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
+                <span>Pareja / Cónyuge</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Categoría: Hermanos -->
+          <div class="directional-group">
+            <span class="directional-label">Hermanos</span>
+            <div class="directional-buttons" style="grid-template-columns: 1fr;">
+              <button id="btn-dir-add-sibling" class="btn-directional" title="Añadir Hermano o Hermana">
+                <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
+                <span>Hermano / Hermana</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Categoría: Hijos -->
+          <div class="directional-group">
+            <span class="directional-label">Hijos</span>
+            <div class="directional-buttons" style="grid-template-columns: 1fr;">
+              <button id="btn-dir-add-child" class="btn-directional" title="Añadir Hijo o Hija">
+                <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
+                <span>Hijo / Hija</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Información Biográfica Detallada -->
+        <div class="drawer-info-list">
+          <div class="info-row" id="row-drawer-city">
+            <i data-lucide="map-pin"></i>
+            <div>
+              <div class="info-label">Lugar de residencia</div>
+              <div id="drawer-val-city" class="info-value">-</div>
+            </div>
+          </div>
+
+          <div class="info-row" id="row-drawer-profession">
+            <i data-lucide="briefcase"></i>
+            <div>
+              <div class="info-label">Profesión / Oficio</div>
+              <div id="drawer-val-profession" class="info-value">-</div>
+            </div>
+          </div>
+
+          <div class="info-row" id="row-drawer-notes">
+            <i data-lucide="book-open"></i>
+            <div>
+              <div class="info-label">Notas y Recuerdos</div>
+              <div id="drawer-val-notes" class="info-value">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- =========================================================================
+       3. MODALES DE GESTIÓN (CRUD)
+       ========================================================================= -->
+
+  <!-- MODAL: AÑADIR / EDITAR FAMILIAR -->
+  <div id="modal-person" class="modal-backdrop">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 id="modal-person-title" class="modal-title">
+          <i data-lucide="user-plus" style="width: 20px; height: 20px;"></i>
+          <span>Añadir Familiar</span>
+        </h3>
+        <button type="button" class="btn-icon modal-close-trigger">
+          <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+        </button>
+      </div>
+
+      <form id="form-person" class="modal-body" onsubmit="return false;">
+        <input type="hidden" id="form-person-id">
+        <input type="hidden" id="form-relative-target-id">
+
+        <!-- Selector de parentesco (solo al añadir pariente vinculado) -->
+        <div id="group-relationship-type" class="form-group" style="display: none;">
+          <label for="form-rel-type">Tipo de Relación respecto a <strong id="rel-target-name">...</strong></label>
+          <select id="form-rel-type" class="form-select">
+            <option value="child">Hijo / Hija</option>
+            <option value="partner">Pareja / Cónyuge</option>
+            <option value="parent">Padre / Madre</option>
+            <option value="sibling">Hermano / Hermana</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="form-name">Nombre Completo *</label>
+          <input type="text" id="form-name" class="input-control" placeholder="Ej. Francisco Montes Fernández" required>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="form-gender">Género *</label>
+            <select id="form-gender" class="form-select" required>
+              <option value="male">Varón</option>
+              <option value="female">Mujer</option>
+            </select>
+          </div>
+          <div class="form-group autocomplete-group">
+            <label for="form-city">Lugar de residencia</label>
+            <div class="autocomplete-wrapper">
+              <input type="text" id="form-city" class="input-control" placeholder="Escribe municipio o provincia..." autocomplete="off">
+              <div id="city-autocomplete-dropdown" class="autocomplete-dropdown" style="display: none;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="form-birth">Año / Fecha de Nacimiento</label>
+            <input type="text" id="form-birth" class="input-control" placeholder="Ej. 1960 ó 15/04/1960">
+          </div>
+          <div class="form-group">
+            <label for="form-death">Año / Fecha de Defunción</label>
+            <input type="text" id="form-death" class="input-control" placeholder="Solo si ha fallecido">
+          </div>
+        </div>
+
+        <!-- Sección de Vínculos Familiares -->
+        <div id="group-form-links" class="form-group" style="margin-top: 0.25rem;">
+          <div class="form-section-title">
+            <i data-lucide="git-branch" style="width: 14px; height: 14px;"></i>
+            <span>Vínculos Familiares (Opcional)</span>
+          </div>
+          
+          <div class="form-grid-2" style="margin-top: 0.6rem;">
+            <div class="form-group">
+              <label for="form-select-father">Padre</label>
+              <select id="form-select-father" class="form-select">
+                <option value="">-- Sin padre asignado --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="form-select-mother">Madre</label>
+              <select id="form-select-mother" class="form-select">
+                <option value="">-- Sin madre asignada --</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 0.6rem;">
+            <label for="form-select-partner">Cónyuge / Pareja</label>
+            <select id="form-select-partner" class="form-select">
+              <option value="">-- Sin pareja / cónyuge --</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="form-profession">Profesión u Ocupación</label>
+          <input type="text" id="form-profession" class="input-control" placeholder="Ej. Agricultor, Maestra...">
+        </div>
+
+        <div class="form-group">
+          <label>Fotografía del Familiar</label>
+          <div class="avatar-upload-card">
+            <div class="avatar-preview-wrap">
+              <img id="form-photo-preview" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120" class="avatar-preview" alt="Avatar">
+            </div>
+            <div class="avatar-upload-info">
+              <input type="file" id="form-photo-file" accept="image/jpeg,image/png,image/webp" style="display: none;">
+              <input type="hidden" id="form-photo" value="">
+              
+              <div class="avatar-btn-row">
+                <button type="button" id="btn-trigger-upload" class="btn-secondary btn-upload-act">
+                  <i data-lucide="camera" style="width: 15px; height: 15px;"></i>
+                  <span>Subir Foto del Dispositivo</span>
+                </button>
+                <button type="button" id="btn-remove-photo" class="btn-remove-act" style="display: none;" title="Quitar foto">
+                  <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                  <span>Quitar</span>
+                </button>
+              </div>
+              <span class="avatar-upload-hint">Formatos JPG, PNG o WebP. Se optimiza y almacena en el árbol.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="form-notes">Notas Biográficas y Recuerdos</label>
+          <textarea id="form-notes" class="form-textarea" placeholder="Anécdotas, recuerdos de la familia o datos históricos..."></textarea>
+        </div>
+      </form>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary modal-close-trigger">Cancelar</button>
+        <button type="button" id="btn-save-person" class="btn-primary">
+          <i data-lucide="check" style="width: 18px; height: 18px;"></i>
+          <span>Guardar Datos</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIRMACIÓN DE ELIMINACIÓN -->
+  <div id="modal-delete-confirm" class="modal-backdrop">
+    <div class="modal-container" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="color: var(--color-danger);">
+          <i data-lucide="alert-triangle" style="width: 20px; height: 20px;"></i>
+          <span>Confirmar Eliminación</span>
+        </h3>
+        <button type="button" class="btn-icon modal-close-trigger">
+          <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>¿Estás seguro de que deseas eliminar a <strong id="delete-target-name">esta persona</strong> del árbol genealógico?</p>
+        <p style="font-size: 0.85rem; color: var(--color-text-muted);">Esta acción actualizará los enlaces de parentesco de sus familiares directos.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary modal-close-trigger">Cancelar</button>
+        <button type="button" id="btn-confirm-delete" class="btn-danger">
+          <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+          <span>Eliminar del Árbol</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIGURACIÓN / AYUDA CLOUDFLARE PAGES -->
+  <div id="modal-cloud-info" class="modal-backdrop">
+    <div class="modal-container" style="max-width: 580px;">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <i data-lucide="cloud" style="width: 20px; height: 20px;"></i>
+          <span>Sincronización con GitHub</span>
+        </h3>
+        <button type="button" class="btn-icon modal-close-trigger">
+          <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+        </button>
+      </div>
+      <div class="modal-body" style="font-size: 0.9rem; line-height: 1.6;">
+        <p>Para que el botón <strong>«Guardar en la nube»</strong> realice commits automáticos en el repositorio al editar desde la web desplegada en <strong>Cloudflare Pages</strong>, debes configurar las siguientes variables de entorno en el panel de Cloudflare:</p>
+        
+        <div style="background: var(--bg-surface-elevated); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--color-border); margin: 0.5rem 0;">
+          <ul style="padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.4rem;">
+            <li><code>GITHUB_TOKEN</code>: Personal Access Token (classic o fine-grained con permiso <em>Contents: Read and write</em>).</li>
+            <li><code>GITHUB_OWNER</code>: Tu usuario u organización de GitHub (ej. <code>dmontes</code>).</li>
+            <li><code>GITHUB_REPO</code>: Nombre del repositorio (ej. <code>Web-Familia-Montes</code>).</li>
+            <li><code>GITHUB_BRANCH</code>: (Opcional) Rama objetivo, por defecto <code>main</code>.</li>
+          </ul>
+        </div>
+
+        <p style="font-size: 0.84rem; color: var(--color-text-muted);">
+          📌 <em>En local o sin Cloudflare Pages</em>, los cambios se guardan siempre en la memoria local (<code>localStorage</code>) y puedes exportar e importar archivos <code>.json</code> en cualquier momento.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-primary modal-close-trigger">Entendido</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTENEDOR DE TOASTS -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Script principal de la aplicación -->
+  <script src="app.js"></script>
+</body>
+</html>
