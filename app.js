@@ -500,11 +500,11 @@ function initTreeVisualization() {
       <rect x="0" y="0" height="114" width="7" fill="#db2777" rx="4" ry="4"></rect>
     `;
 
-    // Fotografía circular centrada verticalmente
+    // Fotografía circular centrada verticalmente con cursor de ampliación
     FamilyTree.templates.montesTheme.img_0 = `
       <clipPath id="ulaImg{id}"><circle cx="48" cy="57" r="30"></circle></clipPath>
       <circle cx="48" cy="57" r="32" fill="none" stroke="#e2d9cd" stroke-width="2"></circle>
-      <image preserveAspectRatio="xMidYMid slice" clip-path="url(#ulaImg{id})" xlink:href="{val}" x="18" y="27" width="60" height="60"></image>
+      <image preserveAspectRatio="xMidYMid slice" clip-path="url(#ulaImg{id})" xlink:href="{val}" x="18" y="27" width="60" height="60" style="cursor: zoom-in; pointer-events: all;"></image>
     `;
     FamilyTree.templates.montesTheme_male.img_0 = FamilyTree.templates.montesTheme.img_0;
     FamilyTree.templates.montesTheme_female.img_0 = FamilyTree.templates.montesTheme.img_0;
@@ -602,6 +602,22 @@ function initTreeVisualization() {
         openPersonDrawer(personId);
         return false;
       });
+
+      // Evento al hacer clic directamente en la foto del mapa: abrir Lightbox
+      container.addEventListener("click", (e) => {
+        const imgTarget = e.target.closest("image, circle");
+        if (imgTarget) {
+          const clipPath = imgTarget.getAttribute("clip-path") || "";
+          const idMatch = clipPath.match(/ulaImg(\d+)/);
+          if (idMatch && idMatch[1]) {
+            const personId = parseInt(idMatch[1], 10);
+            openPhotoLightboxById(personId);
+            e.stopPropagation();
+            e.preventDefault();
+            return;
+          }
+        }
+      }, true);
 
       // Ajustar la vista a los límites de la pantalla
       setTimeout(() => {
@@ -847,6 +863,16 @@ function setupDrawerEvents() {
     openDeleteConfirmModal(AppState.selectedPersonId);
   });
 
+  // Clic en la foto de perfil del Drawer para verla ampliada
+  const drawerAvatar = document.getElementById("drawer-person-img");
+  if (drawerAvatar) {
+    drawerAvatar.addEventListener("click", () => {
+      if (AppState.selectedPersonId) {
+        openPhotoLightboxById(AppState.selectedPersonId);
+      }
+    });
+  }
+
   // EVENTOS DIRECCIONALES (+ EN TODAS LAS DIRECCIONES)
   // 1. Arriba: Padre
   document.getElementById("btn-dir-add-father").addEventListener("click", () => {
@@ -877,6 +903,29 @@ function setupDrawerEvents() {
     if (!AppState.selectedPersonId) return;
     openAddDirectionalRelativeModal(AppState.selectedPersonId, "child");
   });
+}
+
+// ==========================================================================
+// 4.1. VISUALIZADOR DE FOTOGRAFÍAS EN ALTA DEFINICIÓN (LIGHTBOX)
+// ==========================================================================
+function openPhotoLightboxById(personId) {
+  const person = AppState.treeData.find(p => p.id === personId);
+  if (!person) return;
+
+  const photoUrl = getPersonPhotoUrl(person.photo, person.gender);
+  const datesText = (person.birth || person.death) 
+    ? `${person.birth || '?'} — ${person.death || 'Vivo/a'}` 
+    : (person.city || "Familia Montes");
+
+  const lightboxImg = document.getElementById("lightbox-img");
+  const lightboxName = document.getElementById("lightbox-person-name");
+  const lightboxDates = document.getElementById("lightbox-person-dates");
+
+  if (lightboxImg) lightboxImg.src = photoUrl;
+  if (lightboxName) lightboxName.textContent = person.name;
+  if (lightboxDates) lightboxDates.textContent = datesText;
+
+  openModal("modal-photo-lightbox");
 }
 
 // ==========================================================================

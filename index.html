@@ -452,6 +452,22 @@
     </div>
   </div>
 
+  <!-- MODAL: VISUALIZADOR DE FOTO EN GRANDE (LIGHTBOX) -->
+  <div id="modal-photo-lightbox" class="modal-backdrop photo-lightbox-backdrop">
+    <div class="photo-lightbox-container">
+      <button type="button" class="photo-lightbox-close modal-close-trigger" title="Cerrar vista ampliada">
+        <i data-lucide="x" style="width: 22px; height: 22px;"></i>
+      </button>
+      <div class="photo-lightbox-image-wrapper">
+        <img id="lightbox-img" class="photo-lightbox-img" src="" alt="Fotografía familiar ampliada">
+      </div>
+      <div class="photo-lightbox-caption">
+        <h3 id="lightbox-person-name" class="photo-lightbox-name">-</h3>
+        <span id="lightbox-person-dates" class="photo-lightbox-dates">-</span>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: CONFIGURACIÓN / AYUDA CLOUDFLARE PAGES -->
   <div id="modal-cloud-info" class="modal-backdrop">
     <div class="modal-container" style="max-width: 580px;">
