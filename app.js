@@ -608,7 +608,7 @@ function initTreeVisualization() {
     // Mapeo de datos a formato FamilyTreeJS
     const formattedNodes = AppState.treeData.map(person => {
       const datesStr = (person.birth || person.death) 
-        ? formatVitalDatesWithAge(person.birth, person.death, "Vivo") 
+        ? formatVitalDatesWithAge(person.birth, person.death) 
         : "";
       
       const locationStr = person.city || "";
@@ -773,17 +773,25 @@ function calculateAge(birthStr, deathStr) {
 }
 
 /**
- * Formatea las fechas vitales agregando la edad entre paréntesis
- * Ej: "1989 — Vivo (37 años)" o "1932 — 2017 (85 años)"
+ * Formatea las fechas vitales agregando la edad con espacio antes del paréntesis.
+ * Para personas vivas: muestra solo el año de nacimiento (ej. "1989   (37 años)").
+ * Para personas fallecidas: muestra nacimiento y defunción (ej. "1932 — 2017   (85 años)").
  */
-function formatVitalDatesWithAge(birth, death, aliveLabel = "Vivo") {
+function formatVitalDatesWithAge(birth, death) {
   if (!birth && !death) return "";
-  const birthText = birth || "?";
-  const deathText = death || aliveLabel;
   const age = calculateAge(birth, death);
-  
-  const baseDates = `${birthText} — ${deathText}`;
-  return age ? `${baseDates} (${age})` : baseDates;
+  const ageSuffix = age ? `   (${age})` : "";
+
+  // Si está vivo (sin fecha de defunción)
+  if (!death) {
+    const birthText = birth || "?";
+    return `${birthText}${ageSuffix}`;
+  }
+
+  // Si está fallecido
+  const birthText = birth || "?";
+  const deathText = death;
+  return `${birthText} — ${deathText}${ageSuffix}`;
 }
 
 // ==========================================================================
@@ -799,7 +807,7 @@ function openPersonDrawer(personId) {
   document.getElementById("drawer-person-img").src = getPersonPhotoUrl(person.photo, person.gender);
 
   const datesText = (person.birth || person.death) 
-    ? formatVitalDatesWithAge(person.birth, person.death, "Vivo/a")
+    ? formatVitalDatesWithAge(person.birth, person.death)
     : "Sin fechas registradas";
   document.getElementById("drawer-person-dates").querySelector("span").textContent = datesText;
 
@@ -1689,7 +1697,7 @@ function setupSearchEvents() {
         <img class="search-item-avatar" src="${p.photo || getDefaultAvatar(p.gender)}" alt="${p.name}">
         <div class="search-item-info">
           <div class="search-item-name">${p.name}</div>
-          <div class="search-item-meta">${p.city || ''} ${p.birth ? '· ' + formatVitalDatesWithAge(p.birth, p.death, 'Vivo') : ''}</div>
+          <div class="search-item-meta">${p.city || ''} ${p.birth ? '· ' + formatVitalDatesWithAge(p.birth, p.death) : ''}</div>
         </div>
       </div>
     `).join("");
