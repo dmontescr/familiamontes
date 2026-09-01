@@ -839,7 +839,9 @@ body {
   border-bottom: none;
 }
 
-.autocomplete-item:hover, .autocomplete-item.selected {
+.autocomplete-item:hover,
+.autocomplete-item.selected,
+.autocomplete-item.highlighted {
   background: var(--color-primary-light);
   color: var(--color-primary);
 }

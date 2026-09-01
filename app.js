@@ -1641,6 +1641,9 @@ function setupCityAutocomplete() {
   // Cargar dataset completo en segundo plano
   loadSpanishMunicipalitiesDataset();
 
+  // Activar navegación con flechas de teclado y Enter
+  setupAutocompleteKeyboardNavigation(cityInput, dropdown);
+
   cityInput.addEventListener("input", () => {
     clearTimeout(cityDebounceTimer);
     const query = cityInput.value.trim();
@@ -1786,6 +1789,9 @@ function setupProfessionAutocomplete() {
 
   loadProfessionsDataset();
 
+  // Activar navegación con flechas de teclado y Enter
+  setupAutocompleteKeyboardNavigation(professionInput, dropdown);
+
   professionInput.addEventListener("input", () => {
     clearTimeout(professionDebounceTimer);
     const query = professionInput.value.trim();
@@ -1867,6 +1873,56 @@ function renderProfessionAutocomplete(results, input, dropdown) {
       dropdown.style.display = "none";
       dropdown.innerHTML = "";
     });
+  });
+}
+
+// ==========================================================================
+// 7.3. GESTIÓN DE NAVEGACIÓN POR TECLADO PARA AUTOCOMPLETADOS
+// ==========================================================================
+function setupAutocompleteKeyboardNavigation(input, dropdown) {
+  let activeIndex = -1;
+
+  input.addEventListener("keydown", (e) => {
+    const items = dropdown.querySelectorAll(".autocomplete-item");
+    const isVisible = dropdown.style.display !== "none" && items.length > 0;
+
+    if (!isVisible) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      activeIndex = (activeIndex + 1) % items.length;
+      highlightAutocompleteItem(items, activeIndex);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      activeIndex = (activeIndex - 1 + items.length) % items.length;
+      highlightAutocompleteItem(items, activeIndex);
+    } else if (e.key === "Enter") {
+      if (activeIndex >= 0 && items[activeIndex]) {
+        e.preventDefault();
+        e.stopPropagation();
+        items[activeIndex].click();
+        activeIndex = -1;
+      }
+    } else if (e.key === "Escape") {
+      dropdown.style.display = "none";
+      dropdown.innerHTML = "";
+      activeIndex = -1;
+    }
+  });
+
+  input.addEventListener("input", () => {
+    activeIndex = -1;
+  });
+}
+
+function highlightAutocompleteItem(items, index) {
+  items.forEach((item, i) => {
+    if (i === index) {
+      item.classList.add("highlighted");
+      item.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    } else {
+      item.classList.remove("highlighted");
+    }
   });
 }
 
