@@ -9,7 +9,9 @@
     "profession": "Ingeniero/a Industrial",
     "photo": "photos/daniel_montes_cruz.jpg",
     "notes": "",
-    "pids": [],
+    "pids": [
+      4
+    ],
     "fid": 2,
     "mid": 3
   },
@@ -39,6 +41,20 @@
     "notes": "",
     "pids": [
       2
+    ]
+  },
+  {
+    "id": 4,
+    "name": "Triana de los Reyes Gómez Soriano",
+    "gender": "female",
+    "city": "Madrid (Madrid)",
+    "birth": "25/02/1990",
+    "death": "",
+    "profession": "Licenciado/a en Derecho",
+    "photo": "",
+    "notes": "",
+    "pids": [
+      1
     ]
   }
 ]
