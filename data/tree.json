@@ -58,5 +58,18 @@
       1
     ],
     "birth_place": "Madrid (Madrid)"
+  },
+  {
+    "id": 5,
+    "name": "Manuel Montes Posado",
+    "gender": "male",
+    "birth_place": "",
+    "city": "Navianos de la Vega (León)",
+    "birth": "1915",
+    "death": "1976",
+    "profession": "Albañil",
+    "photo": "",
+    "notes": "",
+    "pids": []
   }
 ]
