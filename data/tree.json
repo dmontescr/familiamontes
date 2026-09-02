@@ -152,7 +152,7 @@
     "photo": "",
     "notes": "",
     "pids": [
-      9
+      16
     ]
   },
   {
@@ -225,6 +225,22 @@
     "photo": "",
     "notes": "",
     "pids": [],
-    "mid": 10
+    "mid": 10,
+    "fid": 16
+  },
+  {
+    "id": 16,
+    "name": "Aureliano Martínez",
+    "gender": "male",
+    "birth_place": "",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [
+      10
+    ]
   }
 ]
