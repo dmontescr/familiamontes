@@ -241,5 +241,18 @@
     "pids": [
       10
     ]
+  },
+  {
+    "id": 17,
+    "name": "Aureliano Martínez",
+    "gender": "male",
+    "birth_place": "",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": []
   }
 ]
