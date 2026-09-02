@@ -23,5 +23,17 @@
     "photo": "",
     "notes": "",
     "pids": []
+  },
+  {
+    "id": 3,
+    "name": "Manuela Cruz Agudo",
+    "gender": "female",
+    "city": "Azuqueca de Henares (Guadalajara)",
+    "birth": "31/08/1958",
+    "death": "",
+    "profession": "Coordinadora farmaceútica",
+    "photo": "",
+    "notes": "",
+    "pids": []
   }
 ]
