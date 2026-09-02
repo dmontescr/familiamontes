@@ -534,13 +534,33 @@ function initTreeVisualization() {
     FamilyTree.templates.montesTheme_male.field_2 = FamilyTree.templates.montesTheme.field_2;
     FamilyTree.templates.montesTheme_female.field_2 = FamilyTree.templates.montesTheme.field_2;
 
+/**
+ * Adapta el texto de ubicación para que quepa de forma impecable en la tarjeta del árbol (255px de ancho)
+ * Si supera los 21 caracteres y tiene formato 'Municipio (Provincia)', muestra el municipio
+ * para mantener la lectura limpia sin salirse de la caja. En el panel lateral siempre se ve completo.
+ */
+function formatLocationForNode(city) {
+  if (!city) return "";
+  const trimmed = city.trim();
+  if (trimmed.length <= 21) return trimmed;
+
+  const match = trimmed.match(/^(.+?)\s*\((.+?)\)$/);
+  if (match) {
+    const muni = match[1].trim();
+    if (muni.length <= 21) return muni;
+    return muni.slice(0, 19).trim() + "…";
+  }
+
+  return trimmed.slice(0, 20).trim() + "…";
+}
+
     // Mapeo de datos a formato FamilyTreeJS
     const formattedNodes = AppState.treeData.map(person => {
       const datesStr = (person.birth || person.death) 
         ? formatVitalDatesWithAge(person.birth, person.death) 
         : "";
       
-      const locationStr = person.city || "";
+      const locationStr = formatLocationForNode(person.city);
       const nameParts = formatPersonNameLines(person.name);
       const isSingleLine = !nameParts.line2;
 
