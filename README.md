@@ -65,6 +65,12 @@ Repositorio oficial: [https://github.com/dmontescr/familiamontes](https://github
 - **Nitidez 300+ DPI (Escala 3.0x):** Renderizado vectorial de máxima calidad para lectura con zoom e impresión en cualquier impresora o copistería.
 - Descarga directa como **`arbol_genealogico_familia_montes.pdf`**.
 
+### ☁️ 10. Persistencia Automática en la Nube con GitHub API y Cloudflare
+- **Sincronización transparente:** Cada vez que se añade, edita o elimina un familiar o su fotografía, la aplicación envía los cambios directamente a la API en la nube (`/api/save`).
+- **Arquitectura desacoplada:** Todo el árbol genealógico vive de forma limpia y exclusiva en `data/tree.json` y `photos/`, sin datos embebidos en el código JavaScript.
+- **Worker Universal:** Enrutador de alta disponibilidad (`_worker.js`) compatible con Cloudflare Workers y Pages para procesar commits automáticos en GitHub de forma segura e instantánea.
+- **Tolerancia y diagnóstico:** Endpoints de diagnóstico en tiempo real (`GET /api/save`) con verificación de estado y conectividad.
+
 ---
 
 ## 📁 Estructura del Proyecto
@@ -74,17 +80,20 @@ familiamontes/
 ├── index.html              # Estructura semántica, visor, modales y login
 ├── styles.css              # Sistema de diseño noble, paleta tierra y responsive
 ├── app.js                  # Lógica del árbol, seguridad, CRUD, autocompletado y PDF
+├── _worker.js              # Enrutador universal Cloudflare Worker para API y estáticos
+├── wrangler.toml           # Configuración de despliegue en Cloudflare
+├── .assetsignore           # Filtro de archivos para el bundle estático
 ├── assets/
 │   ├── escudo_familia_montes.png   # Escudo heráldico oficial de la Familia Montes
 │   └── favicon.svg                 # Icono de la web
 ├── photos/                 # Fotografías optimizadas de los familiares
 ├── data/
-│   ├── tree.json           # Datos genealógicos completos
+│   ├── tree.json           # Base de datos genealógica completa
 │   ├── municipios.json     # Censo de los 8.134 municipios de España
 │   └── profesiones.json    # Catálogo de 270 profesiones y oficios
 ├── functions/
 │   └── api/
-│       └── save.js         # Endpoint Serverless para persistencia segura en GitHub API
+│       └── save.js         # Endpoint de fallback para Pages Functions
 └── README.md               # Documentación y manual del proyecto
 ```
 
