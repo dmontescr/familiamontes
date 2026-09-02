@@ -347,7 +347,8 @@ async function syncTreeWithCloud(isAutoSave = false) {
       if (response.status === 500 && errJson.error && errJson.error.includes("GITHUB_TOKEN")) {
         showToast("Los cambios se han guardado localmente en tu navegador. Para sincronizarlos con GitHub, añade la variable GITHUB_TOKEN en Cloudflare Pages.", "warning", 8000);
       } else {
-        showToast("Guardado localmente. Aviso al sincronizar en la nube: " + (errJson.error || "Error de servidor"), "warning", 5000);
+        const errorDetail = errJson.details ? ` (${errJson.details})` : (errJson.error ? `: ${errJson.error}` : ": Error de servidor");
+        showToast("Guardado localmente. Aviso al sincronizar en la nube" + errorDetail, "warning", 7000);
       }
       return false;
     }

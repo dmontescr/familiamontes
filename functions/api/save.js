@@ -9,9 +9,9 @@
  * 
  * Variables de entorno en Cloudflare Pages:
  * - GITHUB_TOKEN: Personal Access Token (PAT) de GitHub con permiso repo / contents:write.
- * - GITHUB_OWNER: "dmontescr"
- * - GITHUB_REPO: "familiamontes"
- * - GITHUB_BRANCH: "main"
+ * - GITHUB_OWNER: "dmontescr" (opcional, por defecto "dmontescr")
+ * - GITHUB_REPO: "familiamontes" (opcional, por defecto "familiamontes")
+ * - GITHUB_BRANCH: "main" (opcional, por defecto "main")
  */
 
 export async function onRequestOptions() {
@@ -19,10 +19,77 @@ export async function onRequestOptions() {
     status: 204,
     headers: {
       "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Authorization"
     }
   });
+}
+
+// Endpoint de diagnóstico GET /api/save para verificar conectividad con GitHub
+export async function onRequestGet(context) {
+  const { env } = context;
+  const token = (env.GITHUB_TOKEN || "").trim();
+  const owner = (env.GITHUB_OWNER || "dmontescr").trim();
+  const repo = (env.GITHUB_REPO || "familiamontes").trim();
+  const branch = (env.GITHUB_BRANCH || "main").trim();
+
+  const headers = {
+    "Content-Type": "application/json; charset=utf-8",
+    "Access-Control-Allow-Origin": "*"
+  };
+
+  if (!token) {
+    return new Response(
+      JSON.stringify({
+        ok: false,
+        error: "Falta GITHUB_TOKEN en las variables de entorno de Cloudflare Pages.",
+        hint: "Añade GITHUB_TOKEN en Cloudflare > Configuración > Variables y secretos."
+      }),
+      { status: 200, headers }
+    );
+  }
+
+  try {
+    const checkRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "FamiliaMontes-App/1.0"
+      }
+    });
+
+    const data = await checkRes.json();
+    if (checkRes.ok) {
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          message: "Conexión con GitHub verificada con éxito.",
+          repo: data.full_name,
+          permissions: data.permissions,
+          branch
+        }),
+        { status: 200, headers }
+      );
+    } else {
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: "GitHub rechazó la autenticación.",
+          details: data.message || data
+        }),
+        { status: 200, headers }
+      );
+    }
+  } catch (err) {
+    return new Response(
+      JSON.stringify({
+        ok: false,
+        error: "Excepción al conectar con GitHub.",
+        details: err.message
+      }),
+      { status: 200, headers }
+    );
+  }
 }
 
 export async function onRequestPost(context) {
@@ -34,17 +101,17 @@ export async function onRequestPost(context) {
   };
 
   try {
-    const token = env.GITHUB_TOKEN;
-    const owner = env.GITHUB_OWNER || "dmontescr";
-    const repo = env.GITHUB_REPO || "familiamontes";
-    const branch = env.GITHUB_BRANCH || "main";
+    const token = (env.GITHUB_TOKEN || "").trim();
+    const owner = (env.GITHUB_OWNER || "dmontescr").trim();
+    const repo = (env.GITHUB_REPO || "familiamontes").trim();
+    const branch = (env.GITHUB_BRANCH || "main").trim();
 
     if (!token) {
       return new Response(
         JSON.stringify({
           success: false,
           error: "Falta GITHUB_TOKEN en las variables de entorno de Cloudflare Pages.",
-          details: "Asegúrate de añadir GITHUB_TOKEN en Settings > Environment variables de Cloudflare Pages."
+          details: "Asegúrate de añadir GITHUB_TOKEN en Cloudflare > Configuración > Variables y secretos."
         }),
         { status: 500, headers }
       );
@@ -66,7 +133,7 @@ export async function onRequestPost(context) {
 
     if (!Array.isArray(treeData) || treeData.length === 0) {
       return new Response(
-        JSON.stringify({ success: false, error: "Estructura de datos inválida. Se esperaba un array de nodos no vacío." }),
+        JSON.stringify({ success: false, error: "Estructura de datos inválida. Se esperaba un array de familiares no vacío." }),
         { status: 400, headers }
       );
     }
@@ -158,13 +225,8 @@ export async function onRequestPost(context) {
     }
 
     const formattedJson = JSON.stringify(treeData, null, 2);
-    const encoder = new TextEncoder();
-    const utf8Bytes = encoder.encode(formattedJson);
-    let binary = "";
-    for (let i = 0; i < utf8Bytes.byteLength; i++) {
-      binary += String.fromCharCode(utf8Bytes[i]);
-    }
-    const base64TreeContent = btoa(binary);
+    // Codificación UTF-8 segura a Base64
+    const base64TreeContent = btoa(unescape(encodeURIComponent(formattedJson)));
 
     const treeCommitPayload = {
       message: `chore(data): actualizar árbol genealógico y fotos [${new Date().toISOString().slice(0, 10)}]`,
@@ -187,8 +249,8 @@ export async function onRequestPost(context) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: "GitHub rechazó el commit de tree.json.",
-          details: ghErr.message || ghErr
+          error: "GitHub rechazó el guardado.",
+          details: ghErr.message || JSON.stringify(ghErr)
         }),
         { status: putTreeRes.status, headers }
       );
