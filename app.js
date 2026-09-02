@@ -474,7 +474,7 @@ function initTreeVisualization() {
           <p style="max-width: 420px; font-size: 0.95rem; line-height: 1.5; color: #64748b; margin-bottom: 1.5rem;">
             No hay ningún familiar registrado todavía. Pulsa el botón para añadir a la primera persona y comenzar a construir el árbol desde cero.
           </p>
-          <button class="btn btn-primary" id="btn-empty-add-first" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; font-size: 0.95rem; border-radius: 8px;">
+          <button class="btn btn-primary" id="btn-empty-add-first" onclick="openAddRootPersonModal()" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; font-size: 0.95rem; border-radius: 8px;">
             <i data-lucide="user-plus" style="width: 18px; height: 18px;"></i>
             Añadir Primer Familiar
           </button>
@@ -482,7 +482,7 @@ function initTreeVisualization() {
       `;
       const emptyAddBtn = document.getElementById("btn-empty-add-first");
       if (emptyAddBtn) {
-        emptyAddBtn.onclick = () => openCreateRootModal();
+        emptyAddBtn.onclick = () => openAddRootPersonModal();
       }
       refreshIcons();
       updateHeaderCount();
