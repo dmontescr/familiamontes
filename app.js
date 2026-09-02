@@ -551,28 +551,28 @@ function initTreeVisualization() {
 
     // Nombre Línea 1 (para nombres largos en 2 líneas)
     FamilyTree.templates.montesTheme.field_0 = `
-      <text style="font-size: 12.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="74" y="20">{val}</text>
+      <text style="font-size: 12.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="74" y="26">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_0 = FamilyTree.templates.montesTheme.field_0;
     FamilyTree.templates.montesTheme_female.field_0 = FamilyTree.templates.montesTheme.field_0;
 
     // Nombre Línea 2 (para nombres largos en 2 líneas)
     FamilyTree.templates.montesTheme.field_3 = `
-      <text style="font-size: 12.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="74" y="34">{val}</text>
+      <text style="font-size: 12.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="74" y="40">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_3 = FamilyTree.templates.montesTheme.field_3;
     FamilyTree.templates.montesTheme_female.field_3 = FamilyTree.templates.montesTheme.field_3;
 
     // Nombre en 1 sola línea (centrado y equilibrado)
     FamilyTree.templates.montesTheme.field_4 = `
-      <text style="font-size: 13px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="74" y="25">{val}</text>
+      <text style="font-size: 13px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="74" y="32">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_4 = FamilyTree.templates.montesTheme.field_4;
     FamilyTree.templates.montesTheme_female.field_4 = FamilyTree.templates.montesTheme.field_4;
 
     // Fechas vitales y edad
     FamilyTree.templates.montesTheme.field_1 = `
-      <text style="font-size: 11px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="74" y="49">{val}</text>
+      <text style="font-size: 11px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="74" y="56">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_1 = FamilyTree.templates.montesTheme.field_1;
     FamilyTree.templates.montesTheme_female.field_1 = FamilyTree.templates.montesTheme.field_1;
@@ -580,11 +580,11 @@ function initTreeVisualization() {
     // Lugar de Nacimiento con brújula (compass) en tono ámbar/dorado noble
     FamilyTree.templates.montesTheme.field_6 = `
       <g>
-        <svg x="74" y="62" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg x="74" y="69" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"></circle>
           <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="#b45309"></polygon>
         </svg>
-        <text style="font-size: 10px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="89" y="73">{val}</text>
+        <text style="font-size: 10px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="89" y="80">{val}</text>
       </g>
     `;
     FamilyTree.templates.montesTheme_male.field_6 = FamilyTree.templates.montesTheme.field_6;
@@ -593,11 +593,11 @@ function initTreeVisualization() {
     // Ubicación Línea 1: Lugar de Residencia con chincheta roja (map-pin)
     FamilyTree.templates.montesTheme.field_2 = `
       <g>
-        <svg x="74" y="84" width="12" height="12" viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg x="74" y="92" width="12" height="12" viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
           <circle cx="12" cy="10" r="3" fill="#ffffff"></circle>
         </svg>
-        <text style="font-size: 10px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="89" y="95">{val}</text>
+        <text style="font-size: 10px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="89" y="103">{val}</text>
       </g>
     `;
     FamilyTree.templates.montesTheme_male.field_2 = FamilyTree.templates.montesTheme.field_2;
