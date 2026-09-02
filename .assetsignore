@@ -1,0 +1,6 @@
+.git
+.git/**
+.gitignore
+wrangler.toml
+README.md
+functions/**
