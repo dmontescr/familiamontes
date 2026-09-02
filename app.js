@@ -452,111 +452,134 @@ function initTreeVisualization() {
     // Sanear y normalizar el grafo genealógico
     cleanAndValidateTreeData(AppState.treeData);
 
-    // Configuración de plantilla Opción C: Estándar Noble Equilibrada (260 x 114 px)
+    // Configuración de plantilla Opción B: Vertical / Ficha (220 x 130 px)
     FamilyTree.templates.montesTheme = Object.assign({}, FamilyTree.templates.john);
-    FamilyTree.templates.montesTheme.size = [260, 114];
+    FamilyTree.templates.montesTheme.size = [220, 130];
     
     // Tarjeta noble genérica
     FamilyTree.templates.montesTheme.node = `
       <clipPath id="cardClip{id}">
-        <rect x="0" y="0" height="114" width="260" rx="14" ry="14"></rect>
+        <rect x="0" y="0" height="130" width="220" rx="14" ry="14"></rect>
       </clipPath>
-      <rect x="0" y="0" height="114" width="260" fill="#ffffff" stroke-width="1.5" stroke="#d5cdbf" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(0,0,0,0.06))"></rect>
-      <rect x="0" y="0" height="114" width="6" fill="#a64b2a" clip-path="url(#cardClip{id})"></rect>
+      <rect x="0" y="0" height="130" width="220" fill="#ffffff" stroke-width="1.5" stroke="#d5cdbf" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(0,0,0,0.06))"></rect>
+      <rect x="0" y="0" height="130" width="6" fill="#a64b2a" clip-path="url(#cardClip{id})"></rect>
     `;
 
     // Tarjetas diferenciadas por género con integración perfecta en las esquinas redondeadas
     FamilyTree.templates.montesTheme_male = Object.assign({}, FamilyTree.templates.montesTheme);
     FamilyTree.templates.montesTheme_male.node = `
       <clipPath id="cardClipM{id}">
-        <rect x="0" y="0" height="114" width="260" rx="14" ry="14"></rect>
+        <rect x="0" y="0" height="130" width="220" rx="14" ry="14"></rect>
       </clipPath>
-      <rect x="0" y="0" height="114" width="260" fill="#ffffff" stroke-width="1.5" stroke="#cbd5e1" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(37,99,235,0.07))"></rect>
-      <rect x="0" y="0" height="114" width="6" fill="#3b82f6" clip-path="url(#cardClipM{id})"></rect>
+      <rect x="0" y="0" height="130" width="220" fill="#ffffff" stroke-width="1.5" stroke="#cbd5e1" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(37,99,235,0.07))"></rect>
+      <rect x="0" y="0" height="130" width="6" fill="#3b82f6" clip-path="url(#cardClipM{id})"></rect>
     `;
 
     FamilyTree.templates.montesTheme_female = Object.assign({}, FamilyTree.templates.montesTheme);
     FamilyTree.templates.montesTheme_female.node = `
       <clipPath id="cardClipF{id}">
-        <rect x="0" y="0" height="114" width="260" rx="14" ry="14"></rect>
+        <rect x="0" y="0" height="130" width="220" rx="14" ry="14"></rect>
       </clipPath>
-      <rect x="0" y="0" height="114" width="260" fill="#ffffff" stroke-width="1.5" stroke="#fbcfe8" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(219,39,119,0.07))"></rect>
-      <rect x="0" y="0" height="114" width="6" fill="#ec4899" clip-path="url(#cardClipF{id})"></rect>
+      <rect x="0" y="0" height="130" width="220" fill="#ffffff" stroke-width="1.5" stroke="#fbcfe8" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(219,39,119,0.07))"></rect>
+      <rect x="0" y="0" height="130" width="6" fill="#ec4899" clip-path="url(#cardClipF{id})"></rect>
     `;
 
-    // Fotografía circular centrada verticalmente con cursor de ampliación (cy = 57)
+    // Fotografía circular centrada verticalmente con cursor de ampliación (cy = 65)
     FamilyTree.templates.montesTheme.img_0 = `
-      <clipPath id="ulaImg{id}"><circle cx="46" cy="57" r="28"></circle></clipPath>
-      <circle cx="46" cy="57" r="30" fill="none" stroke="#e2d9cd" stroke-width="2"></circle>
-      <image preserveAspectRatio="xMidYMid slice" clip-path="url(#ulaImg{id})" xlink:href="{val}" x="18" y="29" width="56" height="56" style="cursor: zoom-in; pointer-events: all;"></image>
+      <clipPath id="ulaImg{id}"><circle cx="40" cy="65" r="26"></circle></clipPath>
+      <circle cx="40" cy="65" r="28" fill="none" stroke="#e2d9cd" stroke-width="2"></circle>
+      <image preserveAspectRatio="xMidYMid slice" clip-path="url(#ulaImg{id})" xlink:href="{val}" x="14" y="39" width="52" height="52" style="cursor: zoom-in; pointer-events: all;"></image>
     `;
     FamilyTree.templates.montesTheme_male.img_0 = FamilyTree.templates.montesTheme.img_0;
     FamilyTree.templates.montesTheme_female.img_0 = FamilyTree.templates.montesTheme.img_0;
 
     // Nombre Línea 1 (para nombres largos en 2 líneas)
     FamilyTree.templates.montesTheme.field_0 = `
-      <text style="font-size: 13px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="84" y="28">{val}</text>
+      <text style="font-size: 12px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="74" y="27">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_0 = FamilyTree.templates.montesTheme.field_0;
     FamilyTree.templates.montesTheme_female.field_0 = FamilyTree.templates.montesTheme.field_0;
 
     // Nombre Línea 2 (para nombres largos en 2 líneas)
     FamilyTree.templates.montesTheme.field_3 = `
-      <text style="font-size: 13px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="84" y="43">{val}</text>
+      <text style="font-size: 12px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="74" y="41">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_3 = FamilyTree.templates.montesTheme.field_3;
     FamilyTree.templates.montesTheme_female.field_3 = FamilyTree.templates.montesTheme.field_3;
 
     // Nombre en 1 sola línea (centrado y equilibrado)
     FamilyTree.templates.montesTheme.field_4 = `
-      <text style="font-size: 14px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="84" y="39">{val}</text>
+      <text style="font-size: 13px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="74" y="38">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_4 = FamilyTree.templates.montesTheme.field_4;
     FamilyTree.templates.montesTheme_female.field_4 = FamilyTree.templates.montesTheme.field_4;
 
     // Fechas vitales y edad
     FamilyTree.templates.montesTheme.field_1 = `
-      <text style="font-size: 11.5px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="84" y="63">{val}</text>
+      <text style="font-size: 11px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="74" y="59">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_1 = FamilyTree.templates.montesTheme.field_1;
     FamilyTree.templates.montesTheme_female.field_1 = FamilyTree.templates.montesTheme.field_1;
 
-    // Ubicación / Origen con chincheta roja única (map-pin)
+    // Ubicación Línea 1: Municipio con chincheta roja única (map-pin)
     FamilyTree.templates.montesTheme.field_2 = `
       <g>
-        <svg x="84" y="75" width="13" height="13" viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg x="74" y="69" width="12" height="12" viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
           <circle cx="12" cy="10" r="3" fill="#ffffff"></circle>
         </svg>
-        <text style="font-size: 10.5px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="100" y="86">{val}</text>
+        <text style="font-size: 10.5px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="89" y="80">{val}</text>
       </g>
     `;
     FamilyTree.templates.montesTheme_male.field_2 = FamilyTree.templates.montesTheme.field_2;
     FamilyTree.templates.montesTheme_female.field_2 = FamilyTree.templates.montesTheme.field_2;
 
-    // Limpiar cualquier campo sobrante
-    for (let i = 5; i <= 15; i++) {
+    // Ubicación Línea 2: Provincia entre paréntesis debajo del municipio
+    FamilyTree.templates.montesTheme.field_5 = `
+      <text style="font-size: 10px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#94a3b8" x="89" y="99">{val}</text>
+    `;
+    FamilyTree.templates.montesTheme_male.field_5 = FamilyTree.templates.montesTheme.field_5;
+    FamilyTree.templates.montesTheme_female.field_5 = FamilyTree.templates.montesTheme.field_5;
+
+    // Limpiar campos extras
+    for (let i = 6; i <= 15; i++) {
       delete FamilyTree.templates.montesTheme['field_' + i];
       delete FamilyTree.templates.montesTheme_male['field_' + i];
       delete FamilyTree.templates.montesTheme_female['field_' + i];
     }
 
 /**
- * Adapta el texto de ubicación para que quepa de forma impecable en la tarjeta del árbol (260px de ancho)
+ * Divide la ubicación en Municipio y Provincia para la Opción B (formato vertical)
  */
-function formatLocationForNode(city) {
-  if (!city) return "";
+function parseLocationLines(city) {
+  if (!city) return { muni: "", prov: "" };
   const trimmed = city.trim();
-  if (trimmed.length <= 26) return trimmed;
 
+  // Formato "Municipio (Provincia)"
   const match = trimmed.match(/^(.+?)\s*\((.+?)\)$/);
   if (match) {
-    const muni = match[1].trim();
-    if (muni.length <= 22) return `${muni} (${match[2].trim().slice(0, 4)}.)`;
-    return muni;
+    return {
+      muni: match[1].trim(),
+      prov: `(${match[2].trim()})`
+    };
   }
 
-  return trimmed.slice(0, 24).trim() + "…";
+  // Formato compuesto con barra "León / Navianos"
+  if (trimmed.includes(" / ")) {
+    const parts = trimmed.split(" / ");
+    if (parts.length === 2) {
+      return {
+        muni: parts[0].trim(),
+        prov: `/ ${parts[1].trim()}`
+      };
+    }
+  }
+
+  // Si es un municipio simple (ej: "Madrid", "Valladolid", "León")
+  return {
+    muni: trimmed,
+    prov: `(${trimmed})`
+  };
 }
 
     // Mapeo de datos a formato FamilyTreeJS
@@ -565,7 +588,7 @@ function formatLocationForNode(city) {
         ? formatVitalDatesWithAge(person.birth, person.death) 
         : "";
       
-      const locationStr = (person.city || "").trim();
+      const loc = parseLocationLines(person.city);
       const nameParts = formatPersonNameLines(person.name);
       const isSingleLine = !nameParts.line2;
 
@@ -580,7 +603,8 @@ function formatLocationForNode(city) {
         name_single: isSingleLine ? nameParts.line1 : "",
         name: person.name,
         title: datesStr,
-        subtitle: locationStr,
+        loc_muni: loc.muni,
+        loc_prov: loc.prov,
         photo: getPersonPhotoUrl(person.photo, person.gender),
         raw: person
       };
@@ -593,17 +617,18 @@ function formatLocationForNode(city) {
         enableSearch: false,
         mouseScrool: FamilyTree.action.zoom,
         nodeMouseClick: FamilyTree.action.none,
-        siblingSeparation: 55,
-        levelSeparation: 90,
-        subtreeSeparation: 55,
-        partnerSeparation: 35,
+        siblingSeparation: 45,
+        levelSeparation: 95,
+        subtreeSeparation: 45,
+        partnerSeparation: 30,
         scaleInitial: FamilyTree.match.boundary,
         nodeBinding: {
           field_0: "name_l1",
           field_3: "name_l2",
           field_4: "name_single",
           field_1: "title",
-          field_2: "subtitle",
+          field_2: "loc_muni",
+          field_5: "loc_prov",
           img_0: "photo"
         },
         nodes: formattedNodes
