@@ -700,24 +700,45 @@ function formatPersonNameLines(fullName) {
     return { line1: trimmed, line2: "" };
   }
 
-  // Nombres largos (> 22 caracteres) como "María del Carmen Fernández Santos", "Rosa María García López" o "Manuel Montes Fernández"
-  if (words.length >= 4) {
-    if (words[0].toLowerCase() === "maría" && words[1].toLowerCase() === "del") {
+  // Nombres de 4 palabras (ej: "Rosa María García López"):
+  // Priorizar romper entre los dos apellidos: "Rosa María García" en línea 1 y "López" en línea 2
+  if (words.length === 4) {
+    const l1WithSurname = `${words[0]} ${words[1]} ${words[2]}`;
+    if (l1WithSurname.length <= 21) {
       return {
-        line1: words.slice(0, 3).join(" "),
-        line2: words.slice(3).join(" ")
+        line1: l1WithSurname,
+        line2: words[3]
       };
     }
     return {
-      line1: words.slice(0, 2).join(" "),
-      line2: words.slice(2).join(" ")
+      line1: `${words[0]} ${words[1]}`,
+      line2: `${words[2]} ${words[3]}`
     };
   }
 
+  // Nombres de 3 palabras (ej: "Manuel Montes Fernández"):
+  // Romper entre los dos apellidos: "Manuel Montes" / "Fernández"
   if (words.length === 3) {
     return {
       line1: `${words[0]} ${words[1]}`,
       line2: words[2]
+    };
+  }
+
+  // Nombres de 5 palabras (ej: "María del Carmen Fernández Santos"):
+  if (words.length === 5) {
+    return {
+      line1: `${words[0]} ${words[1]} ${words[2]}`,
+      line2: `${words[3]} ${words[4]}`
+    };
+  }
+
+  // Algoritmo general: intentar dejar el último apellido en la 2ª línea si la 1ª cabe
+  const allExceptLast = words.slice(0, words.length - 1).join(" ");
+  if (allExceptLast.length <= 21) {
+    return {
+      line1: allExceptLast,
+      line2: words[words.length - 1]
     };
   }
 
