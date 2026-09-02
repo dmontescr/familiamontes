@@ -493,46 +493,66 @@ function initTreeVisualization() {
     FamilyTree.templates.montesTheme_male.img_0 = FamilyTree.templates.montesTheme.img_0;
     FamilyTree.templates.montesTheme_female.img_0 = FamilyTree.templates.montesTheme.img_0;
 
-    // Nombre Línea 1 (para nombres largos en 2 líneas)
+    // --- MODALIDAD 1: NOMBRES EN 2 LÍNEAS ---
+    // Nombre Línea 1 (y = 28)
     FamilyTree.templates.montesTheme.field_0 = `
-      <text style="font-size: 13px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="84" y="29">{val}</text>
+      <text style="font-size: 13px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="84" y="28">{val}</text>
     `;
-    FamilyTree.templates.montesTheme_male.field_0 = FamilyTree.templates.montesTheme.field_0;
-    FamilyTree.templates.montesTheme_female.field_0 = FamilyTree.templates.montesTheme.field_0;
-
-    // Nombre Línea 2 (para nombres largos en 2 líneas)
+    // Nombre Línea 2 (última fila del nombre, y = 44)
     FamilyTree.templates.montesTheme.field_3 = `
       <text style="font-size: 13px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="84" y="44">{val}</text>
     `;
-    FamilyTree.templates.montesTheme_male.field_3 = FamilyTree.templates.montesTheme.field_3;
-    FamilyTree.templates.montesTheme_female.field_3 = FamilyTree.templates.montesTheme.field_3;
-
-    // Nombre en 1 sola línea (centrado y equilibrado)
-    FamilyTree.templates.montesTheme.field_4 = `
-      <text style="font-size: 14px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="84" y="38">{val}</text>
+    // Fechas vitales para 2 líneas (a exactamente 20px de la última fila del nombre: 44 + 20 = 64)
+    FamilyTree.templates.montesTheme.field_5 = `
+      <text style="font-size: 11.5px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="84" y="64">{val}</text>
     `;
-    FamilyTree.templates.montesTheme_male.field_4 = FamilyTree.templates.montesTheme.field_4;
-    FamilyTree.templates.montesTheme_female.field_4 = FamilyTree.templates.montesTheme.field_4;
-
-    // Fechas vitales y edad (espaciado uniforme a 21px del nombre)
-    FamilyTree.templates.montesTheme.field_1 = `
-      <text style="font-size: 11.5px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="84" y="59">{val}</text>
-    `;
-    FamilyTree.templates.montesTheme_male.field_1 = FamilyTree.templates.montesTheme.field_1;
-    FamilyTree.templates.montesTheme_female.field_1 = FamilyTree.templates.montesTheme.field_1;
-
-    // Ubicación / Origen con chincheta roja (espaciado uniforme a 21px de las fechas)
-    FamilyTree.templates.montesTheme.field_2 = `
+    // Ubicación para 2 líneas (a exactamente 20px de las fechas: 64 + 20 = 84)
+    FamilyTree.templates.montesTheme.field_6 = `
       <g>
-        <svg x="84" y="69" width="13" height="13" viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg x="84" y="73" width="13" height="13" viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
           <circle cx="12" cy="10" r="3" fill="#ffffff"></circle>
         </svg>
-        <text style="font-size: 11px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="100" y="80">{val}</text>
+        <text style="font-size: 11px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="100" y="84">{val}</text>
       </g>
     `;
+
+    // --- MODALIDAD 2: NOMBRES EN 1 SOLA LÍNEA ---
+    // Nombre 1 sola línea (última fila del nombre, y = 38)
+    FamilyTree.templates.montesTheme.field_4 = `
+      <text style="font-size: 14px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="84" y="38">{val}</text>
+    `;
+    // Fechas vitales para 1 línea (a exactamente 20px de la fila del nombre: 38 + 20 = 58)
+    FamilyTree.templates.montesTheme.field_1 = `
+      <text style="font-size: 11.5px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="84" y="58">{val}</text>
+    `;
+    // Ubicación para 1 línea (a exactamente 20px de las fechas: 58 + 20 = 78)
+    FamilyTree.templates.montesTheme.field_2 = `
+      <g>
+        <svg x="84" y="67" width="13" height="13" viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+          <circle cx="12" cy="10" r="3" fill="#ffffff"></circle>
+        </svg>
+        <text style="font-size: 11px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="100" y="78">{val}</text>
+      </g>
+    `;
+
+    // Sincronizar plantillas por género
+    FamilyTree.templates.montesTheme_male.field_0 = FamilyTree.templates.montesTheme.field_0;
+    FamilyTree.templates.montesTheme_male.field_3 = FamilyTree.templates.montesTheme.field_3;
+    FamilyTree.templates.montesTheme_male.field_4 = FamilyTree.templates.montesTheme.field_4;
+    FamilyTree.templates.montesTheme_male.field_1 = FamilyTree.templates.montesTheme.field_1;
     FamilyTree.templates.montesTheme_male.field_2 = FamilyTree.templates.montesTheme.field_2;
+    FamilyTree.templates.montesTheme_male.field_5 = FamilyTree.templates.montesTheme.field_5;
+    FamilyTree.templates.montesTheme_male.field_6 = FamilyTree.templates.montesTheme.field_6;
+
+    FamilyTree.templates.montesTheme_female.field_0 = FamilyTree.templates.montesTheme.field_0;
+    FamilyTree.templates.montesTheme_female.field_3 = FamilyTree.templates.montesTheme.field_3;
+    FamilyTree.templates.montesTheme_female.field_4 = FamilyTree.templates.montesTheme.field_4;
+    FamilyTree.templates.montesTheme_female.field_1 = FamilyTree.templates.montesTheme.field_1;
     FamilyTree.templates.montesTheme_female.field_2 = FamilyTree.templates.montesTheme.field_2;
+    FamilyTree.templates.montesTheme_female.field_5 = FamilyTree.templates.montesTheme.field_5;
+    FamilyTree.templates.montesTheme_female.field_6 = FamilyTree.templates.montesTheme.field_6;
 
 /**
  * Adapta el texto de ubicación para que quepa de forma impecable en la tarjeta del árbol (255px de ancho)
@@ -574,8 +594,11 @@ function formatLocationForNode(city) {
         name_l2: isSingleLine ? "" : nameParts.line2,
         name_single: isSingleLine ? nameParts.line1 : "",
         name: person.name,
-        title: datesStr,
-        subtitle: locationStr,
+        // Fechas y ubicación vinculadas al juego de campos correspondiente
+        title_single: isSingleLine ? datesStr : "",
+        loc_single: isSingleLine ? locationStr : "",
+        title_multi: isSingleLine ? "" : datesStr,
+        loc_multi: isSingleLine ? "" : locationStr,
         photo: getPersonPhotoUrl(person.photo, person.gender),
         raw: person
       };
@@ -597,8 +620,10 @@ function formatLocationForNode(city) {
           field_0: "name_l1",
           field_3: "name_l2",
           field_4: "name_single",
-          field_1: "title",
-          field_2: "subtitle",
+          field_1: "title_single",
+          field_2: "loc_single",
+          field_5: "title_multi",
+          field_6: "loc_multi",
           img_0: "photo"
         },
         nodes: formattedNodes
