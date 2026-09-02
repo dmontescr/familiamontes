@@ -167,5 +167,20 @@
     "photo": "",
     "notes": "",
     "pids": []
+  },
+  {
+    "id": 12,
+    "name": "Ceferino Carrera Rodríguez",
+    "gender": "male",
+    "birth_place": "Navianos de la Vega (León)",
+    "city": "Navianos de la Vega (León)",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "Hermano mayor",
+    "pids": [],
+    "fid": 9,
+    "mid": 10
   }
 ]
