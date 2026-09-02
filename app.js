@@ -453,24 +453,11 @@ function setUnsavedChanges(status) {
   AppState.hasUnsavedChanges = status;
   localStorage.setItem("montes_has_unsaved", status ? "true" : "false");
   const badge = document.getElementById("unsaved-indicator");
-  const btnText = document.getElementById("btn-sync-text");
-  const btnSync = document.getElementById("btn-sync-cloud");
-
   if (badge) {
     if (status) {
       badge.classList.add("visible");
     } else {
       badge.classList.remove("visible");
-    }
-  }
-
-  if (btnText && btnSync) {
-    if (status) {
-      btnText.textContent = "Guardar Cambios";
-      btnSync.title = "Hay cambios pendientes por guardar en la nube";
-    } else {
-      btnText.textContent = "Guardado";
-      btnSync.title = "Todos los cambios están sincronizados";
     }
   }
 }
@@ -479,16 +466,8 @@ function setUnsavedChanges(status) {
  * Sincroniza el árbol genealógico y las fotografías con GitHub a través del endpoint /api/save
  */
 async function syncTreeWithCloud(isAutoSave = false) {
-  const syncBtn = document.getElementById("btn-sync-cloud");
-  const btnText = document.getElementById("btn-sync-text");
-  
-  if (syncBtn) {
-    syncBtn.disabled = true;
-    if (btnText) btnText.textContent = "Guardando...";
-  }
-
   if (!isAutoSave) {
-    showToast("Guardando y sincronizando cambios en internet...", "info", 3000);
+    showToast("Sincronizando cambios con la nube...", "info", 2500);
   }
 
   // Preparar fotografías pendientes de subir en Base64
@@ -523,30 +502,15 @@ async function syncTreeWithCloud(isAutoSave = false) {
       persistLocalTree();
       
       showToast("¡Cambios guardados y publicados con éxito en la nube!", "success", 4000);
-      
-      if (syncBtn) {
-        syncBtn.disabled = false;
-        if (btnText) btnText.textContent = "Guardado ✓";
-        setTimeout(() => {
-          if (!AppState.hasUnsavedChanges && btnText) {
-            btnText.textContent = "Guardar Cambios";
-          }
-        }, 3000);
-      }
       return true;
     } else {
       const errJson = await response.json().catch(() => ({}));
       console.warn("Respuesta no OK de /api/save:", errJson);
       
       if (response.status === 500 && errJson.error && errJson.error.includes("GITHUB_TOKEN")) {
-        showToast("Los cambios se han guardado localmente en tu navegador. Para sincronizarlos con GitHub, configura la variable GITHUB_TOKEN en Cloudflare Pages.", "warning", 8000);
+        showToast("Los cambios se han guardado localmente en tu navegador. Para sincronizarlos con GitHub, añade la variable GITHUB_TOKEN en Cloudflare Pages.", "warning", 8000);
       } else {
-        showToast("Los cambios se han guardado localmente. Aviso al guardar en la nube: " + (errJson.error || "Error de servidor"), "warning", 5000);
-      }
-      
-      if (syncBtn) {
-        syncBtn.disabled = false;
-        if (btnText) btnText.textContent = "Guardar Cambios";
+        showToast("Guardado localmente. Aviso al sincronizar en la nube: " + (errJson.error || "Error de servidor"), "warning", 5000);
       }
       return false;
     }
@@ -554,11 +518,7 @@ async function syncTreeWithCloud(isAutoSave = false) {
     console.warn("No se pudo conectar con /api/save (modo local o sin backend):", err);
     // En entorno local o sin Cloudflare Functions, se conserva 100% en localStorage
     if (!isAutoSave) {
-      showToast("Cambios guardados en la memoria local de tu navegador.", "info", 4000);
-    }
-    if (syncBtn) {
-      syncBtn.disabled = false;
-      if (btnText) btnText.textContent = "Guardar Cambios";
+      showToast("Cambios guardados en la memoria local de tu navegador.", "info", 3000);
     }
     return false;
   }
@@ -1470,7 +1430,10 @@ function openDeleteConfirmModal(personId) {
   openModal("modal-delete-confirm");
 }
 
-function savePersonFromForm() {
+async function savePersonFromForm() {
+  const saveBtn = document.getElementById("btn-save-person");
+  const originalBtnHtml = saveBtn ? saveBtn.innerHTML : "";
+
   const idInput = document.getElementById("form-person-id").value;
   const relTargetIdInput = document.getElementById("form-relative-target-id").value;
   const relType = document.getElementById("form-rel-type").value;
@@ -1675,19 +1638,35 @@ function savePersonFromForm() {
   initTreeVisualization();
   updateHeaderSummary();
 
-  // Sincronización automática con la nube en segundo plano
-  syncTreeWithCloud(true);
-
   if (AppState.selectedPersonId) {
     openPersonDrawer(AppState.selectedPersonId);
   }
+
+  // Guardar automáticamente a través de la API en segundo plano
+  await syncTreeWithCloud(true);
+
+  if (saveBtn) {
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = originalBtnHtml;
+  }
 }
 
-function deleteSelectedPerson() {
+async function deleteSelectedPerson() {
   if (!AppState.selectedPersonId) return;
   const personId = AppState.selectedPersonId;
   const person = AppState.treeData.find(p => p.id === personId);
   const name = person ? person.name : "la persona";
+
+  const confirmBtn = document.getElementById("btn-confirm-delete");
+  const originalConfirmHtml = confirmBtn ? confirmBtn.innerHTML : "";
+  if (confirmBtn) {
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = `
+      <i data-lucide="loader-2" class="spin-animation" style="width: 16px; height: 16px;"></i>
+      <span>Eliminando...</span>
+    `;
+    refreshIcons();
+  }
 
   // Si la persona tenía una foto en photos/, marcarla para eliminar en GitHub
   if (person && person.photo && person.photo.startsWith("photos/")) {
@@ -1716,8 +1695,13 @@ function deleteSelectedPerson() {
   updateHeaderSummary();
   showToast(`${name} ha sido eliminado del árbol`, "info");
 
-  // Sincronización automática con la nube en segundo plano
-  syncTreeWithCloud(true);
+  // Guardar automáticamente a través de la API
+  await syncTreeWithCloud(true);
+
+  if (confirmBtn) {
+    confirmBtn.disabled = false;
+    confirmBtn.innerHTML = originalConfirmHtml;
+  }
 }
 
 function generateNextId() {
@@ -1942,14 +1926,6 @@ function setupSearchEvents() {
 function setupToolbarEvents() {
   // Nueva Persona Raíz
   document.getElementById("btn-add-root-person").addEventListener("click", openAddRootPersonModal);
-
-  // Botón Sincronizar / Guardar en la Nube
-  const btnSync = document.getElementById("btn-sync-cloud");
-  if (btnSync) {
-    btnSync.addEventListener("click", () => {
-      syncTreeWithCloud(false);
-    });
-  }
 
   // Exportar PDF Horizontal
   const btnExportPdf = document.getElementById("btn-export-pdf");
