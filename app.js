@@ -452,71 +452,71 @@ function initTreeVisualization() {
     // Sanear y normalizar el grafo genealógico
     cleanAndValidateTreeData(AppState.treeData);
 
-    // Configuración de plantilla Opción B: Vertical / Ficha (220 x 130 px)
+    // Configuración de plantilla Opción B: Vertical / Ficha (225 x 136 px con mayor holgura vertical)
     FamilyTree.templates.montesTheme = Object.assign({}, FamilyTree.templates.john);
-    FamilyTree.templates.montesTheme.size = [220, 130];
+    FamilyTree.templates.montesTheme.size = [225, 136];
     
     // Tarjeta noble genérica
     FamilyTree.templates.montesTheme.node = `
       <clipPath id="cardClip{id}">
-        <rect x="0" y="0" height="130" width="220" rx="14" ry="14"></rect>
+        <rect x="0" y="0" height="136" width="225" rx="14" ry="14"></rect>
       </clipPath>
-      <rect x="0" y="0" height="130" width="220" fill="#ffffff" stroke-width="1.5" stroke="#d5cdbf" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(0,0,0,0.06))"></rect>
-      <rect x="0" y="0" height="130" width="6" fill="#a64b2a" clip-path="url(#cardClip{id})"></rect>
+      <rect x="0" y="0" height="136" width="225" fill="#ffffff" stroke-width="1.5" stroke="#d5cdbf" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(0,0,0,0.06))"></rect>
+      <rect x="0" y="0" height="136" width="6" fill="#a64b2a" clip-path="url(#cardClip{id})"></rect>
     `;
 
     // Tarjetas diferenciadas por género con integración perfecta en las esquinas redondeadas
     FamilyTree.templates.montesTheme_male = Object.assign({}, FamilyTree.templates.montesTheme);
     FamilyTree.templates.montesTheme_male.node = `
       <clipPath id="cardClipM{id}">
-        <rect x="0" y="0" height="130" width="220" rx="14" ry="14"></rect>
+        <rect x="0" y="0" height="136" width="225" rx="14" ry="14"></rect>
       </clipPath>
-      <rect x="0" y="0" height="130" width="220" fill="#ffffff" stroke-width="1.5" stroke="#cbd5e1" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(37,99,235,0.07))"></rect>
-      <rect x="0" y="0" height="130" width="6" fill="#3b82f6" clip-path="url(#cardClipM{id})"></rect>
+      <rect x="0" y="0" height="136" width="225" fill="#ffffff" stroke-width="1.5" stroke="#cbd5e1" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(37,99,235,0.07))"></rect>
+      <rect x="0" y="0" height="136" width="6" fill="#3b82f6" clip-path="url(#cardClipM{id})"></rect>
     `;
 
     FamilyTree.templates.montesTheme_female = Object.assign({}, FamilyTree.templates.montesTheme);
     FamilyTree.templates.montesTheme_female.node = `
       <clipPath id="cardClipF{id}">
-        <rect x="0" y="0" height="130" width="220" rx="14" ry="14"></rect>
+        <rect x="0" y="0" height="136" width="225" rx="14" ry="14"></rect>
       </clipPath>
-      <rect x="0" y="0" height="130" width="220" fill="#ffffff" stroke-width="1.5" stroke="#fbcfe8" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(219,39,119,0.07))"></rect>
-      <rect x="0" y="0" height="130" width="6" fill="#ec4899" clip-path="url(#cardClipF{id})"></rect>
+      <rect x="0" y="0" height="136" width="225" fill="#ffffff" stroke-width="1.5" stroke="#fbcfe8" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(219,39,119,0.07))"></rect>
+      <rect x="0" y="0" height="136" width="6" fill="#ec4899" clip-path="url(#cardClipF{id})"></rect>
     `;
 
-    // Fotografía circular centrada verticalmente con cursor de ampliación (cy = 65)
+    // Fotografía circular centrada verticalmente con cursor de ampliación (cy = 68)
     FamilyTree.templates.montesTheme.img_0 = `
-      <clipPath id="ulaImg{id}"><circle cx="40" cy="65" r="26"></circle></clipPath>
-      <circle cx="40" cy="65" r="28" fill="none" stroke="#e2d9cd" stroke-width="2"></circle>
-      <image preserveAspectRatio="xMidYMid slice" clip-path="url(#ulaImg{id})" xlink:href="{val}" x="14" y="39" width="52" height="52" style="cursor: zoom-in; pointer-events: all;"></image>
+      <clipPath id="ulaImg{id}"><circle cx="40" cy="68" r="26"></circle></clipPath>
+      <circle cx="40" cy="68" r="28" fill="none" stroke="#e2d9cd" stroke-width="2"></circle>
+      <image preserveAspectRatio="xMidYMid slice" clip-path="url(#ulaImg{id})" xlink:href="{val}" x="14" y="42" width="52" height="52" style="cursor: zoom-in; pointer-events: all;"></image>
     `;
     FamilyTree.templates.montesTheme_male.img_0 = FamilyTree.templates.montesTheme.img_0;
     FamilyTree.templates.montesTheme_female.img_0 = FamilyTree.templates.montesTheme.img_0;
 
     // Nombre Línea 1 (para nombres largos en 2 líneas)
     FamilyTree.templates.montesTheme.field_0 = `
-      <text style="font-size: 12px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="74" y="27">{val}</text>
+      <text style="font-size: 12.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="74" y="27">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_0 = FamilyTree.templates.montesTheme.field_0;
     FamilyTree.templates.montesTheme_female.field_0 = FamilyTree.templates.montesTheme.field_0;
 
     // Nombre Línea 2 (para nombres largos en 2 líneas)
     FamilyTree.templates.montesTheme.field_3 = `
-      <text style="font-size: 12px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="74" y="41">{val}</text>
+      <text style="font-size: 12.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="74" y="43">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_3 = FamilyTree.templates.montesTheme.field_3;
     FamilyTree.templates.montesTheme_female.field_3 = FamilyTree.templates.montesTheme.field_3;
 
     // Nombre en 1 sola línea (centrado y equilibrado)
     FamilyTree.templates.montesTheme.field_4 = `
-      <text style="font-size: 13px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="74" y="38">{val}</text>
+      <text style="font-size: 13px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="74" y="37">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_4 = FamilyTree.templates.montesTheme.field_4;
     FamilyTree.templates.montesTheme_female.field_4 = FamilyTree.templates.montesTheme.field_4;
 
-    // Fechas vitales y edad
+    // Fechas vitales y edad (con mayor separación)
     FamilyTree.templates.montesTheme.field_1 = `
-      <text style="font-size: 11px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="74" y="59">{val}</text>
+      <text style="font-size: 11px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="74" y="67">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_1 = FamilyTree.templates.montesTheme.field_1;
     FamilyTree.templates.montesTheme_female.field_1 = FamilyTree.templates.montesTheme.field_1;
@@ -524,11 +524,11 @@ function initTreeVisualization() {
     // Ubicación Línea 1: Municipio con chincheta roja única (map-pin)
     FamilyTree.templates.montesTheme.field_2 = `
       <g>
-        <svg x="74" y="69" width="12" height="12" viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg x="74" y="79" width="12" height="12" viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
           <circle cx="12" cy="10" r="3" fill="#ffffff"></circle>
         </svg>
-        <text style="font-size: 10.5px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="89" y="80">{val}</text>
+        <text style="font-size: 10.5px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="89" y="90">{val}</text>
       </g>
     `;
     FamilyTree.templates.montesTheme_male.field_2 = FamilyTree.templates.montesTheme.field_2;
@@ -536,7 +536,7 @@ function initTreeVisualization() {
 
     // Ubicación Línea 2: Provincia entre paréntesis debajo del municipio
     FamilyTree.templates.montesTheme.field_5 = `
-      <text style="font-size: 10px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#94a3b8" x="89" y="99">{val}</text>
+      <text style="font-size: 10px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#94a3b8" x="89" y="110">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_5 = FamilyTree.templates.montesTheme.field_5;
     FamilyTree.templates.montesTheme_female.field_5 = FamilyTree.templates.montesTheme.field_5;
