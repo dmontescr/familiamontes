@@ -577,9 +577,15 @@ function initTreeVisualization() {
     FamilyTree.templates.montesTheme_male.field_1 = FamilyTree.templates.montesTheme.field_1;
     FamilyTree.templates.montesTheme_female.field_1 = FamilyTree.templates.montesTheme.field_1;
 
-    // Lugar de Nacimiento con estrella genealógica en tono ámbar/dorado noble
+    // Lugar de Nacimiento con brújula (compass) en tono ámbar/dorado noble
     FamilyTree.templates.montesTheme.field_6 = `
-      <text style="font-size: 10.5px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#b45309" x="74" y="84">{val}</text>
+      <g>
+        <svg x="74" y="74" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="#b45309"></polygon>
+        </svg>
+        <text style="font-size: 10.5px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="89" y="85">{val}</text>
+      </g>
     `;
     FamilyTree.templates.montesTheme_male.field_6 = FamilyTree.templates.montesTheme.field_6;
     FamilyTree.templates.montesTheme_female.field_6 = FamilyTree.templates.montesTheme.field_6;
@@ -669,7 +675,7 @@ function parseLocationLines(city) {
       
       const loc = parseLocationLines(person.city);
       const birthLoc = (person.birth_place && person.birth_place.trim()) ? parseLocationLines(person.birth_place) : null;
-      const birthStr = birthLoc ? `★ ${birthLoc.muni}` : "★ ";
+      const birthStr = birthLoc ? birthLoc.muni : "";
 
       const nameParts = formatPersonNameLines(person.name);
       const isSingleLine = !nameParts.line2;
