@@ -584,7 +584,7 @@ function initTreeVisualization() {
           <circle cx="12" cy="12" r="10"></circle>
           <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="#b45309"></polygon>
         </svg>
-        <text style="font-size: 10.5px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="89" y="85">{val}</text>
+        <text style="font-size: 10px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="89" y="85">{val}</text>
       </g>
     `;
     FamilyTree.templates.montesTheme_male.field_6 = FamilyTree.templates.montesTheme.field_6;
@@ -597,7 +597,7 @@ function initTreeVisualization() {
           <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
           <circle cx="12" cy="10" r="3" fill="#ffffff"></circle>
         </svg>
-        <text style="font-size: 10.5px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="89" y="108">{val}</text>
+        <text style="font-size: 10px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="89" y="108">{val}</text>
       </g>
     `;
     FamilyTree.templates.montesTheme_male.field_2 = FamilyTree.templates.montesTheme.field_2;
@@ -619,19 +619,32 @@ function initTreeVisualization() {
 
 /**
  * Asegura que todos los municipios muestren su provincia entre paréntesis al lado.
- * - Si cabe en 1 sola línea (<= 21 caracteres, ej: "Madrid (Madrid)", "Astorga (León)", "León (León)"),
+ */
+function formatLocationWithProvince(loc) {
+  if (!loc) return "";
+  let trimmed = loc.trim();
+  if (!trimmed) return "";
+  if (trimmed.includes("(") || trimmed.includes("/")) return trimmed;
+  if (allSpanishMunicipalities && allSpanishMunicipalities.length > 0) {
+    const norm = trimmed.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const match = allSpanishMunicipalities.find(m => m.normCity === norm);
+    if (match) {
+      return `${match.city} (${match.province})`;
+    }
+  }
+  return `${trimmed} (${trimmed})`;
+}
+
+/**
+ * Divide la ubicación de residencia si es necesario:
+ * - Si cabe en 1 sola línea (<= 21 caracteres, ej: "Madrid (Madrid)", "Astorga (León)"),
  *   se muestra TODO junto en la misma línea.
- * - Solo si supera los 21 caracteres (ej: "Azuqueca de Henares (Guadalajara)", "Navianos de la Vega (León)", "Valladolid (Valladolid)"),
+ * - Solo si supera los 21 caracteres (ej: "Azuqueca de Henares (Guadalajara)"),
  *   la provincia pasa a la segunda línea.
  */
 function parseLocationLines(city) {
   if (!city) return { muni: "", prov: "" };
-  let trimmed = city.trim();
-
-  // Si no tiene paréntesis con provincia y no tiene barra, añadir automáticamente su provincia al lado
-  if (!trimmed.includes("(") && !trimmed.includes("/")) {
-    trimmed = `${trimmed} (${trimmed})`;
-  }
+  let trimmed = formatLocationWithProvince(city);
 
   // Si cabe en 1 sola línea (hasta 21 caracteres): ¡Todo junto en 1 línea!
   if (trimmed.length <= 21) {
@@ -674,8 +687,9 @@ function parseLocationLines(city) {
         : "";
       
       const loc = parseLocationLines(person.city);
-      const birthLoc = (person.birth_place && person.birth_place.trim()) ? parseLocationLines(person.birth_place) : null;
-      const birthStr = birthLoc ? birthLoc.muni : "";
+      const birthStr = (person.birth_place && person.birth_place.trim()) 
+        ? formatLocationWithProvince(person.birth_place) 
+        : "";
 
       const nameParts = formatPersonNameLines(person.name);
       const isSingleLine = !nameParts.line2;
