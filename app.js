@@ -694,27 +694,48 @@ function formatPersonNameLines(fullName) {
   const trimmed = fullName.trim();
   const words = trimmed.split(/\s+/);
   
-  // Nombres de hasta 22 caracteres se mantienen en 1 sola línea
-  if (trimmed.length <= 22) {
+  // Si tiene 2 palabras o menos y no excede 16 caracteres, va en 1 sola línea (ej. "Mateo Montes")
+  if (words.length <= 2 && trimmed.length <= 16) {
     return { line1: trimmed, line2: "" };
   }
 
-  // Nombres largos se dividen armónicamente en 2 líneas
-  let line1 = "";
-  let line2 = "";
-
-  for (let i = 0; i < words.length; i++) {
-    const word = words[i];
-    if (i === 0) {
-      line1 = word;
-    } else if ((line1 + " " + word).length <= 20 && line2 === "") {
-      line1 += " " + word;
-    } else {
-      line2 += (line2 ? " " : "") + word;
-    }
+  // Nombres de 3 palabras (ej: "Elena Montes Fernández", "Francisco Montes Vega", "Daniel Montes Cruz")
+  // Se dividen siempre de forma armónica: Nombre + 1er Apellido en línea 1, 2º Apellido en línea 2
+  if (words.length === 3) {
+    return {
+      line1: `${words[0]} ${words[1]}`,
+      line2: words[2]
+    };
   }
 
-  return { line1, line2 };
+  // Nombres de 4 palabras (ej: "Rosa María García López", "Lucía Álvarez Martín", "David Montes García")
+  if (words.length === 4) {
+    if (words[0].toLowerCase() === "maría" && words[1].toLowerCase() === "del") {
+      return {
+        line1: `${words[0]} ${words[1]} ${words[2]}`,
+        line2: words[3]
+      };
+    }
+    return {
+      line1: `${words[0]} ${words[1]}`,
+      line2: `${words[2]} ${words[3]}`
+    };
+  }
+
+  // Nombres de 5 palabras (ej: "María del Carmen Fernández Santos")
+  if (words.length === 5) {
+    return {
+      line1: `${words[0]} ${words[1]} ${words[2]}`,
+      line2: `${words[3]} ${words[4]}`
+    };
+  }
+
+  // Algoritmo general equilibrado
+  const mid = Math.ceil(words.length / 2);
+  return {
+    line1: words.slice(0, mid).join(" "),
+    line2: words.slice(mid).join(" ")
+  };
 }
 
 function getDefaultAvatar(gender) {
