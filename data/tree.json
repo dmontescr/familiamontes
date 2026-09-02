@@ -25,9 +25,7 @@
     "profession": "Mecánico/a Industrial",
     "photo": "",
     "notes": "",
-    "pids": [
-      3
-    ],
+    "pids": [],
     "birth_place": "Navianos de la Vega (León)"
   },
   {
@@ -40,9 +38,8 @@
     "profession": "Coordinadora farmaceútica",
     "photo": "",
     "notes": "",
-    "pids": [
-      2
-    ]
+    "pids": [],
+    "birth_place": "Villanueva de la Reina (Jaén)"
   },
   {
     "id": 4,
