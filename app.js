@@ -452,16 +452,16 @@ function initTreeVisualization() {
     // Sanear y normalizar el grafo genealógico
     cleanAndValidateTreeData(AppState.treeData);
 
-    // Configuración de plantilla Opción B: Vertical / Ficha (225 x 136 px con mayor holgura vertical)
+    // Configuración de plantilla Opción B: Vertical / Ficha (235 x 136 px con mayor holgura)
     FamilyTree.templates.montesTheme = Object.assign({}, FamilyTree.templates.john);
-    FamilyTree.templates.montesTheme.size = [225, 136];
+    FamilyTree.templates.montesTheme.size = [235, 136];
     
     // Tarjeta noble genérica
     FamilyTree.templates.montesTheme.node = `
       <clipPath id="cardClip{id}">
-        <rect x="0" y="0" height="136" width="225" rx="14" ry="14"></rect>
+        <rect x="0" y="0" height="136" width="235" rx="14" ry="14"></rect>
       </clipPath>
-      <rect x="0" y="0" height="136" width="225" fill="#ffffff" stroke-width="1.5" stroke="#d5cdbf" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(0,0,0,0.06))"></rect>
+      <rect x="0" y="0" height="136" width="235" fill="#ffffff" stroke-width="1.5" stroke="#d5cdbf" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(0,0,0,0.06))"></rect>
       <rect x="0" y="0" height="136" width="6" fill="#a64b2a" clip-path="url(#cardClip{id})"></rect>
     `;
 
@@ -469,18 +469,18 @@ function initTreeVisualization() {
     FamilyTree.templates.montesTheme_male = Object.assign({}, FamilyTree.templates.montesTheme);
     FamilyTree.templates.montesTheme_male.node = `
       <clipPath id="cardClipM{id}">
-        <rect x="0" y="0" height="136" width="225" rx="14" ry="14"></rect>
+        <rect x="0" y="0" height="136" width="235" rx="14" ry="14"></rect>
       </clipPath>
-      <rect x="0" y="0" height="136" width="225" fill="#ffffff" stroke-width="1.5" stroke="#cbd5e1" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(37,99,235,0.07))"></rect>
+      <rect x="0" y="0" height="136" width="235" fill="#ffffff" stroke-width="1.5" stroke="#cbd5e1" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(37,99,235,0.07))"></rect>
       <rect x="0" y="0" height="136" width="6" fill="#3b82f6" clip-path="url(#cardClipM{id})"></rect>
     `;
 
     FamilyTree.templates.montesTheme_female = Object.assign({}, FamilyTree.templates.montesTheme);
     FamilyTree.templates.montesTheme_female.node = `
       <clipPath id="cardClipF{id}">
-        <rect x="0" y="0" height="136" width="225" rx="14" ry="14"></rect>
+        <rect x="0" y="0" height="136" width="235" rx="14" ry="14"></rect>
       </clipPath>
-      <rect x="0" y="0" height="136" width="225" fill="#ffffff" stroke-width="1.5" stroke="#fbcfe8" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(219,39,119,0.07))"></rect>
+      <rect x="0" y="0" height="136" width="235" fill="#ffffff" stroke-width="1.5" stroke="#fbcfe8" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(219,39,119,0.07))"></rect>
       <rect x="0" y="0" height="136" width="6" fill="#ec4899" clip-path="url(#cardClipF{id})"></rect>
     `;
 
@@ -694,13 +694,26 @@ function formatPersonNameLines(fullName) {
   const trimmed = fullName.trim();
   const words = trimmed.split(/\s+/);
   
-  // Si tiene 2 palabras o menos y no excede 16 caracteres, va en 1 sola línea (ej. "Mateo Montes")
-  if (words.length <= 2 && trimmed.length <= 16) {
+  // Si cabe en 1 sola línea (hasta 22 caracteres): ¡NO saltar de línea!
+  // Nombres como "Daniel Montes Cruz", "Javier Ruiz Gómez", "Elena Montes Fernández", "Francisco Montes Vega", etc. van en 1 línea
+  if (trimmed.length <= 22) {
     return { line1: trimmed, line2: "" };
   }
 
-  // Nombres de 3 palabras (ej: "Elena Montes Fernández", "Francisco Montes Vega", "Daniel Montes Cruz")
-  // Se dividen siempre de forma armónica: Nombre + 1er Apellido en línea 1, 2º Apellido en línea 2
+  // Nombres largos (> 22 caracteres) como "María del Carmen Fernández Santos", "Rosa María García López" o "Manuel Montes Fernández"
+  if (words.length >= 4) {
+    if (words[0].toLowerCase() === "maría" && words[1].toLowerCase() === "del") {
+      return {
+        line1: words.slice(0, 3).join(" "),
+        line2: words.slice(3).join(" ")
+      };
+    }
+    return {
+      line1: words.slice(0, 2).join(" "),
+      line2: words.slice(2).join(" ")
+    };
+  }
+
   if (words.length === 3) {
     return {
       line1: `${words[0]} ${words[1]}`,
@@ -708,29 +721,6 @@ function formatPersonNameLines(fullName) {
     };
   }
 
-  // Nombres de 4 palabras (ej: "Rosa María García López", "Lucía Álvarez Martín", "David Montes García")
-  if (words.length === 4) {
-    if (words[0].toLowerCase() === "maría" && words[1].toLowerCase() === "del") {
-      return {
-        line1: `${words[0]} ${words[1]} ${words[2]}`,
-        line2: words[3]
-      };
-    }
-    return {
-      line1: `${words[0]} ${words[1]}`,
-      line2: `${words[2]} ${words[3]}`
-    };
-  }
-
-  // Nombres de 5 palabras (ej: "María del Carmen Fernández Santos")
-  if (words.length === 5) {
-    return {
-      line1: `${words[0]} ${words[1]} ${words[2]}`,
-      line2: `${words[3]} ${words[4]}`
-    };
-  }
-
-  // Algoritmo general equilibrado
   const mid = Math.ceil(words.length / 2);
   return {
     line1: words.slice(0, mid).join(" "),
