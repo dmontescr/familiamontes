@@ -449,6 +449,31 @@ function initTreeVisualization() {
   setTimeout(() => {
     container.innerHTML = "";
 
+    if (AppState.treeData.length === 0) {
+      container.innerHTML = `
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 450px; text-align: center; padding: 2rem; color: #64748b;">
+          <div style="width: 72px; height: 72px; border-radius: 50%; background: #f8fafc; border: 1.5px dashed #cbd5e1; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; color: #a64b2a;">
+            <i data-lucide="users" style="width: 36px; height: 36px;"></i>
+          </div>
+          <h2 style="font-family: 'Cinzel', Georgia, serif; font-size: 1.5rem; color: #1e293b; margin-bottom: 0.5rem;">Árbol Genealógico Vacío</h2>
+          <p style="max-width: 420px; font-size: 0.95rem; line-height: 1.5; color: #64748b; margin-bottom: 1.5rem;">
+            No hay ningún familiar registrado todavía. Pulsa el botón para añadir a la primera persona y comenzar a construir el árbol desde cero.
+          </p>
+          <button class="btn btn-primary" id="btn-empty-add-first" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; font-size: 0.95rem; border-radius: 8px;">
+            <i data-lucide="user-plus" style="width: 18px; height: 18px;"></i>
+            Añadir Primer Familiar
+          </button>
+        </div>
+      `;
+      const emptyAddBtn = document.getElementById("btn-empty-add-first");
+      if (emptyAddBtn) {
+        emptyAddBtn.onclick = () => openCreateRootModal();
+      }
+      refreshIcons();
+      updateHeaderCount();
+      return;
+    }
+
     // Sanear y normalizar el grafo genealógico
     cleanAndValidateTreeData(AppState.treeData);
 
