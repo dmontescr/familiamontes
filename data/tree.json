@@ -13,8 +13,7 @@
       4
     ],
     "fid": 2,
-    "mid": 3,
-    "birth_place": "Alcalá de Henares (Madrid)"
+    "mid": 3
   },
   {
     "id": 2,
@@ -28,7 +27,8 @@
     "notes": "",
     "pids": [
       3
-    ]
+    ],
+    "birth_place": "Navianos de la Vega (León)"
   },
   {
     "id": 3,
