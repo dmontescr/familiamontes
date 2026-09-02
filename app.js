@@ -494,46 +494,46 @@ function initTreeVisualization() {
     FamilyTree.templates.montesTheme_female.img_0 = FamilyTree.templates.montesTheme.img_0;
 
     // --- MODALIDAD 1: NOMBRES EN 2 LÍNEAS ---
-    // Nombre Línea 1 (y = 28)
+    // Nombre Línea 1 (y = 26)
     FamilyTree.templates.montesTheme.field_0 = `
-      <text style="font-size: 13px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="84" y="28">{val}</text>
+      <text style="font-size: 13px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="84" y="26">{val}</text>
     `;
-    // Nombre Línea 2 (última fila del nombre, y = 44)
+    // Nombre Línea 2 (y = 42)
     FamilyTree.templates.montesTheme.field_3 = `
-      <text style="font-size: 13px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="84" y="44">{val}</text>
+      <text style="font-size: 13px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="84" y="42">{val}</text>
     `;
-    // Fechas vitales para 2 líneas (a exactamente 20px de la última fila del nombre: 44 + 20 = 64)
+    // Fechas vitales para 2 líneas (y = 64, a 22px de la 2ª línea)
     FamilyTree.templates.montesTheme.field_5 = `
       <text style="font-size: 11.5px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="84" y="64">{val}</text>
     `;
-    // Ubicación para 2 líneas (a exactamente 20px de las fechas: 64 + 20 = 84)
+    // Ubicación para 2 líneas (y = 86, a 22px de las fechas)
     FamilyTree.templates.montesTheme.field_6 = `
       <g>
-        <svg x="84" y="73" width="13" height="13" viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg x="84" y="75" width="13" height="13" viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
           <circle cx="12" cy="10" r="3" fill="#ffffff"></circle>
         </svg>
-        <text style="font-size: 11px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="100" y="84">{val}</text>
+        <text style="font-size: 11px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="100" y="86">{val}</text>
       </g>
     `;
 
     // --- MODALIDAD 2: NOMBRES EN 1 SOLA LÍNEA ---
-    // Nombre 1 sola línea (última fila del nombre, y = 38)
+    // Nombre 1 sola línea (y = 38)
     FamilyTree.templates.montesTheme.field_4 = `
       <text style="font-size: 14px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="84" y="38">{val}</text>
     `;
-    // Fechas vitales para 1 línea (a exactamente 20px de la fila del nombre: 38 + 20 = 58)
+    // Fechas vitales para 1 línea (y = 62, centrado armónico con la foto)
     FamilyTree.templates.montesTheme.field_1 = `
-      <text style="font-size: 11.5px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="84" y="58">{val}</text>
+      <text style="font-size: 11.5px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="84" y="62">{val}</text>
     `;
-    // Ubicación para 1 línea (a exactamente 20px de las fechas: 58 + 20 = 78)
+    // Ubicación para 1 línea (y = 85, margen inferior perfecto)
     FamilyTree.templates.montesTheme.field_2 = `
       <g>
-        <svg x="84" y="67" width="13" height="13" viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg x="84" y="74" width="13" height="13" viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
           <circle cx="12" cy="10" r="3" fill="#ffffff"></circle>
         </svg>
-        <text style="font-size: 11px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="100" y="78">{val}</text>
+        <text style="font-size: 11px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="100" y="85">{val}</text>
       </g>
     `;
 
