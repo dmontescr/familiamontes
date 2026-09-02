@@ -297,6 +297,7 @@
       <form id="form-person" class="modal-body" onsubmit="return false;">
         <input type="hidden" id="form-person-id">
         <input type="hidden" id="form-relative-target-id">
+        <input type="hidden" id="form-rel-directional-type">
 
         <!-- Selector de parentesco (solo al añadir pariente vinculado) -->
         <div id="group-relationship-type" class="form-group" style="display: none;">
@@ -304,6 +305,8 @@
           <select id="form-rel-type" class="form-select">
             <option value="child">Hijo / Hija</option>
             <option value="partner">Pareja / Cónyuge</option>
+            <option value="parent_father">Padre</option>
+            <option value="parent_mother">Madre</option>
             <option value="parent">Padre / Madre</option>
             <option value="sibling">Hermano / Hermana</option>
           </select>

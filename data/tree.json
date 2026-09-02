@@ -10,7 +10,8 @@
     "photo": "photos/daniel_montes_cruz.jpg",
     "notes": "",
     "pids": [],
-    "fid": 2
+    "fid": 2,
+    "mid": 3
   },
   {
     "id": 2,
@@ -22,7 +23,9 @@
     "profession": "Mecánico/a Industrial",
     "photo": "",
     "notes": "",
-    "pids": []
+    "pids": [
+      3
+    ]
   },
   {
     "id": 3,
@@ -34,6 +37,8 @@
     "profession": "Coordinadora farmaceútica",
     "photo": "",
     "notes": "",
-    "pids": []
+    "pids": [
+      2
+    ]
   }
 ]

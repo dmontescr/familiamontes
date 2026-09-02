@@ -410,6 +410,22 @@ function cleanAndValidateTreeData(data) {
     if (p.fid && (!personMap.has(p.fid) || p.fid === p.id)) delete p.fid;
     if (p.mid && (!personMap.has(p.mid) || p.mid === p.id)) delete p.mid;
 
+    // Detección y ruptura de ciclos directos o invertidos (ej: si A es hijo de B, B no puede ser hijo de A)
+    if (p.fid) {
+      const father = personMap.get(p.fid);
+      if (father && (father.fid === p.id || father.mid === p.id)) {
+        if (father.fid === p.id) delete father.fid;
+        if (father.mid === p.id) delete father.mid;
+      }
+    }
+    if (p.mid) {
+      const mother = personMap.get(p.mid);
+      if (mother && (mother.fid === p.id || mother.mid === p.id)) {
+        if (mother.fid === p.id) delete mother.fid;
+        if (mother.mid === p.id) delete mother.mid;
+      }
+    }
+
     // Si tiene más de una pareja, dejar solo la primera para evitar conflictos de layout
     if (p.pids.length > 1) {
       p.pids = [p.pids[0]];
@@ -1287,6 +1303,8 @@ function openAddDirectionalRelativeModal(targetPersonId, directionalType) {
 
   document.getElementById("form-person-id").value = "";
   document.getElementById("form-relative-target-id").value = targetPersonId;
+  const directionalHidden = document.getElementById("form-rel-directional-type");
+  if (directionalHidden) directionalHidden.value = directionalType;
   document.getElementById("group-relationship-type").style.display = "none";
   document.getElementById("group-form-links").style.display = "none";
   
@@ -1341,6 +1359,8 @@ function openAddRootPersonModal() {
 
   document.getElementById("form-person-id").value = "";
   document.getElementById("form-relative-target-id").value = "";
+  const directionalHidden = document.getElementById("form-rel-directional-type");
+  if (directionalHidden) directionalHidden.value = "";
   document.getElementById("group-relationship-type").style.display = "none";
   document.getElementById("group-form-links").style.display = "block";
   document.getElementById("form-gender").disabled = false;
@@ -1366,6 +1386,8 @@ function openEditPersonModal(personId) {
 
   document.getElementById("form-person-id").value = person.id;
   document.getElementById("form-relative-target-id").value = "";
+  const directionalHidden = document.getElementById("form-rel-directional-type");
+  if (directionalHidden) directionalHidden.value = "";
   document.getElementById("group-relationship-type").style.display = "none";
   document.getElementById("group-form-links").style.display = "block";
   document.getElementById("form-gender").disabled = false;
@@ -1413,7 +1435,9 @@ async function savePersonFromForm() {
 
   const idInput = document.getElementById("form-person-id").value;
   const relTargetIdInput = document.getElementById("form-relative-target-id").value;
-  const relType = document.getElementById("form-rel-type").value;
+  const directionalTypeInput = document.getElementById("form-rel-directional-type") ? document.getElementById("form-rel-directional-type").value : "";
+  const selectRelType = document.getElementById("form-rel-type").value;
+  const relType = directionalTypeInput || selectRelType;
 
   const name = document.getElementById("form-name").value.trim();
   const gender = document.getElementById("form-gender").value;
@@ -1519,6 +1543,22 @@ async function savePersonFromForm() {
       if (!manualFid) delete AppState.treeData[index].fid;
       if (!manualMid) delete AppState.treeData[index].mid;
 
+      // Romper ciclos si se seleccionó madre o padre que tuviera como padre/madre a esta persona
+      if (manualMid) {
+        const mother = AppState.treeData.find(p => p.id === manualMid);
+        if (mother) {
+          if (mother.fid === personId) delete mother.fid;
+          if (mother.mid === personId) delete mother.mid;
+        }
+      }
+      if (manualFid) {
+        const father = AppState.treeData.find(p => p.id === manualFid);
+        if (father) {
+          if (father.fid === personId) delete father.fid;
+          if (father.mid === personId) delete father.mid;
+        }
+      }
+
       showToast(`Datos de ${name} actualizados`, "success");
     }
   } 
@@ -1556,8 +1596,14 @@ async function savePersonFromForm() {
       const targetPerson = AppState.treeData.find(p => p.id === targetId);
 
       if (targetPerson) {
-        if (relType === "parent_father") {
+        const isFather = relType === "parent_father" || (relType === "parent" && gender === "male");
+        const isMother = relType === "parent_mother" || (relType === "parent" && gender === "female");
+
+        if (isFather) {
           targetPerson.fid = newId;
+          delete newPerson.fid;
+          delete newPerson.mid;
+          // Si el hijo ya tiene madre, vincularlos como pareja mutuamente
           if (targetPerson.mid) {
             newPerson.pids = [targetPerson.mid];
             const mother = AppState.treeData.find(p => p.id === targetPerson.mid);
@@ -1566,8 +1612,11 @@ async function savePersonFromForm() {
               if (!mother.pids.includes(newId)) mother.pids.push(newId);
             }
           }
-        } else if (relType === "parent_mother") {
+        } else if (isMother) {
           targetPerson.mid = newId;
+          delete newPerson.fid;
+          delete newPerson.mid;
+          // Si el hijo ya tiene padre, vincularlos como pareja mutuamente
           if (targetPerson.fid) {
             newPerson.pids = [targetPerson.fid];
             const father = AppState.treeData.find(p => p.id === targetPerson.fid);
