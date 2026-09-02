@@ -104,6 +104,23 @@
     "profession": "",
     "photo": "",
     "notes": "",
-    "pids": []
+    "pids": [
+      8
+    ]
+  },
+  {
+    "id": 8,
+    "name": "Bibiana Posado",
+    "gender": "female",
+    "birth_place": "Navianos de la Vega (León)",
+    "city": "Navianos de la Vega (León)",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [
+      7
+    ]
   }
 ]
