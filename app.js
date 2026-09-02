@@ -896,7 +896,17 @@ function openPersonDrawer(personId) {
     : "Sin fechas registradas";
   document.getElementById("drawer-person-dates").querySelector("span").textContent = datesText;
 
-  // Ubicación
+  // Lugar de nacimiento
+  const rowBirthPlace = document.getElementById("row-drawer-birthplace");
+  if (person.birth_place) {
+    if (rowBirthPlace) rowBirthPlace.style.display = "flex";
+    const valBirthPlace = document.getElementById("drawer-val-birthplace");
+    if (valBirthPlace) valBirthPlace.textContent = person.birth_place;
+  } else {
+    if (rowBirthPlace) rowBirthPlace.style.display = "none";
+  }
+
+  // Ubicación / Lugar de residencia
   const rowCity = document.getElementById("row-drawer-city");
   if (person.city) {
     rowCity.style.display = "flex";
@@ -1342,6 +1352,8 @@ function openAddDirectionalRelativeModal(targetPersonId, directionalType) {
   }
 
   document.getElementById("form-rel-type").value = relTypeValue;
+  const birthPlaceInput = document.getElementById("form-birth-place");
+  if (birthPlaceInput) birthPlaceInput.value = "";
   document.getElementById("form-photo").value = "";
   document.getElementById("form-photo-file").value = "";
   document.getElementById("form-photo-preview").src = getDefaultAvatar(genderSelect.value);
@@ -1366,6 +1378,8 @@ function openAddRootPersonModal() {
   document.getElementById("form-gender").disabled = false;
   document.getElementById("modal-person-title").querySelector("span").textContent = "Añadir Nueva Persona al Árbol";
   
+  const birthPlaceInput = document.getElementById("form-birth-place");
+  if (birthPlaceInput) birthPlaceInput.value = "";
   document.getElementById("form-photo").value = "";
   document.getElementById("form-photo-file").value = "";
   document.getElementById("form-photo-preview").src = getDefaultAvatar("male");
@@ -1396,6 +1410,8 @@ function openEditPersonModal(personId) {
   
   document.getElementById("form-name").value = person.name || "";
   document.getElementById("form-gender").value = person.gender || "male";
+  const birthPlaceInput = document.getElementById("form-birth-place");
+  if (birthPlaceInput) birthPlaceInput.value = person.birth_place || "";
   document.getElementById("form-city").value = person.city || "";
   document.getElementById("form-birth").value = person.birth || "";
   document.getElementById("form-death").value = person.death || "";
@@ -1441,6 +1457,8 @@ async function savePersonFromForm() {
 
   const name = document.getElementById("form-name").value.trim();
   const gender = document.getElementById("form-gender").value;
+  const birthPlaceInput = document.getElementById("form-birth-place");
+  const birth_place = birthPlaceInput ? birthPlaceInput.value.trim() : "";
   const city = document.getElementById("form-city").value.trim();
   const birth = document.getElementById("form-birth").value.trim();
   const death = document.getElementById("form-death").value.trim();
@@ -1529,6 +1547,7 @@ async function savePersonFromForm() {
         ...oldPerson,
         name,
         gender,
+        birth_place,
         city,
         birth,
         death,
@@ -1569,6 +1588,7 @@ async function savePersonFromForm() {
       id: newId,
       name,
       gender,
+      birth_place,
       city,
       birth,
       death,
@@ -2154,36 +2174,43 @@ async function loadSpanishMunicipalitiesDataset() {
 
 function setupCityAutocomplete() {
   const cityInput = document.getElementById("form-city");
-  const dropdown = document.getElementById("city-autocomplete-dropdown");
-  if (!cityInput || !dropdown) return;
+  const cityDropdown = document.getElementById("city-autocomplete-dropdown");
+  const birthPlaceInput = document.getElementById("form-birth-place");
+  const birthPlaceDropdown = document.getElementById("birthplace-autocomplete-dropdown");
 
   // Cargar dataset completo en segundo plano
   loadSpanishMunicipalitiesDataset();
 
-  // Activar navegación con flechas de teclado y Enter
-  setupAutocompleteKeyboardNavigation(cityInput, dropdown);
+  function attachAutocomplete(inputEl, dropdownEl) {
+    if (!inputEl || !dropdownEl) return;
+    setupAutocompleteKeyboardNavigation(inputEl, dropdownEl);
 
-  cityInput.addEventListener("input", () => {
-    clearTimeout(cityDebounceTimer);
-    const query = cityInput.value.trim();
+    let debounceTimer;
+    inputEl.addEventListener("input", () => {
+      clearTimeout(debounceTimer);
+      const query = inputEl.value.trim();
 
-    if (query.length < 2) {
-      dropdown.style.display = "none";
-      dropdown.innerHTML = "";
-      return;
-    }
+      if (query.length < 2) {
+        dropdownEl.style.display = "none";
+        dropdownEl.innerHTML = "";
+        return;
+      }
 
-    // Búsqueda instantánea con 100ms de debounce
-    cityDebounceTimer = setTimeout(async () => {
-      const results = await searchMunicipalities(query);
-      renderCityAutocomplete(results, cityInput, dropdown);
-    }, 100);
-  });
+      debounceTimer = setTimeout(async () => {
+        const results = await searchMunicipalities(query);
+        renderCityAutocomplete(results, inputEl, dropdownEl);
+      }, 100);
+    });
+  }
+
+  attachAutocomplete(cityInput, cityDropdown);
+  attachAutocomplete(birthPlaceInput, birthPlaceDropdown);
 
   // Cerrar dropdown al hacer clic fuera
   document.addEventListener("click", (e) => {
     if (!e.target.closest(".autocomplete-group")) {
-      dropdown.style.display = "none";
+      if (cityDropdown) cityDropdown.style.display = "none";
+      if (birthPlaceDropdown) birthPlaceDropdown.style.display = "none";
     }
   });
 }

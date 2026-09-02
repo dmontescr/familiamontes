@@ -248,6 +248,14 @@
 
         <!-- Información Biográfica Detallada -->
         <div class="drawer-info-list">
+          <div class="info-row" id="row-drawer-birthplace">
+            <i data-lucide="compass"></i>
+            <div>
+              <div class="info-label">Lugar de nacimiento</div>
+              <div id="drawer-val-birthplace" class="info-value">-</div>
+            </div>
+          </div>
+
           <div class="info-row" id="row-drawer-city">
             <i data-lucide="map-pin"></i>
             <div>
@@ -326,10 +334,27 @@
             </select>
           </div>
           <div class="form-group autocomplete-group">
+            <label for="form-birth-place">Lugar de nacimiento</label>
+            <div class="autocomplete-wrapper">
+              <input type="text" id="form-birth-place" class="input-control" placeholder="Municipio de nacimiento..." autocomplete="off">
+              <div id="birthplace-autocomplete-dropdown" class="autocomplete-dropdown" style="display: none;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group autocomplete-group">
             <label for="form-city">Lugar de residencia</label>
             <div class="autocomplete-wrapper">
-              <input type="text" id="form-city" class="input-control" placeholder="Escribe municipio o provincia..." autocomplete="off">
+              <input type="text" id="form-city" class="input-control" placeholder="Municipio de residencia..." autocomplete="off">
               <div id="city-autocomplete-dropdown" class="autocomplete-dropdown" style="display: none;"></div>
+            </div>
+          </div>
+          <div class="form-group autocomplete-group">
+            <label for="form-profession">Profesión u Ocupación</label>
+            <div class="autocomplete-wrapper">
+              <input type="text" id="form-profession" class="input-control" placeholder="Ej. Agricultor, Maestra..." autocomplete="off">
+              <div id="profession-autocomplete-dropdown" class="autocomplete-dropdown" style="display: none;"></div>
             </div>
           </div>
         </div>
@@ -372,14 +397,6 @@
             <select id="form-select-partner" class="form-select">
               <option value="">-- Sin pareja / cónyuge --</option>
             </select>
-          </div>
-        </div>
-
-        <div class="form-group autocomplete-group">
-          <label for="form-profession">Profesión u Ocupación</label>
-          <div class="autocomplete-wrapper">
-            <input type="text" id="form-profession" class="input-control" placeholder="Ej. Agricultor, Maestra, Ingeniero..." autocomplete="off">
-            <div id="profession-autocomplete-dropdown" class="autocomplete-dropdown" style="display: none;"></div>
           </div>
         </div>
 
