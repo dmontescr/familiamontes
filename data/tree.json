@@ -68,7 +68,7 @@
     "gender": "female",
     "birth": "1964",
     "death": "",
-    "city": "Madrid",
+    "city": "Madrid (Madrid)",
     "profession": "Arquitecta",
     "photo": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300&auto=format&fit=crop&q=80",
     "notes": "Hija de Francisco y Carmen. Reside en Madrid."
@@ -82,7 +82,7 @@
     "gender": "male",
     "birth": "1962",
     "death": "",
-    "city": "Madrid",
+    "city": "Madrid (Madrid)",
     "profession": "Profesor de Historia",
     "photo": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80",
     "notes": "Casado con Elena."
@@ -96,7 +96,7 @@
     "gender": "male",
     "birth": "1968",
     "death": "",
-    "city": "Valladolid",
+    "city": "Valladolid (Valladolid)",
     "profession": "Veterinario",
     "photo": "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=300&auto=format&fit=crop&q=80",
     "notes": "Hijo menor de Francisco y Carmen."
@@ -112,7 +112,7 @@
     "gender": "male",
     "birth": "1990",
     "death": "",
-    "city": "Madrid / Navianos",
+    "city": "Madrid (Madrid) / Navianos (León)",
     "profession": "Desarrollador de Software",
     "photo": "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=300&auto=format&fit=crop&q=80",
     "notes": "Nieto de Francisco y Carmen. Creador de la web de la familia."
@@ -126,7 +126,7 @@
     "gender": "female",
     "birth": "1992",
     "death": "",
-    "city": "Madrid",
+    "city": "Madrid (Madrid)",
     "profession": "Diseñadora UX",
     "photo": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80",
     "notes": "Pareja de David."
@@ -140,7 +140,7 @@
     "gender": "female",
     "birth": "1994",
     "death": "",
-    "city": "León",
+    "city": "León (León)",
     "profession": "Bióloga",
     "photo": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&auto=format&fit=crop&q=80",
     "notes": "Hija de Manuel y Rosa."
@@ -154,7 +154,7 @@
     "gender": "male",
     "birth": "1996",
     "death": "",
-    "city": "Madrid",
+    "city": "Madrid (Madrid)",
     "profession": "Músico y Productor",
     "photo": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300&auto=format&fit=crop&q=80",
     "notes": "Hijo de Elena y Javier."
@@ -168,7 +168,7 @@
     "gender": "male",
     "birth": "2023",
     "death": "",
-    "city": "Madrid",
+    "city": "Madrid (Madrid)",
     "profession": "",
     "photo": "https://images.unsplash.com/photo-1596870230751-ebdfce98ec42?w=300&auto=format&fit=crop&q=80",
     "notes": "Biznieto de Francisco y Carmen. La nueva generación."

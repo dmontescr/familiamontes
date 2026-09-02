@@ -549,17 +549,22 @@ function initTreeVisualization() {
     }
 
 /**
- * Formatea la ubicación para la tarjeta:
- * Si cabe en 1 sola línea (<= 21 caracteres, ej: "Astorga (León)", "Madrid", "Valladolid", "León"),
- * va TODO en una sola línea y la 2ª queda vacía.
- * Solo si es estrictamente necesario (> 21 caracteres, ej: "Azuqueca de Henares (Guadalajara)", "Navianos de la Vega (León)")
- * se pasa la provincia entre paréntesis a la segunda línea.
+ * Asegura que todos los municipios muestren su provincia entre paréntesis al lado.
+ * - Si cabe en 1 sola línea (<= 21 caracteres, ej: "Madrid (Madrid)", "Astorga (León)", "León (León)"),
+ *   se muestra TODO junto en la misma línea.
+ * - Solo si supera los 21 caracteres (ej: "Azuqueca de Henares (Guadalajara)", "Navianos de la Vega (León)", "Valladolid (Valladolid)"),
+ *   la provincia pasa a la segunda línea.
  */
 function parseLocationLines(city) {
   if (!city) return { muni: "", prov: "" };
-  const trimmed = city.trim();
+  let trimmed = city.trim();
 
-  // Si cabe en 1 sola línea (hasta 21 caracteres): ¡Todo en 1 sola línea!
+  // Si no tiene paréntesis con provincia y no tiene barra, añadir automáticamente su provincia al lado
+  if (!trimmed.includes("(") && !trimmed.includes("/")) {
+    trimmed = `${trimmed} (${trimmed})`;
+  }
+
+  // Si cabe en 1 sola línea (hasta 21 caracteres): ¡Todo junto en 1 línea!
   if (trimmed.length <= 21) {
     return {
       muni: trimmed,
@@ -576,7 +581,7 @@ function parseLocationLines(city) {
     };
   }
 
-  // Si tiene formato con barra ej. "Municipio / Subzona"
+  // Si tiene formato compuesto con barra ej. "Madrid / Navianos"
   if (trimmed.includes(" / ")) {
     const parts = trimmed.split(" / ");
     if (parts.length === 2) {
