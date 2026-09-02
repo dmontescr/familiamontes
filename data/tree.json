@@ -212,5 +212,20 @@
     "pids": [],
     "fid": 9,
     "mid": 10
+  },
+  {
+    "id": 15,
+    "name": "Firia Martínez Rodríguez",
+    "gender": "female",
+    "birth_place": "",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "mid": 10,
+    "fid": 9
   }
 ]
