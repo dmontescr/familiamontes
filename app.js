@@ -551,28 +551,28 @@ function initTreeVisualization() {
 
     // Nombre Línea 1 (para nombres largos en 2 líneas)
     FamilyTree.templates.montesTheme.field_0 = `
-      <text style="font-size: 12.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="74" y="26">{val}</text>
+      <text style="font-size: 12px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="74" y="19">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_0 = FamilyTree.templates.montesTheme.field_0;
     FamilyTree.templates.montesTheme_female.field_0 = FamilyTree.templates.montesTheme.field_0;
 
     // Nombre Línea 2 (para nombres largos en 2 líneas)
     FamilyTree.templates.montesTheme.field_3 = `
-      <text style="font-size: 12.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="74" y="40">{val}</text>
+      <text style="font-size: 12px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="74" y="33">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_3 = FamilyTree.templates.montesTheme.field_3;
     FamilyTree.templates.montesTheme_female.field_3 = FamilyTree.templates.montesTheme.field_3;
 
     // Nombre en 1 sola línea (centrado y equilibrado)
     FamilyTree.templates.montesTheme.field_4 = `
-      <text style="font-size: 13px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="74" y="32">{val}</text>
+      <text style="font-size: 13px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="74" y="31">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_4 = FamilyTree.templates.montesTheme.field_4;
     FamilyTree.templates.montesTheme_female.field_4 = FamilyTree.templates.montesTheme.field_4;
 
     // Fechas vitales y edad
     FamilyTree.templates.montesTheme.field_1 = `
-      <text style="font-size: 11px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="74" y="56">{val}</text>
+      <text style="font-size: 11px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="74" y="57">{val}</text>
     `;
     FamilyTree.templates.montesTheme_male.field_1 = FamilyTree.templates.montesTheme.field_1;
     FamilyTree.templates.montesTheme_female.field_1 = FamilyTree.templates.montesTheme.field_1;
