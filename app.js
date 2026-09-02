@@ -668,8 +668,8 @@ function parseLocationLines(city) {
         : "";
       
       const loc = parseLocationLines(person.city);
-      const birthLoc = person.birth_place ? parseLocationLines(person.birth_place) : null;
-      const birthStr = birthLoc ? `★ ${birthLoc.muni}` : "";
+      const birthLoc = (person.birth_place && person.birth_place.trim()) ? parseLocationLines(person.birth_place) : null;
+      const birthStr = birthLoc ? `★ ${birthLoc.muni}` : "★ ";
 
       const nameParts = formatPersonNameLines(person.name);
       const isSingleLine = !nameParts.line2;
