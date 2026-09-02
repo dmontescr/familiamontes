@@ -549,13 +549,25 @@ function initTreeVisualization() {
     }
 
 /**
- * Divide la ubicación en Municipio y Provincia para la Opción B (formato vertical)
+ * Formatea la ubicación para la tarjeta:
+ * Si cabe en 1 sola línea (<= 21 caracteres, ej: "Astorga (León)", "Madrid", "Valladolid", "León"),
+ * va TODO en una sola línea y la 2ª queda vacía.
+ * Solo si es estrictamente necesario (> 21 caracteres, ej: "Azuqueca de Henares (Guadalajara)", "Navianos de la Vega (León)")
+ * se pasa la provincia entre paréntesis a la segunda línea.
  */
 function parseLocationLines(city) {
   if (!city) return { muni: "", prov: "" };
   const trimmed = city.trim();
 
-  // Formato "Municipio (Provincia)"
+  // Si cabe en 1 sola línea (hasta 21 caracteres): ¡Todo en 1 sola línea!
+  if (trimmed.length <= 21) {
+    return {
+      muni: trimmed,
+      prov: ""
+    };
+  }
+
+  // Si supera 21 caracteres y tiene formato "Municipio (Provincia)", se divide en 2 líneas
   const match = trimmed.match(/^(.+?)\s*\((.+?)\)$/);
   if (match) {
     return {
@@ -564,7 +576,7 @@ function parseLocationLines(city) {
     };
   }
 
-  // Formato compuesto con barra "León / Navianos"
+  // Si tiene formato con barra ej. "Municipio / Subzona"
   if (trimmed.includes(" / ")) {
     const parts = trimmed.split(" / ");
     if (parts.length === 2) {
@@ -575,10 +587,9 @@ function parseLocationLines(city) {
     }
   }
 
-  // Si es un municipio simple (ej: "Madrid", "Valladolid", "León")
   return {
     muni: trimmed,
-    prov: `(${trimmed})`
+    prov: ""
   };
 }
 
