@@ -1,7 +1,9 @@
 [
   {
     "id": 1,
-    "pids": [2],
+    "pids": [
+      2
+    ],
     "name": "Francisco Montes Vega",
     "gender": "male",
     "birth": "1932",
@@ -13,7 +15,9 @@
   },
   {
     "id": 2,
-    "pids": [1],
+    "pids": [
+      1
+    ],
     "name": "María del Carmen Fernández Santos",
     "gender": "female",
     "birth": "1935",
@@ -27,7 +31,9 @@
     "id": 3,
     "mid": 2,
     "fid": 1,
-    "pids": [4],
+    "pids": [
+      4
+    ],
     "name": "Manuel Montes Fernández",
     "gender": "male",
     "birth": "1960",
@@ -39,7 +45,9 @@
   },
   {
     "id": 4,
-    "pids": [3],
+    "pids": [
+      3
+    ],
     "name": "Rosa María García López",
     "gender": "female",
     "birth": "1963",
@@ -53,7 +61,9 @@
     "id": 5,
     "mid": 2,
     "fid": 1,
-    "pids": [6],
+    "pids": [
+      6
+    ],
     "name": "Elena Montes Fernández",
     "gender": "female",
     "birth": "1964",
@@ -65,7 +75,9 @@
   },
   {
     "id": 6,
-    "pids": [5],
+    "pids": [
+      5
+    ],
     "name": "Javier Ruiz Gómez",
     "gender": "male",
     "birth": "1962",
@@ -93,7 +105,9 @@
     "id": 8,
     "mid": 4,
     "fid": 3,
-    "pids": [9],
+    "pids": [
+      9
+    ],
     "name": "David Montes García",
     "gender": "male",
     "birth": "1990",
@@ -105,7 +119,9 @@
   },
   {
     "id": 9,
-    "pids": [8],
+    "pids": [
+      8
+    ],
     "name": "Lucía Álvarez Martín",
     "gender": "female",
     "birth": "1992",
@@ -156,5 +172,29 @@
     "profession": "",
     "photo": "https://images.unsplash.com/photo-1596870230751-ebdfce98ec42?w=300&auto=format&fit=crop&q=80",
     "notes": "Biznieto de Francisco y Carmen. La nueva generación."
+  },
+  {
+    "id": 13,
+    "name": "Daniel Montes Cruz",
+    "gender": "male",
+    "city": "Azuqueca de Henares (Guadalajara)",
+    "birth": "15/04/1991",
+    "death": "",
+    "profession": "Ingeniero/a Industrial",
+    "photo": "",
+    "notes": "",
+    "pids": []
+  },
+  {
+    "id": 14,
+    "name": "Prueba 4",
+    "gender": "female",
+    "city": "Madrid (Madrid)",
+    "birth": "1999",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": []
   }
 ]
