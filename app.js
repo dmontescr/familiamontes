@@ -508,16 +508,16 @@ function initTreeVisualization() {
     // Sanear y normalizar el grafo genealógico
     cleanAndValidateTreeData(AppState.treeData);
 
-    // Configuración de plantilla Opción B: Vertical / Ficha (240 x 150 px con mayor holgura y lugar de nacimiento)
+    // Configuración de plantilla Opción B: Vertical / Ficha (260 x 150 px con mayor anchura)
     FamilyTree.templates.montesTheme = Object.assign({}, FamilyTree.templates.john);
-    FamilyTree.templates.montesTheme.size = [240, 150];
+    FamilyTree.templates.montesTheme.size = [260, 150];
     
     // Tarjeta noble genérica
     FamilyTree.templates.montesTheme.node = `
       <clipPath id="cardClip{id}">
-        <rect x="0" y="0" height="150" width="240" rx="14" ry="14"></rect>
+        <rect x="0" y="0" height="150" width="260" rx="14" ry="14"></rect>
       </clipPath>
-      <rect x="0" y="0" height="150" width="240" fill="#ffffff" stroke-width="1.5" stroke="#d5cdbf" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(0,0,0,0.06))"></rect>
+      <rect x="0" y="0" height="150" width="260" fill="#ffffff" stroke-width="1.5" stroke="#d5cdbf" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(0,0,0,0.06))"></rect>
       <rect x="0" y="0" height="150" width="6" fill="#a64b2a" clip-path="url(#cardClip{id})"></rect>
     `;
 
@@ -525,18 +525,18 @@ function initTreeVisualization() {
     FamilyTree.templates.montesTheme_male = Object.assign({}, FamilyTree.templates.montesTheme);
     FamilyTree.templates.montesTheme_male.node = `
       <clipPath id="cardClipM{id}">
-        <rect x="0" y="0" height="150" width="240" rx="14" ry="14"></rect>
+        <rect x="0" y="0" height="150" width="260" rx="14" ry="14"></rect>
       </clipPath>
-      <rect x="0" y="0" height="150" width="240" fill="#ffffff" stroke-width="1.5" stroke="#cbd5e1" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(37,99,235,0.07))"></rect>
+      <rect x="0" y="0" height="150" width="260" fill="#ffffff" stroke-width="1.5" stroke="#cbd5e1" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(37,99,235,0.07))"></rect>
       <rect x="0" y="0" height="150" width="6" fill="#3b82f6" clip-path="url(#cardClipM{id})"></rect>
     `;
 
     FamilyTree.templates.montesTheme_female = Object.assign({}, FamilyTree.templates.montesTheme);
     FamilyTree.templates.montesTheme_female.node = `
       <clipPath id="cardClipF{id}">
-        <rect x="0" y="0" height="150" width="240" rx="14" ry="14"></rect>
+        <rect x="0" y="0" height="150" width="260" rx="14" ry="14"></rect>
       </clipPath>
-      <rect x="0" y="0" height="150" width="240" fill="#ffffff" stroke-width="1.5" stroke="#fbcfe8" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(219,39,119,0.07))"></rect>
+      <rect x="0" y="0" height="150" width="260" fill="#ffffff" stroke-width="1.5" stroke="#fbcfe8" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(219,39,119,0.07))"></rect>
       <rect x="0" y="0" height="150" width="6" fill="#ec4899" clip-path="url(#cardClipF{id})"></rect>
     `;
 
@@ -749,9 +749,9 @@ function formatPersonNameLines(fullName) {
   const trimmed = fullName.trim();
   const words = trimmed.split(/\s+/);
   
-  // Si cabe en 1 sola línea (hasta 22 caracteres): ¡NO saltar de línea!
-  // Nombres como "Daniel Montes Cruz", "Javier Ruiz Gómez", "Elena Montes Fernández", "Francisco Montes Vega", etc. van en 1 línea
-  if (trimmed.length <= 22) {
+  // Si cabe en 1 sola línea (hasta 24 caracteres con 260px de caja): ¡NO saltar de línea!
+  // Nombres como "Daniel Montes Cruz", "Atanasio Montes Carrera", "Elena Montes Fernández", "Francisco Montes Vega", etc. van en 1 línea
+  if (trimmed.length <= 24) {
     return { line1: trimmed, line2: "" };
   }
 
