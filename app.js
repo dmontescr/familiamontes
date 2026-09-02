@@ -508,16 +508,16 @@ function initTreeVisualization() {
     // Sanear y normalizar el grafo genealógico
     cleanAndValidateTreeData(AppState.treeData);
 
-    // Configuración de plantilla Opción B: Vertical / Ficha (260 x 130 px estilizada y compacta)
+    // Configuración de plantilla Opción B: Vertical / Ficha (270 x 130 px estilizada y con máxima holgura)
     FamilyTree.templates.montesTheme = Object.assign({}, FamilyTree.templates.john);
-    FamilyTree.templates.montesTheme.size = [260, 130];
+    FamilyTree.templates.montesTheme.size = [270, 130];
     
     // Tarjeta noble genérica
     FamilyTree.templates.montesTheme.node = `
       <clipPath id="cardClip{id}">
-        <rect x="0" y="0" height="130" width="260" rx="14" ry="14"></rect>
+        <rect x="0" y="0" height="130" width="270" rx="14" ry="14"></rect>
       </clipPath>
-      <rect x="0" y="0" height="130" width="260" fill="#ffffff" stroke-width="1.5" stroke="#d5cdbf" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(0,0,0,0.06))"></rect>
+      <rect x="0" y="0" height="130" width="270" fill="#ffffff" stroke-width="1.5" stroke="#d5cdbf" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(0,0,0,0.06))"></rect>
       <rect x="0" y="0" height="130" width="6" fill="#a64b2a" clip-path="url(#cardClip{id})"></rect>
     `;
 
@@ -525,18 +525,18 @@ function initTreeVisualization() {
     FamilyTree.templates.montesTheme_male = Object.assign({}, FamilyTree.templates.montesTheme);
     FamilyTree.templates.montesTheme_male.node = `
       <clipPath id="cardClipM{id}">
-        <rect x="0" y="0" height="130" width="260" rx="14" ry="14"></rect>
+        <rect x="0" y="0" height="130" width="270" rx="14" ry="14"></rect>
       </clipPath>
-      <rect x="0" y="0" height="130" width="260" fill="#ffffff" stroke-width="1.5" stroke="#cbd5e1" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(37,99,235,0.07))"></rect>
+      <rect x="0" y="0" height="130" width="270" fill="#ffffff" stroke-width="1.5" stroke="#cbd5e1" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(37,99,235,0.07))"></rect>
       <rect x="0" y="0" height="130" width="6" fill="#3b82f6" clip-path="url(#cardClipM{id})"></rect>
     `;
 
     FamilyTree.templates.montesTheme_female = Object.assign({}, FamilyTree.templates.montesTheme);
     FamilyTree.templates.montesTheme_female.node = `
       <clipPath id="cardClipF{id}">
-        <rect x="0" y="0" height="130" width="260" rx="14" ry="14"></rect>
+        <rect x="0" y="0" height="130" width="270" rx="14" ry="14"></rect>
       </clipPath>
-      <rect x="0" y="0" height="130" width="260" fill="#ffffff" stroke-width="1.5" stroke="#fbcfe8" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(219,39,119,0.07))"></rect>
+      <rect x="0" y="0" height="130" width="270" fill="#ffffff" stroke-width="1.5" stroke="#fbcfe8" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(219,39,119,0.07))"></rect>
       <rect x="0" y="0" height="130" width="6" fill="#ec4899" clip-path="url(#cardClipF{id})"></rect>
     `;
 
@@ -751,60 +751,55 @@ function formatLocationWithProvince(loc) {
 function formatPersonNameLines(fullName) {
   if (!fullName) return { line1: "", line2: "" };
   const trimmed = fullName.trim();
-  const words = trimmed.split(/\s+/);
   
-  // Si cabe en 1 sola línea (hasta 24 caracteres con 260px de caja): ¡NO saltar de línea!
-  // Nombres como "Daniel Montes Cruz", "Atanasio Montes Carrera", "Elena Montes Fernández", "Francisco Montes Vega", etc. van en 1 línea
-  if (trimmed.length <= 24) {
+  // Con 270px de caja, los nombres de hasta 26 caracteres caben perfectamente en 1 sola línea:
+  // "Aurelia Carrera Rodríguez" (25 chars), "Atanasio Montes Carrera" (23 chars), "Manuel Montes Posado" (20 chars)
+  if (trimmed.length <= 26) {
     return { line1: trimmed, line2: "" };
   }
 
-  // Nombres de 4 palabras (ej: "Rosa María García López"):
-  // Priorizar romper entre los dos apellidos: "Rosa María García" en línea 1 y "López" en línea 2
-  if (words.length === 4) {
-    const l1WithSurname = `${words[0]} ${words[1]} ${words[2]}`;
-    if (l1WithSurname.length <= 21) {
-      return {
-        line1: l1WithSurname,
-        line2: words[3]
-      };
+  // Agrupar partículas y preposiciones españolas compuestas ("de", "del", "de la", "de los", "de las", "san", "santa", "y")
+  // con la palabra que les sigue para no romper nunca expresiones como "de los Reyes", "del Carmen", "de la Vega"
+  const rawWords = trimmed.split(/\s+/);
+  const units = [];
+  const connectors = new Set(["de", "del", "de la", "de los", "de las", "y", "san", "santa"]);
+
+  let i = 0;
+  while (i < rawWords.length) {
+    if (i + 2 < rawWords.length && rawWords[i].toLowerCase() === "de" && ["la", "los", "las"].includes(rawWords[i + 1].toLowerCase())) {
+      units.push(`${rawWords[i]} ${rawWords[i + 1]} ${rawWords[i + 2]}`);
+      i += 3;
+    } else if (i + 1 < rawWords.length && connectors.has(rawWords[i].toLowerCase())) {
+      units.push(`${rawWords[i]} ${rawWords[i + 1]}`);
+      i += 2;
+    } else {
+      units.push(rawWords[i]);
+      i++;
     }
-    return {
-      line1: `${words[0]} ${words[1]}`,
-      line2: `${words[2]} ${words[3]}`
-    };
   }
 
-  // Nombres de 3 palabras (ej: "Manuel Montes Fernández"):
-  // Romper entre los dos apellidos: "Manuel Montes" / "Fernández"
-  if (words.length === 3) {
-    return {
-      line1: `${words[0]} ${words[1]}`,
-      line2: words[2]
-    };
+  // Buscar el punto de corte óptimo que respete los apellidos y partículas
+  // Probar de derecha a izquierda para maximizar la línea 1 dentro del límite (<= 24 caracteres)
+  for (let splitIdx = units.length - 1; splitIdx >= 1; splitIdx--) {
+    const l1 = units.slice(0, splitIdx).join(" ");
+    const l2 = units.slice(splitIdx).join(" ");
+    if (l1.length <= 24 && l2.length <= 26) {
+      return { line1: l1, line2: l2 };
+    }
   }
 
-  // Nombres de 5 palabras (ej: "María del Carmen Fernández Santos"):
-  if (words.length === 5) {
-    return {
-      line1: `${words[0]} ${words[1]} ${words[2]}`,
-      line2: `${words[3]} ${words[4]}`
-    };
+  for (let splitIdx = units.length - 1; splitIdx >= 1; splitIdx--) {
+    const l1 = units.slice(0, splitIdx).join(" ");
+    const l2 = units.slice(splitIdx).join(" ");
+    if (l1.length <= 26) {
+      return { line1: l1, line2: l2 };
+    }
   }
 
-  // Algoritmo general: intentar dejar el último apellido en la 2ª línea si la 1ª cabe
-  const allExceptLast = words.slice(0, words.length - 1).join(" ");
-  if (allExceptLast.length <= 21) {
-    return {
-      line1: allExceptLast,
-      line2: words[words.length - 1]
-    };
-  }
-
-  const mid = Math.ceil(words.length / 2);
+  const mid = Math.ceil(rawWords.length / 2);
   return {
-    line1: words.slice(0, mid).join(" "),
-    line2: words.slice(mid).join(" ")
+    line1: rawWords.slice(0, mid).join(" "),
+    line2: rawWords.slice(mid).join(" ")
   };
 }
 
