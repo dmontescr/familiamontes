@@ -253,7 +253,22 @@ async function loadTreeData() {
     const response = await fetch("data/tree.json?nocache=" + Date.now());
     if (response.ok) {
       const serverData = await response.json();
-      if (Array.isArray(serverData) && serverData.length > 0) {
+      if (Array.isArray(serverData)) {
+        // Si el archivo en el servidor está vacío ([]), sincronizar vaciando la caché local
+        if (serverData.length === 0) {
+          AppState.treeData = [];
+          localStorage.removeItem("montes_tree_cache");
+          localStorage.removeItem("montes_has_unsaved");
+          localStorage.removeItem("montes_photos_cache");
+          localStorage.removeItem("montes_photos_deletions");
+          AppState.photosCache = {};
+          AppState.deletedPhotos = new Set();
+          setUnsavedChanges(false);
+          initTreeVisualization();
+          updateHeaderSummary();
+          return;
+        }
+
         // Si hay cambios locales pendientes no sincronizados, preservarlos
         if (hasLocalUnsaved && Array.isArray(cachedTree) && cachedTree.length > 0) {
           AppState.treeData = cachedTree;
