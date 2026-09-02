@@ -669,6 +669,7 @@ function formatLocationWithProvince(loc) {
       AppState.treeInstance = new FamilyTree(container, {
         template: "montesTheme",
         mode: "light",
+        collapsible: false,
         enableSearch: false,
         mouseScrool: FamilyTree.action.zoom,
         nodeMouseClick: FamilyTree.action.none,
@@ -714,9 +715,12 @@ function formatLocationWithProvince(loc) {
 
       setTimeout(() => {
         if (AppState.treeInstance) {
+          if (typeof AppState.treeInstance.expandAll === "function") {
+            try { AppState.treeInstance.expandAll(); } catch (e) {}
+          }
           AppState.treeInstance.fit();
         }
-      }, 100);
+      }, 150);
 
     } catch (err) {
       console.error("Error al inicializar FamilyTree:", err);
