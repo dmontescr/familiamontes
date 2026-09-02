@@ -521,7 +521,7 @@ function initTreeVisualization() {
     FamilyTree.templates.montesTheme_male.field_1 = FamilyTree.templates.montesTheme.field_1;
     FamilyTree.templates.montesTheme_female.field_1 = FamilyTree.templates.montesTheme.field_1;
 
-    // Ubicación / Origen con chincheta roja (map-pin)
+    // Ubicación en 1 sola línea (cuando es corta, ej: "Madrid", "Astorga (León)")
     FamilyTree.templates.montesTheme.field_2 = `
       <g>
         <svg x="84" y="74" width="13" height="13" viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -531,27 +531,68 @@ function initTreeVisualization() {
         <text style="font-size: 11px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="100" y="85">{val}</text>
       </g>
     `;
+
+    // Ubicación en 2 líneas: Municipio arriba (field_5) y Provincia debajo (field_6)
+    FamilyTree.templates.montesTheme.field_5 = `
+      <g>
+        <svg x="84" y="70" width="13" height="13" viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+          <circle cx="12" cy="10" r="3" fill="#ffffff"></circle>
+        </svg>
+        <text style="font-size: 11px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="100" y="81">{val}</text>
+      </g>
+    `;
+
+    FamilyTree.templates.montesTheme.field_6 = `
+      <text style="font-size: 10px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#94a3b8" x="100" y="96">{val}</text>
+    `;
+
     FamilyTree.templates.montesTheme_male.field_2 = FamilyTree.templates.montesTheme.field_2;
+    FamilyTree.templates.montesTheme_male.field_5 = FamilyTree.templates.montesTheme.field_5;
+    FamilyTree.templates.montesTheme_male.field_6 = FamilyTree.templates.montesTheme.field_6;
+
     FamilyTree.templates.montesTheme_female.field_2 = FamilyTree.templates.montesTheme.field_2;
+    FamilyTree.templates.montesTheme_female.field_5 = FamilyTree.templates.montesTheme.field_5;
+    FamilyTree.templates.montesTheme_female.field_6 = FamilyTree.templates.montesTheme.field_6;
 
 /**
- * Adapta el texto de ubicación para que quepa de forma impecable en la tarjeta del árbol (255px de ancho)
- * Si supera los 21 caracteres y tiene formato 'Municipio (Provincia)', muestra el municipio
- * para mantener la lectura limpia sin salirse de la caja. En el panel lateral siempre se ve completo.
+ * Divide la ubicación en dos líneas si es larga (Municipio arriba, Provincia debajo)
+ * o la mantiene en una sola línea si es compacta.
  */
-function formatLocationForNode(city) {
-  if (!city) return "";
+function parseLocationLines(city) {
+  if (!city) return { single: "", muni: "", prov: "" };
   const trimmed = city.trim();
-  if (trimmed.length <= 21) return trimmed;
 
+  // Si tiene formato "Municipio (Provincia)"
   const match = trimmed.match(/^(.+?)\s*\((.+?)\)$/);
   if (match) {
     const muni = match[1].trim();
-    if (muni.length <= 21) return muni;
-    return muni.slice(0, 19).trim() + "…";
+    const prov = `(${match[2].trim()})`;
+    // Si el texto completo es corto (<= 16 caracteres, ej. "Astorga (León)"), cabe en 1 sola línea
+    if (trimmed.length <= 16) {
+      return { single: trimmed, muni: "", prov: "" };
+    }
+    // Si no, poner Municipio arriba y Provincia debajo
+    return { single: "", muni: muni, prov: prov };
   }
 
-  return trimmed.slice(0, 20).trim() + "…";
+  // Si tiene barra ej. "León / Navianos"
+  if (trimmed.includes(" / ")) {
+    const parts = trimmed.split(" / ");
+    if (parts.length === 2 && trimmed.length > 16) {
+      return { single: "", muni: parts[0].trim(), prov: `/ ${parts[1].trim()}` };
+    }
+  }
+
+  // Si es un texto libre largo (> 20 caracteres)
+  if (trimmed.length > 20) {
+    const lastSpace = trimmed.lastIndexOf(" ", 20);
+    if (lastSpace > 8) {
+      return { single: "", muni: trimmed.slice(0, lastSpace).trim(), prov: trimmed.slice(lastSpace).trim() };
+    }
+  }
+
+  return { single: trimmed, muni: "", prov: "" };
 }
 
     // Mapeo de datos a formato FamilyTreeJS
@@ -560,7 +601,7 @@ function formatLocationForNode(city) {
         ? formatVitalDatesWithAge(person.birth, person.death) 
         : "";
       
-      const locationStr = formatLocationForNode(person.city);
+      const loc = parseLocationLines(person.city);
       const nameParts = formatPersonNameLines(person.name);
       const isSingleLine = !nameParts.line2;
 
@@ -575,7 +616,9 @@ function formatLocationForNode(city) {
         name_single: isSingleLine ? nameParts.line1 : "",
         name: person.name,
         title: datesStr,
-        subtitle: locationStr,
+        city_single: loc.single,
+        city_muni: loc.muni,
+        city_prov: loc.prov,
         photo: getPersonPhotoUrl(person.photo, person.gender),
         raw: person
       };
@@ -598,7 +641,9 @@ function formatLocationForNode(city) {
           field_3: "name_l2",
           field_4: "name_single",
           field_1: "title",
-          field_2: "subtitle",
+          field_2: "city_single",
+          field_5: "city_muni",
+          field_6: "city_prov",
           img_0: "photo"
         },
         nodes: formattedNodes
