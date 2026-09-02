@@ -73,6 +73,23 @@
     "profession": "Albañil",
     "photo": "",
     "notes": "",
-    "pids": []
+    "pids": [
+      6
+    ]
+  },
+  {
+    "id": 6,
+    "name": "Aurelia Carrera Rodríguez",
+    "gender": "female",
+    "birth_place": "",
+    "city": "Navianos de la Vega (León)",
+    "birth": "29/02/1924",
+    "death": "2019",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [
+      5
+    ]
   }
 ]
