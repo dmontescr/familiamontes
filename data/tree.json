@@ -75,7 +75,8 @@
     "notes": "",
     "pids": [
       6
-    ]
+    ],
+    "fid": 7
   },
   {
     "id": 6,
@@ -91,5 +92,18 @@
     "pids": [
       5
     ]
+  },
+  {
+    "id": 7,
+    "name": "Carlos Montes",
+    "gender": "male",
+    "birth_place": "Navianos de la Vega (León)",
+    "city": "Navianos de la Vega (León)",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": []
   }
 ]
