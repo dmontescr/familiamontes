@@ -452,154 +452,124 @@ function initTreeVisualization() {
     // Sanear y normalizar el grafo genealógico
     cleanAndValidateTreeData(AppState.treeData);
 
-    // Configuración de plantilla refinada para la Familia Montes (255 x 118 px)
+    // Configuración de plantilla refinada para la Familia Montes (255 x 110 px)
     FamilyTree.templates.montesTheme = Object.assign({}, FamilyTree.templates.john);
-    FamilyTree.templates.montesTheme.size = [255, 118];
+    FamilyTree.templates.montesTheme.size = [255, 110];
     
     // Tarjeta noble genérica
     FamilyTree.templates.montesTheme.node = `
       <clipPath id="cardClip{id}">
-        <rect x="0" y="0" height="118" width="255" rx="14" ry="14"></rect>
+        <rect x="0" y="0" height="110" width="255" rx="14" ry="14"></rect>
       </clipPath>
-      <rect x="0" y="0" height="118" width="255" fill="#ffffff" stroke-width="1.5" stroke="#d5cdbf" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(0,0,0,0.06))"></rect>
-      <rect x="0" y="0" height="118" width="6" fill="#a64b2a" clip-path="url(#cardClip{id})"></rect>
+      <rect x="0" y="0" height="110" width="255" fill="#ffffff" stroke-width="1.5" stroke="#d5cdbf" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(0,0,0,0.06))"></rect>
+      <rect x="0" y="0" height="110" width="6" fill="#a64b2a" clip-path="url(#cardClip{id})"></rect>
     `;
 
     // Tarjetas diferenciadas por género con integración perfecta en las esquinas redondeadas
     FamilyTree.templates.montesTheme_male = Object.assign({}, FamilyTree.templates.montesTheme);
     FamilyTree.templates.montesTheme_male.node = `
       <clipPath id="cardClipM{id}">
-        <rect x="0" y="0" height="118" width="255" rx="14" ry="14"></rect>
+        <rect x="0" y="0" height="110" width="255" rx="14" ry="14"></rect>
       </clipPath>
-      <rect x="0" y="0" height="118" width="255" fill="#ffffff" stroke-width="1.5" stroke="#cbd5e1" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(37,99,235,0.07))"></rect>
-      <rect x="0" y="0" height="118" width="6" fill="#3b82f6" clip-path="url(#cardClipM{id})"></rect>
+      <rect x="0" y="0" height="110" width="255" fill="#ffffff" stroke-width="1.5" stroke="#cbd5e1" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(37,99,235,0.07))"></rect>
+      <rect x="0" y="0" height="110" width="6" fill="#3b82f6" clip-path="url(#cardClipM{id})"></rect>
     `;
 
     FamilyTree.templates.montesTheme_female = Object.assign({}, FamilyTree.templates.montesTheme);
     FamilyTree.templates.montesTheme_female.node = `
       <clipPath id="cardClipF{id}">
-        <rect x="0" y="0" height="118" width="255" rx="14" ry="14"></rect>
+        <rect x="0" y="0" height="110" width="255" rx="14" ry="14"></rect>
       </clipPath>
-      <rect x="0" y="0" height="118" width="255" fill="#ffffff" stroke-width="1.5" stroke="#fbcfe8" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(219,39,119,0.07))"></rect>
-      <rect x="0" y="0" height="118" width="6" fill="#ec4899" clip-path="url(#cardClipF{id})"></rect>
+      <rect x="0" y="0" height="110" width="255" fill="#ffffff" stroke-width="1.5" stroke="#fbcfe8" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(219,39,119,0.07))"></rect>
+      <rect x="0" y="0" height="110" width="6" fill="#ec4899" clip-path="url(#cardClipF{id})"></rect>
     `;
 
-    // Fotografía circular centrada verticalmente con cursor de ampliación (cy = 59)
+    // Fotografía circular centrada verticalmente con cursor de ampliación (cy = 55)
     FamilyTree.templates.montesTheme.img_0 = `
-      <clipPath id="ulaImg{id}"><circle cx="44" cy="59" r="27"></circle></clipPath>
-      <circle cx="44" cy="59" r="29" fill="none" stroke="#e2d9cd" stroke-width="2"></circle>
-      <image preserveAspectRatio="xMidYMid slice" clip-path="url(#ulaImg{id})" xlink:href="{val}" x="17" y="32" width="54" height="54" style="cursor: zoom-in; pointer-events: all;"></image>
+      <clipPath id="ulaImg{id}"><circle cx="46" cy="55" r="28"></circle></clipPath>
+      <circle cx="46" cy="55" r="30" fill="none" stroke="#e2d9cd" stroke-width="2"></circle>
+      <image preserveAspectRatio="xMidYMid slice" clip-path="url(#ulaImg{id})" xlink:href="{val}" x="18" y="27" width="56" height="56" style="cursor: zoom-in; pointer-events: all;"></image>
     `;
     FamilyTree.templates.montesTheme_male.img_0 = FamilyTree.templates.montesTheme.img_0;
     FamilyTree.templates.montesTheme_female.img_0 = FamilyTree.templates.montesTheme.img_0;
 
-    // --- CASO 1: NOMBRE 1 LÍNEA + UBICACIÓN 1 LÍNEA (3 FILAS — CENTRADO A 24PX) ---
+    // Nombre Línea 1 (para nombres largos en 2 líneas)
     FamilyTree.templates.montesTheme.field_0 = `
-      <text style="font-size: 13.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="80" y="38">{val}</text>
+      <text style="font-size: 13px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="84" y="27">{val}</text>
     `;
-    FamilyTree.templates.montesTheme.field_1 = `
-      <text style="font-size: 11.5px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="80" y="62">{val}</text>
-    `;
-    FamilyTree.templates.montesTheme.field_2 = `
-      <text style="font-size: 11px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="80" y="86"><tspan fill="#e11d48">📍 </tspan>{val}</text>
-    `;
+    FamilyTree.templates.montesTheme_male.field_0 = FamilyTree.templates.montesTheme.field_0;
+    FamilyTree.templates.montesTheme_female.field_0 = FamilyTree.templates.montesTheme.field_0;
 
-    // --- CASO 2: NOMBRE 1 LÍNEA + UBICACIÓN 2 LÍNEAS (4 FILAS — CENTRADO A 21PX) ---
+    // Nombre Línea 2 (para nombres largos en 2 líneas)
     FamilyTree.templates.montesTheme.field_3 = `
-      <text style="font-size: 13.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="80" y="31">{val}</text>
+      <text style="font-size: 13px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="84" y="43">{val}</text>
     `;
+    FamilyTree.templates.montesTheme_male.field_3 = FamilyTree.templates.montesTheme.field_3;
+    FamilyTree.templates.montesTheme_female.field_3 = FamilyTree.templates.montesTheme.field_3;
+
+    // Nombre en 1 sola línea (centrado y equilibrado)
     FamilyTree.templates.montesTheme.field_4 = `
-      <text style="font-size: 11px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="80" y="52">{val}</text>
+      <text style="font-size: 14px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="84" y="38">{val}</text>
     `;
-    FamilyTree.templates.montesTheme.field_5 = `
-      <text style="font-size: 11px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="80" y="73"><tspan fill="#e11d48">📍 </tspan>{val}</text>
-    `;
-    FamilyTree.templates.montesTheme.field_6 = `
-      <text style="font-size: 10.5px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#94a3b8" x="95" y="94">{val}</text>
-    `;
+    FamilyTree.templates.montesTheme_male.field_4 = FamilyTree.templates.montesTheme.field_4;
+    FamilyTree.templates.montesTheme_female.field_4 = FamilyTree.templates.montesTheme.field_4;
 
-    // --- CASO 3: NOMBRE 2 LÍNEAS + UBICACIÓN 1 LÍNEA (4 FILAS — CENTRADO A 21PX) ---
-    FamilyTree.templates.montesTheme.field_7 = `
-      <text style="font-size: 12.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="80" y="25">{val}</text>
+    // Fechas vitales y edad
+    FamilyTree.templates.montesTheme.field_1 = `
+      <text style="font-size: 11.5px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="84" y="62">{val}</text>
     `;
-    FamilyTree.templates.montesTheme.field_8 = `
-      <text style="font-size: 12.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="80" y="41">{val}</text>
-    `;
-    FamilyTree.templates.montesTheme.field_9 = `
-      <text style="font-size: 11px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="80" y="63">{val}</text>
-    `;
-    FamilyTree.templates.montesTheme.field_10 = `
-      <text style="font-size: 11px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="80" y="85"><tspan fill="#e11d48">📍 </tspan>{val}</text>
-    `;
+    FamilyTree.templates.montesTheme_male.field_1 = FamilyTree.templates.montesTheme.field_1;
+    FamilyTree.templates.montesTheme_female.field_1 = FamilyTree.templates.montesTheme.field_1;
 
-    // --- CASO 4: NOMBRE 2 LÍNEAS + UBICACIÓN 2 LÍNEAS (5 FILAS — CENTRADO A 19PX) ---
-    FamilyTree.templates.montesTheme.field_11 = `
-      <text style="font-size: 12.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="80" y="22">{val}</text>
+    // Ubicación / Origen con chincheta roja única (map-pin)
+    FamilyTree.templates.montesTheme.field_2 = `
+      <g>
+        <svg x="84" y="74" width="13" height="13" viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+          <circle cx="12" cy="10" r="3" fill="#ffffff"></circle>
+        </svg>
+        <text style="font-size: 11px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="100" y="85">{val}</text>
+      </g>
     `;
-    FamilyTree.templates.montesTheme.field_12 = `
-      <text style="font-size: 12.5px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="80" y="37">{val}</text>
-    `;
-    FamilyTree.templates.montesTheme.field_13 = `
-      <text style="font-size: 11px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="80" y="56">{val}</text>
-    `;
-    FamilyTree.templates.montesTheme.field_14 = `
-      <text style="font-size: 11px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="80" y="75"><tspan fill="#e11d48">📍 </tspan>{val}</text>
-    `;
-    FamilyTree.templates.montesTheme.field_15 = `
-      <text style="font-size: 10.5px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#94a3b8" x="95" y="94">{val}</text>
-    `;
+    FamilyTree.templates.montesTheme_male.field_2 = FamilyTree.templates.montesTheme.field_2;
+    FamilyTree.templates.montesTheme_female.field_2 = FamilyTree.templates.montesTheme.field_2;
 
-    // Clonar campos en plantillas de género
-    for (let i = 0; i <= 15; i++) {
-      FamilyTree.templates.montesTheme_male['field_' + i] = FamilyTree.templates.montesTheme['field_' + i];
-      FamilyTree.templates.montesTheme_female['field_' + i] = FamilyTree.templates.montesTheme['field_' + i];
+    // Limpiar cualquier campo sobrante
+    for (let i = 5; i <= 15; i++) {
+      delete FamilyTree.templates.montesTheme['field_' + i];
+      delete FamilyTree.templates.montesTheme_male['field_' + i];
+      delete FamilyTree.templates.montesTheme_female['field_' + i];
     }
 
 /**
- * Determina si la ubicación debe mostrarse en 1 sola línea o en 2 líneas.
- * Solo divide en 2 líneas cuando es estrictamente necesario (ej. municipios largos con provincia > 19 caracteres).
+ * Adapta el texto de ubicación para que quepa de forma impecable en la tarjeta del árbol (255px de ancho)
+ * Si supera los 21 caracteres y tiene formato 'Municipio (Provincia)', muestra el municipio
+ * para mantener la lectura limpia sin salirse de la caja. En el panel lateral siempre se ve completo.
  */
-function parseLocation(city) {
-  if (!city) return { is2Lines: false, single: "", muni: "", prov: "" };
+function formatLocationForNode(city) {
+  if (!city) return "";
   const trimmed = city.trim();
+  if (trimmed.length <= 21) return trimmed;
 
-  // Si tiene formato "Municipio (Provincia)"
   const match = trimmed.match(/^(.+?)\s*\((.+?)\)$/);
   if (match) {
     const muni = match[1].trim();
-    const prov = `(${match[2].trim()})`;
-
-    // Solo si el texto completo supera los 19 caracteres se divide en 2 líneas
-    if (trimmed.length > 19) {
-      return { is2Lines: true, single: "", muni: muni, prov: prov };
-    }
-    // Si es corto (ej. "Astorga (León)"), se mantiene en 1 SOLA línea
-    return { is2Lines: false, single: trimmed, muni: "", prov: "" };
+    if (muni.length <= 21) return muni;
+    return muni.slice(0, 19).trim() + "…";
   }
 
-  // Si tiene barra ej. "Madrid / Navianos"
-  if (trimmed.includes(" / ")) {
-    if (trimmed.length > 18) {
-      const parts = trimmed.split(" / ");
-      return { is2Lines: true, single: "", muni: parts[0].trim(), prov: `/ ${parts[1].trim()}` };
-    }
-    return { is2Lines: false, single: trimmed, muni: "", prov: "" };
-  }
-
-  // Municipio simple sin provincia (ej: "Madrid", "Valladolid", "León")
-  return { is2Lines: false, single: trimmed, muni: "", prov: "" };
+  return trimmed.slice(0, 20).trim() + "…";
 }
 
-    // Mapeo de datos a formato FamilyTreeJS adaptativo
+    // Mapeo de datos a formato FamilyTreeJS
     const formattedNodes = AppState.treeData.map(person => {
       const datesStr = (person.birth || person.death) 
         ? formatVitalDatesWithAge(person.birth, person.death) 
         : "";
       
-      const loc = parseLocation(person.city);
+      const locationStr = formatLocationForNode(person.city);
       const nameParts = formatPersonNameLines(person.name);
-      const isName2Lines = !!nameParts.line2;
-      const isLoc2Lines = loc.is2Lines;
+      const isSingleLine = !nameParts.line2;
 
       return {
         id: person.id,
@@ -607,31 +577,12 @@ function parseLocation(city) {
         fid: person.fid,
         pids: person.pids || [],
         gender: person.gender || "male",
-        
-        // CASO 1: Nombre 1 línea + Ubicación 1 línea (3 filas)
-        c1_name: (!isName2Lines && !isLoc2Lines) ? nameParts.line1 : "",
-        c1_date: (!isName2Lines && !isLoc2Lines) ? datesStr : "",
-        c1_loc:  (!isName2Lines && !isLoc2Lines) ? loc.single : "",
-
-        // CASO 2: Nombre 1 línea + Ubicación 2 líneas (4 filas)
-        c2_name: (!isName2Lines && isLoc2Lines) ? nameParts.line1 : "",
-        c2_date: (!isName2Lines && isLoc2Lines) ? datesStr : "",
-        c2_muni: (!isName2Lines && isLoc2Lines) ? loc.muni : "",
-        c2_prov: (!isName2Lines && isLoc2Lines) ? loc.prov : "",
-
-        // CASO 3: Nombre 2 líneas + Ubicación 1 línea (4 filas)
-        c3_n1:   (isName2Lines && !isLoc2Lines) ? nameParts.line1 : "",
-        c3_n2:   (isName2Lines && !isLoc2Lines) ? nameParts.line2 : "",
-        c3_date: (isName2Lines && !isLoc2Lines) ? datesStr : "",
-        c3_loc:  (isName2Lines && !isLoc2Lines) ? loc.single : "",
-
-        // CASO 4: Nombre 2 líneas + Ubicación 2 líneas (5 filas)
-        c4_n1:   (isName2Lines && isLoc2Lines) ? nameParts.line1 : "",
-        c4_n2:   (isName2Lines && isLoc2Lines) ? nameParts.line2 : "",
-        c4_date: (isName2Lines && isLoc2Lines) ? datesStr : "",
-        c4_muni: (isName2Lines && isLoc2Lines) ? loc.muni : "",
-        c4_prov: (isName2Lines && isLoc2Lines) ? loc.prov : "",
-
+        name_l1: isSingleLine ? "" : nameParts.line1,
+        name_l2: isSingleLine ? "" : nameParts.line2,
+        name_single: isSingleLine ? nameParts.line1 : "",
+        name: person.name,
+        title: datesStr,
+        subtitle: locationStr,
         photo: getPersonPhotoUrl(person.photo, person.gender),
         raw: person
       };
@@ -644,32 +595,17 @@ function parseLocation(city) {
         enableSearch: false,
         mouseScrool: FamilyTree.action.zoom,
         nodeMouseClick: FamilyTree.action.none,
-        siblingSeparation: 50,
-        levelSeparation: 95,
-        subtreeSeparation: 50,
+        siblingSeparation: 55,
+        levelSeparation: 90,
+        subtreeSeparation: 55,
         partnerSeparation: 35,
         scaleInitial: FamilyTree.match.boundary,
         nodeBinding: {
-          // Caso 1 (3 filas)
-          field_0: "c1_name",
-          field_1: "c1_date",
-          field_2: "c1_loc",
-          // Caso 2 (4 filas con ubicación en 2 líneas)
-          field_3: "c2_name",
-          field_4: "c2_date",
-          field_5: "c2_muni",
-          field_6: "c2_prov",
-          // Caso 3 (4 filas con nombre en 2 líneas)
-          field_7: "c3_n1",
-          field_8: "c3_n2",
-          field_9: "c3_date",
-          field_10: "c3_loc",
-          // Caso 4 (5 filas con nombre y ubicación en 2 líneas)
-          field_11: "c4_n1",
-          field_12: "c4_n2",
-          field_13: "c4_date",
-          field_14: "c4_muni",
-          field_15: "c4_prov",
+          field_0: "name_l1",
+          field_3: "name_l2",
+          field_4: "name_single",
+          field_1: "title",
+          field_2: "subtitle",
           img_0: "photo"
         },
         nodes: formattedNodes
