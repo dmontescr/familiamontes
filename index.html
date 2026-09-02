@@ -106,6 +106,13 @@
           <span>Nueva Persona</span>
         </button>
 
+        <!-- Botón Sincronizar / Guardar en la Nube -->
+        <button id="btn-sync-cloud" class="btn-tool btn-cloud-save" title="Guardar cambios y fotografías en la nube (GitHub)">
+          <span id="unsaved-indicator" class="badge-unsaved"></span>
+          <i data-lucide="cloud-upload" style="width: 15px; height: 15px;"></i>
+          <span id="btn-sync-text">Guardar Cambios</span>
+        </button>
+
         <!-- Botón Exportar PDF Horizontal -->
         <button id="btn-export-pdf" class="btn-tool btn-primary-tool" title="Descargar mapa completo del árbol genealógico en PDF horizontal">
           <i data-lucide="file-text" style="width: 15px; height: 15px;"></i>
@@ -311,20 +318,7 @@
 
         <div class="form-group">
           <label for="form-name">Nombre Completo *</label>
-          <input type="text" id="form-name" class="input-control" placeholder="Ej. Francisco Montes Fernández" required autocomplete="off">
-          
-          <!-- Caja de sugerencia inteligente en tiempo real para tildes y erratas -->
-          <div id="name-suggestion-box" class="name-suggestion-box" style="display: none;">
-            <div class="suggestion-content">
-              <i data-lucide="wand-2" style="width: 14px; height: 14px; color: var(--color-primary);"></i>
-              <span class="suggestion-intro">¿Quisiste escribir:</span>
-              <strong id="name-suggestion-text" class="suggestion-highlight"></strong>
-            </div>
-            <button type="button" id="btn-apply-name-suggestion" class="btn-suggestion-apply">
-              <i data-lucide="check" style="width: 13px; height: 13px;"></i>
-              <span>Aplicar</span>
-            </button>
-          </div>
+          <input type="text" id="form-name" class="input-control" placeholder="Ej. Francisco Montes Fernández" required>
         </div>
 
         <div class="form-grid-2">

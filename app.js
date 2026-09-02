@@ -399,34 +399,47 @@ async function loadTreeData() {
     } catch (e) {}
   }
 
+  // Cargar árbol en caché local
+  const cachedDataStr = localStorage.getItem("montes_tree_cache");
+  let cachedTree = null;
+  if (cachedDataStr) {
+    try {
+      cachedTree = JSON.parse(cachedDataStr);
+    } catch (e) {}
+  }
+
+  const hasLocalUnsaved = localStorage.getItem("montes_has_unsaved") === "true";
+
   // 1. Intentar cargar desde el archivo data/tree.json
   try {
     const response = await fetch("data/tree.json?nocache=" + Date.now());
     if (response.ok) {
-      const data = await response.json();
-      if (Array.isArray(data) && data.length > 0) {
-        AppState.treeData = data;
-        localStorage.setItem("montes_tree_cache", JSON.stringify(data));
+      const serverData = await response.json();
+      if (Array.isArray(serverData) && serverData.length > 0) {
+        // Si hay cambios locales pendientes no sincronizados, preservarlos
+        if (hasLocalUnsaved && Array.isArray(cachedTree) && cachedTree.length > 0) {
+          AppState.treeData = cachedTree;
+          setUnsavedChanges(true);
+        } else {
+          AppState.treeData = serverData;
+          localStorage.setItem("montes_tree_cache", JSON.stringify(serverData));
+          setUnsavedChanges(false);
+        }
         initTreeVisualization();
         updateHeaderSummary();
         return;
       }
     }
   } catch (err) {
-    console.warn("No se pudo cargar data/tree.json por fetch (posible modo offline/file):", err);
+    console.warn("No se pudo cargar data/tree.json por fetch:", err);
   }
 
-  // 2. Si falla fetch, recurrir a localStorage
-  const cachedData = localStorage.getItem("montes_tree_cache");
-  if (cachedData) {
-    try {
-      AppState.treeData = JSON.parse(cachedData);
-      initTreeVisualization();
-      updateHeaderSummary();
-      return;
-    } catch (e) {
-      console.error("Error al parsear caché local:", e);
-    }
+  // 2. Si falla fetch o no hay conexión, recurrir a la copia local guardada
+  if (Array.isArray(cachedTree) && cachedTree.length > 0) {
+    AppState.treeData = cachedTree;
+    initTreeVisualization();
+    updateHeaderSummary();
+    return;
   }
 
   // 3. Fallback a datos predeterminados
@@ -438,13 +451,116 @@ async function loadTreeData() {
 
 function setUnsavedChanges(status) {
   AppState.hasUnsavedChanges = status;
+  localStorage.setItem("montes_has_unsaved", status ? "true" : "false");
   const badge = document.getElementById("unsaved-indicator");
+  const btnText = document.getElementById("btn-sync-text");
+  const btnSync = document.getElementById("btn-sync-cloud");
+
   if (badge) {
     if (status) {
       badge.classList.add("visible");
     } else {
       badge.classList.remove("visible");
     }
+  }
+
+  if (btnText && btnSync) {
+    if (status) {
+      btnText.textContent = "Guardar Cambios";
+      btnSync.title = "Hay cambios pendientes por guardar en la nube";
+    } else {
+      btnText.textContent = "Guardado";
+      btnSync.title = "Todos los cambios están sincronizados";
+    }
+  }
+}
+
+/**
+ * Sincroniza el árbol genealógico y las fotografías con GitHub a través del endpoint /api/save
+ */
+async function syncTreeWithCloud(isAutoSave = false) {
+  const syncBtn = document.getElementById("btn-sync-cloud");
+  const btnText = document.getElementById("btn-sync-text");
+  
+  if (syncBtn) {
+    syncBtn.disabled = true;
+    if (btnText) btnText.textContent = "Guardando...";
+  }
+
+  if (!isAutoSave) {
+    showToast("Guardando y sincronizando cambios en internet...", "info", 3000);
+  }
+
+  // Preparar fotografías pendientes de subir en Base64
+  const photosToUpload = [];
+  for (const [path, contentBase64] of Object.entries(AppState.photosCache || {})) {
+    if (path && contentBase64 && typeof contentBase64 === "string" && contentBase64.startsWith("data:image/")) {
+      photosToUpload.push({ path, contentBase64 });
+    }
+  }
+
+  const photosToDelete = Array.from(AppState.deletedPhotos || []);
+
+  const payload = {
+    tree: AppState.treeData,
+    photosToUpload,
+    photosToDelete
+  };
+
+  try {
+    const response = await fetch("/api/save", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+      const resData = await response.json();
+      setUnsavedChanges(false);
+      AppState.deletedPhotos.clear();
+      persistLocalTree();
+      
+      showToast("¡Cambios guardados y publicados con éxito en la nube!", "success", 4000);
+      
+      if (syncBtn) {
+        syncBtn.disabled = false;
+        if (btnText) btnText.textContent = "Guardado ✓";
+        setTimeout(() => {
+          if (!AppState.hasUnsavedChanges && btnText) {
+            btnText.textContent = "Guardar Cambios";
+          }
+        }, 3000);
+      }
+      return true;
+    } else {
+      const errJson = await response.json().catch(() => ({}));
+      console.warn("Respuesta no OK de /api/save:", errJson);
+      
+      if (response.status === 500 && errJson.error && errJson.error.includes("GITHUB_TOKEN")) {
+        showToast("Los cambios se han guardado localmente en tu navegador. Para sincronizarlos con GitHub, configura la variable GITHUB_TOKEN en Cloudflare Pages.", "warning", 8000);
+      } else {
+        showToast("Los cambios se han guardado localmente. Aviso al guardar en la nube: " + (errJson.error || "Error de servidor"), "warning", 5000);
+      }
+      
+      if (syncBtn) {
+        syncBtn.disabled = false;
+        if (btnText) btnText.textContent = "Guardar Cambios";
+      }
+      return false;
+    }
+  } catch (err) {
+    console.warn("No se pudo conectar con /api/save (modo local o sin backend):", err);
+    // En entorno local o sin Cloudflare Functions, se conserva 100% en localStorage
+    if (!isAutoSave) {
+      showToast("Cambios guardados en la memoria local de tu navegador.", "info", 4000);
+    }
+    if (syncBtn) {
+      syncBtn.disabled = false;
+      if (btnText) btnText.textContent = "Guardar Cambios";
+    }
+    return false;
   }
 }
 
@@ -1559,6 +1675,9 @@ function savePersonFromForm() {
   initTreeVisualization();
   updateHeaderSummary();
 
+  // Sincronización automática con la nube en segundo plano
+  syncTreeWithCloud(true);
+
   if (AppState.selectedPersonId) {
     openPersonDrawer(AppState.selectedPersonId);
   }
@@ -1588,6 +1707,7 @@ function deleteSelectedPerson() {
     if (p.mid === personId) delete p.mid;
   });
 
+  setUnsavedChanges(true);
   persistLocalTree();
   closeAllModals();
   closePersonDrawer();
@@ -1595,6 +1715,9 @@ function deleteSelectedPerson() {
   initTreeVisualization();
   updateHeaderSummary();
   showToast(`${name} ha sido eliminado del árbol`, "info");
+
+  // Sincronización automática con la nube en segundo plano
+  syncTreeWithCloud(true);
 }
 
 function generateNextId() {
@@ -1819,6 +1942,14 @@ function setupSearchEvents() {
 function setupToolbarEvents() {
   // Nueva Persona Raíz
   document.getElementById("btn-add-root-person").addEventListener("click", openAddRootPersonModal);
+
+  // Botón Sincronizar / Guardar en la Nube
+  const btnSync = document.getElementById("btn-sync-cloud");
+  if (btnSync) {
+    btnSync.addEventListener("click", () => {
+      syncTreeWithCloud(false);
+    });
+  }
 
   // Exportar PDF Horizontal
   const btnExportPdf = document.getElementById("btn-export-pdf");
