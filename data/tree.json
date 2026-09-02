@@ -13,8 +13,7 @@
       4
     ],
     "fid": 2,
-    "mid": 3,
-    "birth_place": "Alcalá de Henares (Madrid)"
+    "mid": 3
   },
   {
     "id": 2,
@@ -48,7 +47,7 @@
     "id": 4,
     "name": "Triana de los Reyes Gómez Soriano",
     "gender": "female",
-    "city": "Madrid (Madrid)",
+    "city": "Azuqueca de Henares (Guadalajara)",
     "birth": "25/02/1990",
     "death": "",
     "profession": "Licenciado/a en Derecho",
@@ -56,6 +55,7 @@
     "notes": "",
     "pids": [
       1
-    ]
+    ],
+    "birth_place": "Madrid (Madrid)"
   }
 ]
