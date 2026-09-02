@@ -6,7 +6,7 @@
  */
 
 async function handleGetSave(request, env) {
-  const token = (env.GITHUB_TOKEN || "").trim();
+  const token = (env.GITHUB_TOKEN || env.GITHJB_TOKEN || env.TOKEN || env.PAT || env.GITHUB_PAT || env.GITHUB_SECRET || "").trim();
   const owner = (env.GITHUB_OWNER || "dmontescr").trim();
   const repo = (env.GITHUB_REPO || "familiamontes").trim();
   const branch = (env.GITHUB_BRANCH || "main").trim();
@@ -76,7 +76,7 @@ async function handlePostSave(request, env) {
   };
 
   try {
-    const token = (env.GITHUB_TOKEN || "").trim();
+    const token = (env.GITHUB_TOKEN || env.GITHJB_TOKEN || env.TOKEN || env.PAT || env.GITHUB_PAT || env.GITHUB_SECRET || "").trim();
     const owner = (env.GITHUB_OWNER || "dmontescr").trim();
     const repo = (env.GITHUB_REPO || "familiamontes").trim();
     const branch = (env.GITHUB_BRANCH || "main").trim();
