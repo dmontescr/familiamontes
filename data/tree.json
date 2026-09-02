@@ -10,5 +10,17 @@
     "photo": "photos/daniel_montes_cruz.jpg",
     "notes": "",
     "pids": []
+  },
+  {
+    "id": 2,
+    "name": "Atanasio Montes Carrera",
+    "gender": "male",
+    "city": "Azuqueca de Henares (Guadalajara)",
+    "birth": "03/12/1961",
+    "death": "",
+    "profession": "Mecánico/a Industrial",
+    "photo": "",
+    "notes": "",
+    "pids": []
   }
 ]
