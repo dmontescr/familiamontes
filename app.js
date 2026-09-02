@@ -603,19 +603,15 @@ function initTreeVisualization() {
     FamilyTree.templates.montesTheme_male.field_2 = FamilyTree.templates.montesTheme.field_2;
     FamilyTree.templates.montesTheme_female.field_2 = FamilyTree.templates.montesTheme.field_2;
 
-    // Ubicación Línea 2: Provincia entre paréntesis debajo del municipio
-    FamilyTree.templates.montesTheme.field_5 = `
-      <text style="font-size: 10px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#94a3b8" x="89" y="126">{val}</text>
-    `;
-    FamilyTree.templates.montesTheme_male.field_5 = FamilyTree.templates.montesTheme.field_5;
-    FamilyTree.templates.montesTheme_female.field_5 = FamilyTree.templates.montesTheme.field_5;
-
     // Limpiar campos extras
     for (let i = 7; i <= 15; i++) {
       delete FamilyTree.templates.montesTheme['field_' + i];
       delete FamilyTree.templates.montesTheme_male['field_' + i];
       delete FamilyTree.templates.montesTheme_female['field_' + i];
     }
+    delete FamilyTree.templates.montesTheme.field_5;
+    delete FamilyTree.templates.montesTheme_male.field_5;
+    delete FamilyTree.templates.montesTheme_female.field_5;
 
 /**
  * Asegura que todos los municipios muestren su provincia entre paréntesis al lado.
@@ -635,58 +631,15 @@ function formatLocationWithProvince(loc) {
   return `${trimmed} (${trimmed})`;
 }
 
-/**
- * Divide la ubicación de residencia si es necesario:
- * - Si cabe en 1 sola línea (<= 21 caracteres, ej: "Madrid (Madrid)", "Astorga (León)"),
- *   se muestra TODO junto en la misma línea.
- * - Solo si supera los 21 caracteres (ej: "Azuqueca de Henares (Guadalajara)"),
- *   la provincia pasa a la segunda línea.
- */
-function parseLocationLines(city) {
-  if (!city) return { muni: "", prov: "" };
-  let trimmed = formatLocationWithProvince(city);
-
-  // Si cabe en 1 sola línea (hasta 21 caracteres): ¡Todo junto en 1 línea!
-  if (trimmed.length <= 21) {
-    return {
-      muni: trimmed,
-      prov: ""
-    };
-  }
-
-  // Si supera 21 caracteres y tiene formato "Municipio (Provincia)", se divide en 2 líneas
-  const match = trimmed.match(/^(.+?)\s*\((.+?)\)$/);
-  if (match) {
-    return {
-      muni: match[1].trim(),
-      prov: `(${match[2].trim()})`
-    };
-  }
-
-  // Si tiene formato compuesto con barra ej. "Madrid / Navianos"
-  if (trimmed.includes(" / ")) {
-    const parts = trimmed.split(" / ");
-    if (parts.length === 2) {
-      return {
-        muni: parts[0].trim(),
-        prov: `/ ${parts[1].trim()}`
-      };
-    }
-  }
-
-  return {
-    muni: trimmed,
-    prov: ""
-  };
-}
-
     // Mapeo de datos a formato FamilyTreeJS
     const formattedNodes = AppState.treeData.map(person => {
       const datesStr = (person.birth || person.death) 
         ? formatVitalDatesWithAge(person.birth, person.death) 
         : "";
       
-      const loc = parseLocationLines(person.city);
+      const resStr = (person.city && person.city.trim()) 
+        ? formatLocationWithProvince(person.city) 
+        : "";
       const birthStr = (person.birth_place && person.birth_place.trim()) 
         ? formatLocationWithProvince(person.birth_place) 
         : "";
@@ -706,8 +659,7 @@ function parseLocationLines(city) {
         name: person.name,
         title: datesStr,
         loc_birth: birthStr,
-        loc_muni: loc.muni,
-        loc_prov: loc.prov,
+        loc_res: resStr,
         photo: getPersonPhotoUrl(person.photo, person.gender),
         raw: person
       };
@@ -731,8 +683,7 @@ function parseLocationLines(city) {
           field_4: "name_single",
           field_1: "title",
           field_6: "loc_birth",
-          field_2: "loc_muni",
-          field_5: "loc_prov",
+          field_2: "loc_res",
           img_0: "photo"
         },
         nodes: formattedNodes
