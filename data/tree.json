@@ -76,8 +76,7 @@
     "pids": [
       6
     ],
-    "fid": 7,
-    "mid": 8
+    "fid": 7
   },
   {
     "id": 6,
@@ -92,7 +91,8 @@
     "notes": "",
     "pids": [
       5
-    ]
+    ],
+    "fid": 9
   },
   {
     "id": 7,
@@ -123,5 +123,18 @@
     "pids": [
       7
     ]
+  },
+  {
+    "id": 9,
+    "name": "Simón Carrera",
+    "gender": "male",
+    "birth_place": "Navianos de la Vega (León)",
+    "city": "Navianos de la Vega (León)",
+    "birth": "1878",
+    "death": "1928",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": []
   }
 ]
