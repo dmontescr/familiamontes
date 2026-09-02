@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "id": 1,
+    "name": "Daniel Montes Cruz",
+    "gender": "male",
+    "city": "Azuqueca de Henares (Guadalajara)",
+    "birth": "15/04/1991",
+    "death": "",
+    "profession": "Ingeniero/a Industrial",
+    "photo": "photos/daniel_montes_cruz.jpg",
+    "notes": "",
+    "pids": []
+  }
+]
