@@ -92,7 +92,8 @@
     "pids": [
       5
     ],
-    "fid": 9
+    "fid": 9,
+    "mid": 10
   },
   {
     "id": 7,
@@ -135,6 +136,23 @@
     "profession": "",
     "photo": "",
     "notes": "",
-    "pids": []
+    "pids": [
+      10
+    ]
+  },
+  {
+    "id": 10,
+    "name": "Teresa Rodríguez Cartón",
+    "gender": "female",
+    "birth_place": "Altobar de la Encomienda (León)",
+    "city": "Navianos de la Vega (León)",
+    "birth": "1880",
+    "death": "1964",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [
+      9
+    ]
   }
 ]
