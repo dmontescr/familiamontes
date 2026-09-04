@@ -111,6 +111,31 @@
           </select>
         </div>
 
+        <!-- Selector de Orientación de Vista -->
+        <div class="branch-selector-group" id="orientation-selector-container">
+          <label for="tree-orientation-select" class="branch-selector-label">
+            <i data-lucide="compass" style="width: 14px; height: 14px;"></i>
+            <span>Vista:</span>
+          </label>
+          <select id="tree-orientation-select" class="branch-select" title="Cambiar orientación del árbol">
+            <option value="top">Vertical (Arriba → Abajo)</option>
+            <option value="left">Horizontal (Izquierda → Derecha)</option>
+          </select>
+        </div>
+
+        <!-- Selector de Distribución de Hijos / Hermanos -->
+        <div class="branch-selector-group" id="layout-selector-container">
+          <label for="tree-layout-select" class="branch-selector-label">
+            <i data-lucide="layout-grid" style="width: 14px; height: 14px;"></i>
+            <span>Hijos:</span>
+          </label>
+          <select id="tree-layout-select" class="branch-select" title="Distribución de ramas e hijos">
+            <option value="normal">Horizontal (Estándar)</option>
+            <option value="treeRightOffset">Vertical (Compacto)</option>
+            <option value="grid">Cuadrícula (Grid)</option>
+          </select>
+        </div>
+
         <!-- Botón Añadir Persona Independiente -->
         <button id="btn-add-root-person" class="btn-tool btn-accent">
           <i data-lucide="user-plus" style="width: 16px; height: 16px;"></i>

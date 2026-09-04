@@ -11,6 +11,8 @@ const AppState = {
   treeInstance: null,
   selectedPersonId: null,
   currentRootId: null,
+  treeOrientation: localStorage.getItem("montes_tree_orientation") || "top",
+  treeLayout: localStorage.getItem("montes_tree_layout") || "normal",
   hasUnsavedChanges: false,
   isAuthenticated: false,
   photosCache: {},      // Mapeo de 'photos/nombre_persona.jpg' -> base64 DataURL
@@ -985,19 +987,47 @@ function formatLocationWithProvince(loc) {
       };
     });
 
+    const orientMap = {
+      top: FamilyTree.orientation.top,
+      left: FamilyTree.orientation.left,
+      bottom: FamilyTree.orientation.bottom
+    };
+
+    const layoutMap = {
+      normal: FamilyTree.layout.normal,
+      treeRightOffset: FamilyTree.layout.treeRightOffset,
+      treeLeft: FamilyTree.layout.treeLeft,
+      grid: FamilyTree.layout.grid
+    };
+
+    const selectedOrientation = orientMap[AppState.treeOrientation] || FamilyTree.orientation.top;
+    const selectedLayout = layoutMap[AppState.treeLayout] || FamilyTree.layout.normal;
+
+    // Sincronizar selectores en la cabecera
+    const orientSelect = document.getElementById("tree-orientation-select");
+    if (orientSelect && orientSelect.value !== AppState.treeOrientation) {
+      orientSelect.value = AppState.treeOrientation;
+    }
+    const layoutSelect = document.getElementById("tree-layout-select");
+    if (layoutSelect && layoutSelect.value !== AppState.treeLayout) {
+      layoutSelect.value = AppState.treeLayout;
+    }
+
     try {
       AppState.treeInstance = new FamilyTree(container, {
         template: "montesTheme",
         mode: "light",
         collapsible: false,
         roots: getBestTreeRoot(AppState.treeData),
+        orientation: selectedOrientation,
+        layout: selectedLayout,
         enableSearch: false,
         mouseScrool: FamilyTree.action.zoom,
         nodeMouseClick: FamilyTree.action.none,
-        siblingSeparation: 45,
-        levelSeparation: 95,
-        subtreeSeparation: 45,
-        partnerSeparation: 30,
+        siblingSeparation: 55,
+        levelSeparation: 110,
+        subtreeSeparation: 55,
+        partnerSeparation: 35,
         scaleInitial: FamilyTree.match.boundary,
         nodeBinding: {
           field_0: "name_l1",
@@ -2212,6 +2242,26 @@ function setupToolbarEvents() {
   if (branchSelect) {
     branchSelect.addEventListener("change", (e) => {
       switchTreeBranch(e.target.value);
+    });
+  }
+
+  // Selector de Orientación de Vista
+  const orientSelect = document.getElementById("tree-orientation-select");
+  if (orientSelect) {
+    orientSelect.addEventListener("change", (e) => {
+      AppState.treeOrientation = e.target.value;
+      localStorage.setItem("montes_tree_orientation", e.target.value);
+      initTreeVisualization();
+    });
+  }
+
+  // Selector de Distribución de Hijos / Hermanos
+  const layoutSelect = document.getElementById("tree-layout-select");
+  if (layoutSelect) {
+    layoutSelect.addEventListener("change", (e) => {
+      AppState.treeLayout = e.target.value;
+      localStorage.setItem("montes_tree_layout", e.target.value);
+      initTreeVisualization();
     });
   }
 
