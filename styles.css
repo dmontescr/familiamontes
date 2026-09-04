@@ -644,6 +644,46 @@ body {
   stroke: #fbcfe8 !important;
 }
 
+/* Botones de acción rápida (+ hijo / + pareja) en las tarjetas del árbol */
+.node-add-btn {
+  cursor: pointer;
+  pointer-events: all;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.node-add-btn .node-btn-circle {
+  transition: fill 0.18s ease, stroke 0.18s ease, stroke-width 0.18s ease, filter 0.18s ease;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.08));
+}
+
+.node-add-btn .node-btn-plus {
+  transition: stroke 0.18s ease;
+}
+
+/* Hover en botón Añadir Hijo (Abajo) */
+.node-add-child-btn:hover .node-btn-circle {
+  fill: var(--color-primary) !important;
+  stroke: #ffffff !important;
+  stroke-width: 2px !important;
+  filter: drop-shadow(0 3px 8px rgba(166, 75, 42, 0.45));
+}
+
+.node-add-child-btn:hover .node-btn-plus {
+  stroke: #ffffff !important;
+}
+
+/* Hover en botón Añadir Pareja (Derecha) */
+.node-add-partner-btn:hover .node-btn-circle {
+  fill: #e11d48 !important;
+  stroke: #ffffff !important;
+  stroke-width: 2px !important;
+  filter: drop-shadow(0 3px 8px rgba(225, 29, 72, 0.45));
+}
+
+.node-add-partner-btn:hover .node-btn-plus {
+  stroke: #ffffff !important;
+}
+
 /* --------------------------------------------------------------------------
    MODALES Y DIÁLOGOS
    -------------------------------------------------------------------------- */
@@ -1187,19 +1227,6 @@ body {
   width: 100%;
 }
 
-/* --------------------------------------------------------------------------
-   SECCIÓN DE ADICIÓN DE FAMILIARES
-   -------------------------------------------------------------------------- */
-.drawer-directional-section {
-  background: var(--bg-surface-elevated);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
-}
-
 .drawer-section-title {
   font-size: 0.8rem;
   font-weight: 700;
@@ -1209,65 +1236,6 @@ body {
   display: flex;
   align-items: center;
   gap: 0.45rem;
-}
-
-.directional-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.directional-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
-}
-
-.directional-buttons {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.45rem;
-}
-
-.btn-directional {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  padding: 0.6rem 0.5rem;
-  background: #fff;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--color-text-main);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-}
-
-.btn-directional:hover:not(:disabled) {
-  background: var(--color-primary-light);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  transform: translateY(-1px);
-  box-shadow: 0 3px 6px rgba(166, 75, 42, 0.12);
-}
-
-.btn-directional:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-  color: #94a3b8;
-  transform: none;
-}
-
-.directional-status-hint {
-  font-size: 0.72rem;
-  color: var(--color-text-muted);
-  font-style: italic;
-  margin-top: 0.15rem;
 }
 
 .btn-primary-tool {

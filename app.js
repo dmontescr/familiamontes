@@ -519,6 +519,20 @@ function initTreeVisualization() {
       </clipPath>
       <rect x="0" y="0" height="130" width="270" fill="#ffffff" stroke-width="1.5" stroke="#d5cdbf" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(0,0,0,0.06))"></rect>
       <rect x="0" y="0" height="130" width="6" fill="#a64b2a" clip-path="url(#cardClip{id})"></rect>
+
+      <!-- Botón + para Añadir Hijo/a (Abajo) -->
+      <g class="node-add-btn node-add-child-btn" data-action="add-child" data-id="{id}">
+        <title>Añadir hijo/a</title>
+        <circle cx="135" cy="130" r="12" class="node-btn-circle" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"></circle>
+        <path d="M129 130 h12 M135 124 v12" stroke="#64748b" stroke-width="2" stroke-linecap="round" class="node-btn-plus"></path>
+      </g>
+
+      <!-- Botón + para Añadir Cónyuge (Derecha) -->
+      <g class="node-add-btn node-add-partner-btn" data-action="add-partner" data-id="{id}" style="{partner_btn_style}">
+        <title>Añadir pareja / cónyuge</title>
+        <circle cx="270" cy="65" r="12" class="node-btn-circle" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"></circle>
+        <path d="M264 65 h12 M270 59 v12" stroke="#64748b" stroke-width="2" stroke-linecap="round" class="node-btn-plus"></path>
+      </g>
     `;
 
     // Tarjetas diferenciadas por género con integración perfecta en las esquinas redondeadas
@@ -529,6 +543,20 @@ function initTreeVisualization() {
       </clipPath>
       <rect x="0" y="0" height="130" width="270" fill="#ffffff" stroke-width="1.5" stroke="#cbd5e1" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(37,99,235,0.07))"></rect>
       <rect x="0" y="0" height="130" width="6" fill="#3b82f6" clip-path="url(#cardClipM{id})"></rect>
+
+      <!-- Botón + para Añadir Hijo/a (Abajo) -->
+      <g class="node-add-btn node-add-child-btn" data-action="add-child" data-id="{id}">
+        <title>Añadir hijo/a</title>
+        <circle cx="135" cy="130" r="12" class="node-btn-circle" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"></circle>
+        <path d="M129 130 h12 M135 124 v12" stroke="#64748b" stroke-width="2" stroke-linecap="round" class="node-btn-plus"></path>
+      </g>
+
+      <!-- Botón + para Añadir Cónyuge (Derecha) -->
+      <g class="node-add-btn node-add-partner-btn" data-action="add-partner" data-id="{id}" style="{partner_btn_style}">
+        <title>Añadir pareja / cónyuge</title>
+        <circle cx="270" cy="65" r="12" class="node-btn-circle" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"></circle>
+        <path d="M264 65 h12 M270 59 v12" stroke="#64748b" stroke-width="2" stroke-linecap="round" class="node-btn-plus"></path>
+      </g>
     `;
 
     FamilyTree.templates.montesTheme_female = Object.assign({}, FamilyTree.templates.montesTheme);
@@ -538,6 +566,20 @@ function initTreeVisualization() {
       </clipPath>
       <rect x="0" y="0" height="130" width="270" fill="#ffffff" stroke-width="1.5" stroke="#fbcfe8" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(219,39,119,0.07))"></rect>
       <rect x="0" y="0" height="130" width="6" fill="#ec4899" clip-path="url(#cardClipF{id})"></rect>
+
+      <!-- Botón + para Añadir Hijo/a (Abajo) -->
+      <g class="node-add-btn node-add-child-btn" data-action="add-child" data-id="{id}">
+        <title>Añadir hijo/a</title>
+        <circle cx="135" cy="130" r="12" class="node-btn-circle" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"></circle>
+        <path d="M129 130 h12 M135 124 v12" stroke="#64748b" stroke-width="2" stroke-linecap="round" class="node-btn-plus"></path>
+      </g>
+
+      <!-- Botón + para Añadir Cónyuge (Derecha) -->
+      <g class="node-add-btn node-add-partner-btn" data-action="add-partner" data-id="{id}" style="{partner_btn_style}">
+        <title>Añadir pareja / cónyuge</title>
+        <circle cx="270" cy="65" r="12" class="node-btn-circle" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"></circle>
+        <path d="M264 65 h12 M270 59 v12" stroke="#64748b" stroke-width="2" stroke-linecap="round" class="node-btn-plus"></path>
+      </g>
     `;
 
     // Fotografía circular centrada verticalmente con cursor de ampliación (cy = 65)
@@ -647,6 +689,10 @@ function formatLocationWithProvince(loc) {
       const nameParts = formatPersonNameLines(person.name);
       const isSingleLine = !nameParts.line2;
 
+      // Si ya tiene pareja asignada, ocultamos el botón + de la derecha
+      const hasPartner = person.pids && person.pids.length > 0;
+      const partnerBtnStyle = hasPartner ? "display: none;" : "display: inline;";
+
       return {
         id: person.id,
         mid: person.mid,
@@ -661,15 +707,61 @@ function formatLocationWithProvince(loc) {
         loc_birth: birthStr,
         loc_res: resStr,
         photo: getPersonPhotoUrl(person.photo, person.gender),
+        partner_btn_style: partnerBtnStyle,
         raw: person
       };
     });
+
+/**
+ * Determina las raíces principales del árbol (los ancestros superiores).
+ * Al indicar estas raíces, FamilyTreeJS despliega hacia abajo todo el árbol completo
+ * por defecto, mostrando todas las generaciones sin colapsar las ramas superiores.
+ */
+function getTreeRoots(treeData) {
+  if (!treeData || treeData.length === 0) return [];
+
+  // Personas sin padres
+  const noParents = treeData.filter(p => !p.fid && !p.mid);
+  if (noParents.length === 0) return [treeData[0].id];
+
+  // Descartar personas que son cónyuges de alguien que SÍ tiene padres registrados
+  const candidateRoots = noParents.filter(p => {
+    if (p.pids && p.pids.length > 0) {
+      const partnerHasAncestors = p.pids.some(partnerId => {
+        const partner = treeData.find(x => x.id === partnerId);
+        return partner && (partner.fid || partner.mid);
+      });
+      if (partnerHasAncestors) return false;
+    }
+    return true;
+  });
+
+  const rootsList = candidateRoots.length > 0 ? candidateRoots : noParents;
+
+  // Quedarnos con 1 por pareja para que FamilyTreeJS reconozca la raíz de forma limpia
+  const finalRoots = [];
+  const visited = new Set();
+  for (const r of rootsList) {
+    if (!visited.has(r.id)) {
+      finalRoots.push(r.id);
+      visited.add(r.id);
+      if (r.pids) {
+        r.pids.forEach(pid => visited.add(pid));
+      }
+    }
+  }
+
+  return finalRoots;
+}
+
+    const treeRoots = getTreeRoots(AppState.treeData);
 
     try {
       AppState.treeInstance = new FamilyTree(container, {
         template: "montesTheme",
         mode: "light",
         collapsible: false,
+        roots: treeRoots.length > 0 ? treeRoots : undefined,
         enableSearch: false,
         mouseScrool: FamilyTree.action.zoom,
         nodeMouseClick: FamilyTree.action.none,
@@ -699,11 +791,33 @@ function formatLocationWithProvince(loc) {
         const target = args.event && (args.event.target || args.event.srcElement);
 
         if (target) {
+          // 1. Verificar si se hizo clic en los botones de acción rápida (+ hijo / + pareja)
+          let el = target;
+          let action = null;
+          while (el && el !== (args.event.currentTarget || document.body) && el.getAttribute) {
+            if (el.getAttribute("data-action")) {
+              action = el.getAttribute("data-action");
+              break;
+            }
+            el = el.parentElement;
+          }
+
+          if (action === "add-child") {
+            openAddChildModal(personId);
+            return false;
+          }
+
+          if (action === "add-partner") {
+            openAddPartnerModal(personId);
+            return false;
+          }
+
+          // 2. Verificar si se hizo clic en la foto para abrir el visor ampliado
           const tagName = target.tagName ? target.tagName.toLowerCase() : "";
           const clipPath = target.getAttribute ? (target.getAttribute("clip-path") || "") : "";
           const cx = target.getAttribute ? target.getAttribute("cx") : "";
 
-          if (tagName === "image" || (tagName === "circle" && cx === "48") || clipPath.includes("ulaImg")) {
+          if (tagName === "image" || (tagName === "circle" && cx === "40") || clipPath.includes("ulaImg")) {
             openPhotoLightboxById(personId);
             return false;
           }
@@ -715,9 +829,15 @@ function formatLocationWithProvince(loc) {
 
       setTimeout(() => {
         if (AppState.treeInstance) {
-          if (typeof AppState.treeInstance.expandAll === "function") {
-            try { AppState.treeInstance.expandAll(); } catch (e) {}
-          }
+          // Asegurar que todas las ramas de ancestros queden expandidas
+          AppState.treeData.forEach(p => {
+            const parents = [];
+            if (p.fid) parents.push(p.fid);
+            if (p.mid) parents.push(p.mid);
+            if (parents.length > 0) {
+              try { AppState.treeInstance.expand(p.id, parents); } catch (e) {}
+            }
+          });
           AppState.treeInstance.fit();
         }
       }, 150);
@@ -919,50 +1039,6 @@ function openPersonDrawer(personId) {
   const familyDesc = getFamilyRelationshipsSummary(person);
   document.getElementById("drawer-val-family").innerHTML = familyDesc;
 
-  // Validación de Padres (Regla: Máximo 1 padre y 1 madre)
-  const btnAddFather = document.getElementById("btn-dir-add-father");
-  const btnAddMother = document.getElementById("btn-dir-add-mother");
-
-  const hasFather = Boolean(person.fid);
-  const hasMother = Boolean(person.mid);
-
-  if (btnAddFather) {
-    if (hasFather) {
-      btnAddFather.disabled = true;
-      const fatherObj = AppState.treeData.find(p => p.id === person.fid);
-      btnAddFather.title = `Ya tiene padre asignado (${fatherObj ? fatherObj.name : 'Asignado'})`;
-    } else {
-      btnAddFather.disabled = false;
-      btnAddFather.title = "Añadir Padre";
-    }
-  }
-
-  if (btnAddMother) {
-    if (hasMother) {
-      btnAddMother.disabled = true;
-      const motherObj = AppState.treeData.find(p => p.id === person.mid);
-      btnAddMother.title = `Ya tiene madre asignada (${motherObj ? motherObj.name : 'Asignada'})`;
-    } else {
-      btnAddMother.disabled = false;
-      btnAddMother.title = "Añadir Madre";
-    }
-  }
-
-  // Validación de Pareja / Cónyuge (Regla: Máximo 1 cónyuge)
-  const btnAddPartner = document.getElementById("btn-dir-add-partner");
-  const hasPartner = person.pids && person.pids.length > 0;
-
-  if (btnAddPartner) {
-    if (hasPartner) {
-      btnAddPartner.disabled = true;
-      const partnerObj = AppState.treeData.find(p => p.id === person.pids[0]);
-      btnAddPartner.title = `Ya tiene pareja asignada (${partnerObj ? partnerObj.name : 'Asignada'})`;
-    } else {
-      btnAddPartner.disabled = false;
-      btnAddPartner.title = "Añadir Pareja o Cónyuge";
-    }
-  }
-
   // Mostrar panel
   document.getElementById("person-drawer").classList.add("active");
   refreshIcons();
@@ -1066,37 +1142,6 @@ function setupDrawerEvents() {
       }
     });
   }
-
-  // EVENTOS DIRECCIONALES (+ EN TODAS LAS DIRECCIONES)
-  // 1. Arriba: Padre
-  document.getElementById("btn-dir-add-father").addEventListener("click", () => {
-    if (!AppState.selectedPersonId) return;
-    openAddDirectionalRelativeModal(AppState.selectedPersonId, "parent_father");
-  });
-
-  // 2. Arriba: Madre
-  document.getElementById("btn-dir-add-mother").addEventListener("click", () => {
-    if (!AppState.selectedPersonId) return;
-    openAddDirectionalRelativeModal(AppState.selectedPersonId, "parent_mother");
-  });
-
-  // 3. Mismo Nivel: Pareja / Cónyuge
-  document.getElementById("btn-dir-add-partner").addEventListener("click", () => {
-    if (!AppState.selectedPersonId) return;
-    openAddDirectionalRelativeModal(AppState.selectedPersonId, "partner");
-  });
-
-  // 4. Mismo Nivel: Hermano / Hermana
-  document.getElementById("btn-dir-add-sibling").addEventListener("click", () => {
-    if (!AppState.selectedPersonId) return;
-    openAddDirectionalRelativeModal(AppState.selectedPersonId, "sibling");
-  });
-
-  // 5. Abajo: Hijo / Hija
-  document.getElementById("btn-dir-add-child").addEventListener("click", () => {
-    if (!AppState.selectedPersonId) return;
-    openAddDirectionalRelativeModal(AppState.selectedPersonId, "child");
-  });
 }
 
 // ==========================================================================
@@ -1286,76 +1331,11 @@ function populateParentAndPartnerSelectors(excludePersonId = null, preselected =
   motherSelect.onchange = refreshPartnerOptions;
 }
 
-function openAddDirectionalRelativeModal(targetPersonId, directionalType) {
-  const targetPerson = AppState.treeData.find(p => p.id === targetPersonId);
-  if (!targetPerson) return;
-
-  const form = document.getElementById("form-person");
-  form.reset();
-
-  document.getElementById("form-person-id").value = "";
-  document.getElementById("form-relative-target-id").value = targetPersonId;
-  const directionalHidden = document.getElementById("form-rel-directional-type");
-  if (directionalHidden) directionalHidden.value = directionalType;
-  document.getElementById("group-relationship-type").style.display = "none";
-  document.getElementById("group-form-links").style.display = "none";
-  
-  const titleEl = document.getElementById("modal-person-title").querySelector("span");
-  const genderSelect = document.getElementById("form-gender");
-
-  // Configurar tipo según dirección seleccionada
-  let relTypeValue = "child";
-
-  if (directionalType === "parent_father") {
-    relTypeValue = "parent_father";
-    genderSelect.value = "male";
-    genderSelect.disabled = true;
-    titleEl.textContent = `Añadir Padre de ${targetPerson.name.split(" ")[0]}`;
-  } else if (directionalType === "parent_mother") {
-    relTypeValue = "parent_mother";
-    genderSelect.value = "female";
-    genderSelect.disabled = true;
-    titleEl.textContent = `Añadir Madre de ${targetPerson.name.split(" ")[0]}`;
-  } else if (directionalType === "partner") {
-    relTypeValue = "partner";
-    genderSelect.value = targetPerson.gender === "male" ? "female" : "male";
-    genderSelect.disabled = false;
-    titleEl.textContent = `Añadir Pareja de ${targetPerson.name.split(" ")[0]}`;
-  } else if (directionalType === "sibling") {
-    relTypeValue = "sibling";
-    genderSelect.value = "male";
-    genderSelect.disabled = false;
-    titleEl.textContent = `Añadir Hermano/a de ${targetPerson.name.split(" ")[0]}`;
-  } else if (directionalType === "child") {
-    relTypeValue = "child";
-    genderSelect.value = "male";
-    genderSelect.disabled = false;
-    titleEl.textContent = `Añadir Hijo/a de ${targetPerson.name.split(" ")[0]}`;
-  }
-
-  document.getElementById("form-rel-type").value = relTypeValue;
-  const birthPlaceInput = document.getElementById("form-birth-place");
-  if (birthPlaceInput) birthPlaceInput.value = "";
-  document.getElementById("form-photo").value = "";
-  document.getElementById("form-photo-file").value = "";
-  document.getElementById("form-photo-preview").src = getDefaultAvatar(genderSelect.value);
-  document.getElementById("btn-remove-photo").style.display = "none";
-
-  const suggestionBox = document.getElementById("name-suggestion-box");
-  if (suggestionBox) suggestionBox.style.display = "none";
-
-  openModal("modal-person");
-}
-
 function openAddRootPersonModal() {
   const form = document.getElementById("form-person");
   form.reset();
 
   document.getElementById("form-person-id").value = "";
-  document.getElementById("form-relative-target-id").value = "";
-  const directionalHidden = document.getElementById("form-rel-directional-type");
-  if (directionalHidden) directionalHidden.value = "";
-  document.getElementById("group-relationship-type").style.display = "none";
   document.getElementById("group-form-links").style.display = "block";
   document.getElementById("form-gender").disabled = false;
   document.getElementById("modal-person-title").querySelector("span").textContent = "Añadir Nueva Persona al Árbol";
@@ -1376,15 +1356,93 @@ function openAddRootPersonModal() {
   openModal("modal-person");
 }
 
+function openAddChildModal(parentPersonId) {
+  const parent = AppState.treeData.find(p => p.id === parentPersonId);
+  if (!parent) return;
+
+  const form = document.getElementById("form-person");
+  form.reset();
+
+  document.getElementById("form-person-id").value = "";
+  document.getElementById("group-form-links").style.display = "block";
+  document.getElementById("form-gender").disabled = false;
+  document.getElementById("form-gender").value = "male";
+  
+  document.getElementById("modal-person-title").querySelector("span").textContent = `Añadir Hijo/a de ${parent.name}`;
+  
+  const birthPlaceInput = document.getElementById("form-birth-place");
+  if (birthPlaceInput) birthPlaceInput.value = "";
+  document.getElementById("form-photo").value = "";
+  document.getElementById("form-photo-file").value = "";
+  document.getElementById("form-photo-preview").src = getDefaultAvatar("male");
+  document.getElementById("btn-remove-photo").style.display = "none";
+
+  const suggestionBox = document.getElementById("name-suggestion-box");
+  if (suggestionBox) suggestionBox.style.display = "none";
+
+  let initialFid = null;
+  let initialMid = null;
+
+  if (parent.gender === "female") {
+    initialMid = parent.id;
+    if (parent.pids && parent.pids.length > 0) {
+      initialFid = parent.pids[0];
+    }
+  } else {
+    initialFid = parent.id;
+    if (parent.pids && parent.pids.length > 0) {
+      initialMid = parent.pids[0];
+    }
+  }
+
+  // Poblar selectores de padre, madre y cónyuge con los padres preseleccionados
+  populateParentAndPartnerSelectors(null, {
+    fid: initialFid,
+    mid: initialMid
+  });
+
+  openModal("modal-person");
+}
+
+function openAddPartnerModal(personId) {
+  const person = AppState.treeData.find(p => p.id === personId);
+  if (!person) return;
+
+  const form = document.getElementById("form-person");
+  form.reset();
+
+  document.getElementById("form-person-id").value = "";
+  document.getElementById("group-form-links").style.display = "block";
+  document.getElementById("form-gender").disabled = false;
+  
+  const targetGender = person.gender === "male" ? "female" : "male";
+  document.getElementById("form-gender").value = targetGender;
+  
+  document.getElementById("modal-person-title").querySelector("span").textContent = `Añadir Cónyuge / Pareja de ${person.name}`;
+  
+  const birthPlaceInput = document.getElementById("form-birth-place");
+  if (birthPlaceInput) birthPlaceInput.value = "";
+  document.getElementById("form-photo").value = "";
+  document.getElementById("form-photo-file").value = "";
+  document.getElementById("form-photo-preview").src = getDefaultAvatar(targetGender);
+  document.getElementById("btn-remove-photo").style.display = "none";
+
+  const suggestionBox = document.getElementById("name-suggestion-box");
+  if (suggestionBox) suggestionBox.style.display = "none";
+
+  // Poblar selectores con la pareja preseleccionada
+  populateParentAndPartnerSelectors(null, {
+    pid: person.id
+  });
+
+  openModal("modal-person");
+}
+
 function openEditPersonModal(personId) {
   const person = AppState.treeData.find(p => p.id === personId);
   if (!person) return;
 
   document.getElementById("form-person-id").value = person.id;
-  document.getElementById("form-relative-target-id").value = "";
-  const directionalHidden = document.getElementById("form-rel-directional-type");
-  if (directionalHidden) directionalHidden.value = "";
-  document.getElementById("group-relationship-type").style.display = "none";
   document.getElementById("group-form-links").style.display = "block";
   document.getElementById("form-gender").disabled = false;
   
@@ -1432,10 +1490,6 @@ async function savePersonFromForm() {
   const originalBtnHtml = saveBtn ? saveBtn.innerHTML : "";
 
   const idInput = document.getElementById("form-person-id").value;
-  const relTargetIdInput = document.getElementById("form-relative-target-id").value;
-  const directionalTypeInput = document.getElementById("form-rel-directional-type") ? document.getElementById("form-rel-directional-type").value : "";
-  const selectRelType = document.getElementById("form-rel-type").value;
-  const relType = directionalTypeInput || selectRelType;
 
   const name = document.getElementById("form-name").value.trim();
   const gender = document.getElementById("form-gender").value;
@@ -1580,7 +1634,7 @@ async function savePersonFromForm() {
       pids: []
     };
 
-    // 1. Si se crearon vínculos mediante los selectores manuales
+    // Si se crearon vínculos mediante los selectores manuales
     if (manualFid) newPerson.fid = manualFid;
     if (manualMid) newPerson.mid = manualMid;
     if (manualPid) {
@@ -1589,66 +1643,6 @@ async function savePersonFromForm() {
       if (partnerObj) {
         if (!partnerObj.pids) partnerObj.pids = [];
         if (!partnerObj.pids.includes(newId)) partnerObj.pids.push(newId);
-      }
-    }
-
-    // 2. Si se añade mediante el flujo direccional desde el panel lateral
-    if (relTargetIdInput) {
-      const targetId = parseInt(relTargetIdInput, 10);
-      const targetPerson = AppState.treeData.find(p => p.id === targetId);
-
-      if (targetPerson) {
-        const isFather = relType === "parent_father" || (relType === "parent" && gender === "male");
-        const isMother = relType === "parent_mother" || (relType === "parent" && gender === "female");
-
-        if (isFather) {
-          targetPerson.fid = newId;
-          delete newPerson.fid;
-          delete newPerson.mid;
-          // Si el hijo ya tiene madre, vincularlos como pareja mutuamente
-          if (targetPerson.mid) {
-            newPerson.pids = [targetPerson.mid];
-            const mother = AppState.treeData.find(p => p.id === targetPerson.mid);
-            if (mother) {
-              if (!mother.pids) mother.pids = [];
-              if (!mother.pids.includes(newId)) mother.pids.push(newId);
-            }
-          }
-        } else if (isMother) {
-          targetPerson.mid = newId;
-          delete newPerson.fid;
-          delete newPerson.mid;
-          // Si el hijo ya tiene padre, vincularlos como pareja mutuamente
-          if (targetPerson.fid) {
-            newPerson.pids = [targetPerson.fid];
-            const father = AppState.treeData.find(p => p.id === targetPerson.fid);
-            if (father) {
-              if (!father.pids) father.pids = [];
-              if (!father.pids.includes(newId)) father.pids.push(newId);
-            }
-          }
-        } else if (relType === "partner") {
-          newPerson.pids = [targetPerson.id];
-          if (!targetPerson.pids) targetPerson.pids = [];
-          if (!targetPerson.pids.includes(newId)) {
-            targetPerson.pids.push(newId);
-          }
-        } else if (relType === "sibling") {
-          if (targetPerson.fid) newPerson.fid = targetPerson.fid;
-          if (targetPerson.mid) newPerson.mid = targetPerson.mid;
-        } else if (relType === "child") {
-          if (targetPerson.gender === "female") {
-            newPerson.mid = targetPerson.id;
-            if (targetPerson.pids && targetPerson.pids.length > 0) {
-              newPerson.fid = targetPerson.pids[0];
-            }
-          } else {
-            newPerson.fid = targetPerson.id;
-            if (targetPerson.pids && targetPerson.pids.length > 0) {
-              newPerson.mid = targetPerson.pids[0];
-            }
-          }
-        }
       }
     }
 

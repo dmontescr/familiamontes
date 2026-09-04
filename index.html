@@ -190,62 +190,6 @@
           </div>
         </div>
 
-        <!-- Sección de Adición de Familiares -->
-        <div class="drawer-directional-section">
-          <div class="drawer-section-title">
-            <i data-lucide="user-plus" style="width: 16px; height: 16px;"></i>
-            <span>Añadir Familiar</span>
-          </div>
-
-          <!-- Categoría: Padres -->
-          <div class="directional-group">
-            <span class="directional-label">Padres</span>
-            <div class="directional-buttons">
-              <button id="btn-dir-add-father" class="btn-directional" title="Añadir Padre">
-                <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
-                <span>Padre</span>
-              </button>
-              <button id="btn-dir-add-mother" class="btn-directional" title="Añadir Madre">
-                <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
-                <span>Madre</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Categoría: Cónyuge -->
-          <div class="directional-group">
-            <span class="directional-label">Cónyuge</span>
-            <div class="directional-buttons" style="grid-template-columns: 1fr;">
-              <button id="btn-dir-add-partner" class="btn-directional" title="Añadir Pareja o Cónyuge">
-                <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
-                <span>Pareja / Cónyuge</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Categoría: Hermanos -->
-          <div class="directional-group">
-            <span class="directional-label">Hermanos</span>
-            <div class="directional-buttons" style="grid-template-columns: 1fr;">
-              <button id="btn-dir-add-sibling" class="btn-directional" title="Añadir Hermano o Hermana">
-                <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
-                <span>Hermano / Hermana</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Categoría: Hijos -->
-          <div class="directional-group">
-            <span class="directional-label">Hijos</span>
-            <div class="directional-buttons" style="grid-template-columns: 1fr;">
-              <button id="btn-dir-add-child" class="btn-directional" title="Añadir Hijo o Hija">
-                <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
-                <span>Hijo / Hija</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
         <!-- Información Biográfica Detallada -->
         <div class="drawer-info-list">
           <div class="info-row" id="row-drawer-birthplace">
@@ -304,21 +248,6 @@
 
       <form id="form-person" class="modal-body" onsubmit="return false;">
         <input type="hidden" id="form-person-id">
-        <input type="hidden" id="form-relative-target-id">
-        <input type="hidden" id="form-rel-directional-type">
-
-        <!-- Selector de parentesco (solo al añadir pariente vinculado) -->
-        <div id="group-relationship-type" class="form-group" style="display: none;">
-          <label for="form-rel-type">Tipo de Relación respecto a <strong id="rel-target-name">...</strong></label>
-          <select id="form-rel-type" class="form-select">
-            <option value="child">Hijo / Hija</option>
-            <option value="partner">Pareja / Cónyuge</option>
-            <option value="parent_father">Padre</option>
-            <option value="parent_mother">Madre</option>
-            <option value="parent">Padre / Madre</option>
-            <option value="sibling">Hermano / Hermana</option>
-          </select>
-        </div>
 
         <div class="form-group">
           <label for="form-name">Nombre Completo *</label>
