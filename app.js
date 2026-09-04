@@ -712,56 +712,11 @@ function formatLocationWithProvince(loc) {
       };
     });
 
-/**
- * Determina las raíces principales del árbol (los ancestros superiores).
- * Al indicar estas raíces, FamilyTreeJS despliega hacia abajo todo el árbol completo
- * por defecto, mostrando todas las generaciones sin colapsar las ramas superiores.
- */
-function getTreeRoots(treeData) {
-  if (!treeData || treeData.length === 0) return [];
-
-  // Personas sin padres
-  const noParents = treeData.filter(p => !p.fid && !p.mid);
-  if (noParents.length === 0) return [treeData[0].id];
-
-  // Descartar personas que son cónyuges de alguien que SÍ tiene padres registrados
-  const candidateRoots = noParents.filter(p => {
-    if (p.pids && p.pids.length > 0) {
-      const partnerHasAncestors = p.pids.some(partnerId => {
-        const partner = treeData.find(x => x.id === partnerId);
-        return partner && (partner.fid || partner.mid);
-      });
-      if (partnerHasAncestors) return false;
-    }
-    return true;
-  });
-
-  const rootsList = candidateRoots.length > 0 ? candidateRoots : noParents;
-
-  // Quedarnos con 1 por pareja para que FamilyTreeJS reconozca la raíz de forma limpia
-  const finalRoots = [];
-  const visited = new Set();
-  for (const r of rootsList) {
-    if (!visited.has(r.id)) {
-      finalRoots.push(r.id);
-      visited.add(r.id);
-      if (r.pids) {
-        r.pids.forEach(pid => visited.add(pid));
-      }
-    }
-  }
-
-  return finalRoots;
-}
-
-    const treeRoots = getTreeRoots(AppState.treeData);
-
     try {
       AppState.treeInstance = new FamilyTree(container, {
         template: "montesTheme",
         mode: "light",
         collapsible: false,
-        roots: treeRoots.length > 0 ? treeRoots : undefined,
         enableSearch: false,
         mouseScrool: FamilyTree.action.zoom,
         nodeMouseClick: FamilyTree.action.none,
@@ -829,15 +784,6 @@ function getTreeRoots(treeData) {
 
       setTimeout(() => {
         if (AppState.treeInstance) {
-          // Asegurar que todas las ramas de ancestros queden expandidas
-          AppState.treeData.forEach(p => {
-            const parents = [];
-            if (p.fid) parents.push(p.fid);
-            if (p.mid) parents.push(p.mid);
-            if (parents.length > 0) {
-              try { AppState.treeInstance.expand(p.id, parents); } catch (e) {}
-            }
-          });
           AppState.treeInstance.fit();
         }
       }, 150);
