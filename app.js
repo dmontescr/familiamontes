@@ -381,6 +381,26 @@ async function syncTreeWithCloud(isAutoSave = false) {
 }
 
 /**
+ * Obtiene el objeto cónyuge de una persona (buscando tanto en pids propios como en los pids de su pareja)
+ */
+function getPersonPartner(person) {
+  if (!person || !AppState.treeData) return null;
+  if (person.pids && person.pids.length > 0) {
+    const direct = AppState.treeData.find(p => p.id === person.pids[0]);
+    if (direct) return direct;
+  }
+  return AppState.treeData.find(p => p.id !== person.id && p.pids && p.pids.includes(person.id)) || null;
+}
+
+/**
+ * Obtiene el ID del cónyuge de una persona
+ */
+function getPersonPartnerId(person) {
+  const partner = getPersonPartner(person);
+  return partner ? partner.id : null;
+}
+
+/**
  * Extrae el primer apellido o término significativo del nombre para titular ramas
  */
 function getFirstSurname(fullName) {
@@ -402,11 +422,9 @@ function getAvailableBranches(treeData) {
   // Descartar a cónyuges que se unieron a generaciones intermedias/inferiores (su pareja sí tiene padres registrados)
   let candidateRoots = treeData.filter(p => {
     if (p.fid || p.mid) return false;
-    if (p.pids && p.pids.length > 0) {
-      const partner = treeData.find(x => x.id === p.pids[0]);
-      if (partner && (partner.fid || partner.mid)) {
-        return false;
-      }
+    const partner = getPersonPartner(p);
+    if (partner && (partner.fid || partner.mid)) {
+      return false;
     }
     return true;
   });
@@ -525,6 +543,45 @@ function getAvailableBranches(treeData) {
 }
 
 /**
+ * Calcula todas las raíces ancestrales del árbol para desplegar todas las ramas a la vez
+ */
+function getAllTreeRoots(treeData) {
+  if (!treeData || treeData.length === 0) return [];
+
+  const nodeMap = new Map();
+  treeData.forEach(p => nodeMap.set(p.id, p));
+
+  const candidateRoots = treeData.filter(p => {
+    if (p.fid || p.mid) return false;
+    if (p.pids && p.pids.length > 0) {
+      const partner = nodeMap.get(p.pids[0]);
+      if (partner && (partner.fid || partner.mid)) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  if (candidateRoots.length === 0) {
+    return [treeData[0].id];
+  }
+
+  const roots = [];
+  const processed = new Set();
+
+  candidateRoots.forEach(r => {
+    if (processed.has(r.id)) return;
+    processed.add(r.id);
+    if (r.pids && r.pids.length > 0) {
+      processed.add(r.pids[0]);
+    }
+    roots.push(r.id);
+  });
+
+  return roots;
+}
+
+/**
  * Llena el selector de ramas en el header y sincroniza el estado
  */
 function populateBranchSelector(treeData) {
@@ -533,31 +590,32 @@ function populateBranchSelector(treeData) {
   if (!branchSelect || !branchContainer) return;
 
   const branches = getAvailableBranches(treeData);
-
-  if (branches.length <= 1) {
-    branchContainer.style.display = "none";
-    if (branches.length === 1) {
-      AppState.currentRootId = branches[0].id;
-    }
-    return;
-  }
+  const total = treeData.length;
 
   branchContainer.style.display = "inline-flex";
   branchSelect.innerHTML = "";
+
+  // Opción 1: Todas las ramas (por defecto)
+  const allOpt = document.createElement("option");
+  allOpt.value = "all";
+  allOpt.textContent = `Todas las ramas (${total})`;
+  if (!AppState.currentRootId || AppState.currentRootId === "all") {
+    allOpt.selected = true;
+  }
+  branchSelect.appendChild(allOpt);
 
   branches.forEach(branch => {
     const opt = document.createElement("option");
     opt.value = branch.id.toString();
     opt.textContent = `${branch.shortName} (${branch.membersCount})`;
-    if (AppState.currentRootId === branch.id) {
+    if (AppState.currentRootId === branch.id.toString()) {
       opt.selected = true;
     }
     branchSelect.appendChild(opt);
   });
 
-  // Validar si la raíz activa actual sigue existiendo
-  if (!AppState.currentRootId || !branches.some(b => b.id === AppState.currentRootId)) {
-    AppState.currentRootId = branches[0].id;
+  if (!AppState.currentRootId) {
+    AppState.currentRootId = "all";
   }
   branchSelect.value = AppState.currentRootId.toString();
 
@@ -565,17 +623,14 @@ function populateBranchSelector(treeData) {
 }
 
 /**
- * Cambia la visualización a una rama específica
+ * Cambia la visualización a una rama específica o al árbol completo
  */
 function switchTreeBranch(rootId, focusPersonId = null) {
-  const idNum = parseInt(rootId, 10);
-  if (isNaN(idNum)) return;
-
-  AppState.currentRootId = idNum;
+  AppState.currentRootId = rootId.toString();
   
   const branchSelect = document.getElementById("branch-select");
-  if (branchSelect && branchSelect.value !== idNum.toString()) {
-    branchSelect.value = idNum.toString();
+  if (branchSelect && branchSelect.value !== rootId.toString()) {
+    branchSelect.value = rootId.toString();
   }
 
   initTreeVisualization();
@@ -597,8 +652,17 @@ function navigateToPerson(personId) {
   const targetId = parseInt(personId, 10);
   if (isNaN(targetId)) return;
 
+  // Si estamos en la vista de todas las ramas ("all"), centrar directamente
+  if (!AppState.currentRootId || AppState.currentRootId === "all") {
+    if (AppState.treeInstance && typeof AppState.treeInstance.center === "function") {
+      AppState.treeInstance.center(targetId);
+    }
+    openPersonDrawer(targetId);
+    return;
+  }
+
   const branches = getAvailableBranches(AppState.treeData);
-  const currentBranch = branches.find(b => b.id === AppState.currentRootId);
+  const currentBranch = branches.find(b => b.id.toString() === AppState.currentRootId.toString());
 
   if (currentBranch && currentBranch.nodeIds.has(targetId)) {
     if (AppState.treeInstance && typeof AppState.treeInstance.center === "function") {
@@ -617,21 +681,21 @@ function navigateToPerson(personId) {
 }
 
 /**
- * Determina la raíz óptima para asegurar que el árbol esté siempre
+ * Determina la raíz o raíces óptimas para asegurar que el árbol esté siempre
  * desplegado al máximo abarcando todas las generaciones y ramas familiares.
  */
 function getBestTreeRoot(treeData) {
   if (!treeData || treeData.length === 0) return undefined;
 
-  const branches = getAvailableBranches(treeData);
-  if (branches.length === 0) return [treeData[0].id];
-
-  if (AppState.currentRootId && branches.some(b => b.id === AppState.currentRootId)) {
-    return [AppState.currentRootId];
+  if (AppState.currentRootId && AppState.currentRootId !== "all") {
+    const idNum = parseInt(AppState.currentRootId, 10);
+    if (!isNaN(idNum)) {
+      return [idNum];
+    }
   }
 
-  AppState.currentRootId = branches[0].id;
-  return [branches[0].id];
+  // Por defecto: Desplegar todas las ramas completas simultáneamente
+  return getAllTreeRoots(treeData);
 }
 
 function updateHeaderSummary() {
@@ -639,13 +703,15 @@ function updateHeaderSummary() {
   if (summaryEl) {
     const total = AppState.treeData.length;
     const branches = getAvailableBranches(AppState.treeData);
-    const currentBranch = branches.find(b => b.id === AppState.currentRootId);
     
-    if (currentBranch && branches.length > 1) {
-      summaryEl.textContent = `${total} familiares · Mostrando: ${currentBranch.shortName}`;
-    } else {
-      summaryEl.textContent = `Árbol Genealógico · ${total} familiares`;
+    if (AppState.currentRootId && AppState.currentRootId !== "all") {
+      const currentBranch = branches.find(b => b.id.toString() === AppState.currentRootId.toString());
+      if (currentBranch) {
+        summaryEl.textContent = `${total} familiares · Vista: ${currentBranch.shortName}`;
+        return;
+      }
     }
+    summaryEl.textContent = `Árbol Completo · ${total} familiares (todas las ramas desplegadas)`;
   }
 }
 
@@ -716,15 +782,27 @@ function cleanAndValidateTreeData(data) {
     }
   });
 
-  // Asegurar simetría estricta en parejas
+  // Asegurar simetría en parejas, rompiendo el ciclo de recursión mutua en parejas convergentes
+  // donde ambos cónyuges tienen padres en el árbol (ej: Manuel Montes y Aurelia Carrera),
+  // permitiendo a Balkan FamilyTreeJS desplegar todas las ramas completas en un único lienzo
   data.forEach(p => {
     if (p.pids && p.pids.length > 0) {
       const partnerId = p.pids[0];
       const partner = personMap.get(partnerId);
       if (partner) {
-        if (!Array.isArray(partner.pids)) partner.pids = [];
-        if (partner.pids[0] !== p.id) {
-          partner.pids = [p.id];
+        const pHasParents = (p.fid || p.mid);
+        const partnerHasParents = (partner.fid || partner.mid);
+        if (pHasParents && partnerHasParents) {
+          if (p.gender === "female") {
+            p.pids = [];
+          } else {
+            p.pids = [partnerId];
+          }
+        } else {
+          if (!Array.isArray(partner.pids)) partner.pids = [];
+          if (partner.pids[0] !== p.id) {
+            partner.pids = [p.id];
+          }
         }
       } else {
         p.pids = [];
@@ -958,8 +1036,8 @@ function formatLocationWithProvince(loc) {
       const nameParts = formatPersonNameLines(person.name);
       const isSingleLine = !nameParts.line2;
 
-      // Si ya tiene pareja asignada, NO se renderiza el botón + de la derecha
-      const hasPartner = person.pids && person.pids.length > 0;
+      // Si ya tiene pareja asignada (en sus pids o en los pids de su cónyuge), NO se renderiza el botón + de la derecha
+      const hasPartner = (person.pids && person.pids.length > 0) || AppState.treeData.some(p => p.pids && p.pids.includes(person.id));
       const partnerBtnSvg = hasPartner ? "" : `
         <g class="node-add-btn node-add-partner-btn" data-action="add-partner" data-id="${person.id}">
           <title>Añadir pareja / cónyuge</title>
@@ -1335,18 +1413,16 @@ function getFamilyRelationshipsSummary(person) {
   }
 
   // 2. Categoría: Cónyuge
-  if (person.pids && person.pids.length > 0) {
-    const partnerObj = AppState.treeData.find(p => p.id === person.pids[0]);
-    if (partnerObj) {
-      categories.push(`
-        <div class="drawer-rel-category">
-          <div class="drawer-rel-row linkable" onclick="navigateToPerson(${partnerObj.id})" title="Ver a ${partnerObj.name} en el árbol">
-            <strong>Cónyuge:</strong>
-            <span class="person-jump-link">${partnerObj.name} <i data-lucide="external-link" style="width: 12px; height: 12px;"></i></span>
-          </div>
+  const partnerObj = getPersonPartner(person);
+  if (partnerObj) {
+    categories.push(`
+      <div class="drawer-rel-category">
+        <div class="drawer-rel-row linkable" onclick="navigateToPerson(${partnerObj.id})" title="Ver a ${partnerObj.name} en el árbol">
+          <strong>Cónyuge:</strong>
+          <span class="person-jump-link">${partnerObj.name} <i data-lucide="external-link" style="width: 12px; height: 12px;"></i></span>
         </div>
-      `);
-    }
+      </div>
+    `);
   }
 
   // 3. Categoría: Hermanos (lista en filas separadas)
@@ -1543,7 +1619,7 @@ function populateParentAndPartnerSelectors(excludePersonId = null, preselected =
   const currentPerson = excludePersonId ? AppState.treeData.find(p => p.id === excludePersonId) : null;
   const initialFid = preselected.fid !== undefined ? preselected.fid : (currentPerson ? currentPerson.fid : null);
   const initialMid = preselected.mid !== undefined ? preselected.mid : (currentPerson ? currentPerson.mid : null);
-  const initialPid = preselected.pid !== undefined ? preselected.pid : ((currentPerson && currentPerson.pids && currentPerson.pids.length > 0) ? currentPerson.pids[0] : null);
+  const initialPid = preselected.pid !== undefined ? preselected.pid : getPersonPartnerId(currentPerson);
 
   // Refrescar candidatos a cónyuge excluyendo a toda la familia directa (ancestros, descendientes, hermanos, tíos, sobrinos)
   const refreshPartnerOptions = () => {
@@ -1564,7 +1640,8 @@ function populateParentAndPartnerSelectors(excludePersonId = null, preselected =
     const partnerCandidates = AppState.treeData.filter(p => {
       if (forbiddenPartnerIds.has(p.id)) return false;
       // Excluir personas que ya están casadas con un tercero
-      if (p.pids && p.pids.length > 0 && !p.pids.includes(excludePersonId)) {
+      const partnerIdOfP = getPersonPartnerId(p);
+      if (partnerIdOfP && partnerIdOfP !== excludePersonId) {
         return false;
       }
       return true;
@@ -1758,7 +1835,7 @@ function openEditPersonModal(personId) {
   populateParentAndPartnerSelectors(personId, {
     fid: person.fid,
     mid: person.mid,
-    pid: (person.pids && person.pids.length > 0) ? person.pids[0] : ""
+    pid: getPersonPartnerId(person) || ""
   });
 
   openModal("modal-person");
