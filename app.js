@@ -10,6 +10,7 @@ const AppState = {
   treeData: [],
   treeInstance: null,
   selectedPersonId: null,
+  currentRootId: null,
   hasUnsavedChanges: false,
   isAuthenticated: false,
   photosCache: {},      // Mapeo de 'photos/nombre_persona.jpg' -> base64 DataURL
@@ -377,11 +378,272 @@ async function syncTreeWithCloud(isAutoSave = false) {
   }
 }
 
+/**
+ * Extrae el primer apellido o término significativo del nombre para titular ramas
+ */
+function getFirstSurname(fullName) {
+  if (!fullName) return "";
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length <= 1) return parts[0];
+  if (parts.length === 2) return parts[1];
+  return parts[1];
+}
+
+/**
+ * Analiza el árbol genealógico y devuelve todas las ramas principales disponibles.
+ * Cada rama representa una línea troncal de ancestros raíces con sus descendientes.
+ */
+function getAvailableBranches(treeData) {
+  if (!treeData || treeData.length === 0) return [];
+
+  // Encontrar todas las personas que no tienen padres registrados (raíces)
+  // Descartar a cónyuges que se unieron a generaciones intermedias/inferiores (su pareja sí tiene padres registrados)
+  let candidateRoots = treeData.filter(p => {
+    if (p.fid || p.mid) return false;
+    if (p.pids && p.pids.length > 0) {
+      const partner = treeData.find(x => x.id === p.pids[0]);
+      if (partner && (partner.fid || partner.mid)) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  if (candidateRoots.length === 0) {
+    candidateRoots = treeData.filter(p => !p.fid && !p.mid);
+  }
+
+  if (candidateRoots.length === 0) {
+    return [{
+      id: treeData[0].id,
+      name: `Rama Principal (${treeData[0].name})`,
+      shortName: treeData[0].name,
+      membersCount: treeData.length,
+      nodeIds: new Set(treeData.map(p => p.id))
+    }];
+  }
+
+  // Función para obtener todos los nodos alcanzables en orden descendente y cónyuges
+  function getReachableNodes(startId) {
+    const visited = new Set();
+    const queue = [startId];
+
+    while (queue.length > 0) {
+      const currId = queue.shift();
+      if (visited.has(currId)) continue;
+      visited.add(currId);
+
+      const p = treeData.find(x => x.id === currId);
+      if (!p) continue;
+
+      if (p.pids) {
+        p.pids.forEach(pid => {
+          if (!visited.has(pid)) queue.push(pid);
+        });
+      }
+
+      treeData.forEach(child => {
+        if ((child.fid === currId || child.mid === currId) && !visited.has(child.id)) {
+          queue.push(child.id);
+        }
+      });
+    }
+
+    return visited;
+  }
+
+  // Agrupar raíces (evitando duplicar parejas de raíces como Simón y Teresa o Carlos y Bibiana)
+  const processedRoots = new Set();
+  const branches = [];
+
+  candidateRoots.forEach(root => {
+    if (processedRoots.has(root.id)) return;
+    processedRoots.add(root.id);
+
+    let partner = null;
+    if (root.pids && root.pids.length > 0) {
+      partner = treeData.find(p => p.id === root.pids[0] && !p.fid && !p.mid);
+      if (partner) processedRoots.add(partner.id);
+    }
+
+    const reachableNodes = getReachableNodes(root.id);
+
+    // Solo considerar como rama si tiene descendientes o al menos 2 personas alcanzables
+    if (reachableNodes.size < 2 && candidateRoots.length > 2) {
+      return;
+    }
+
+    // Nombre representativo y noble
+    let branchTitle = "";
+    let shortTitle = "";
+    if (partner) {
+      const rootSurname = getFirstSurname(root.name);
+      const partnerSurname = getFirstSurname(partner.name);
+      const rootFirst = root.name.split(" ")[0];
+      const partnerFirst = partner.name.split(" ")[0];
+
+      if (rootSurname && partnerSurname && rootSurname !== partnerSurname) {
+        branchTitle = `Rama ${rootSurname} ${partnerSurname} (${rootFirst} y ${partnerFirst})`;
+        shortTitle = `Rama ${rootSurname} ${partnerSurname}`;
+      } else {
+        branchTitle = `Rama ${rootFirst} y ${partnerFirst}`;
+        shortTitle = `Rama ${rootFirst} y ${partnerFirst}`;
+      }
+    } else {
+      branchTitle = `Rama ${root.name}`;
+      shortTitle = root.name;
+    }
+
+    branches.push({
+      id: root.id,
+      name: branchTitle,
+      shortName: shortTitle,
+      membersCount: reachableNodes.size,
+      nodeIds: reachableNodes,
+      rootPerson: root,
+      partnerPerson: partner
+    });
+  });
+
+  // Si no se encontró ninguna rama con >= 2 miembros, usar la primera raíz directa
+  if (branches.length === 0 && candidateRoots.length > 0) {
+    branches.push({
+      id: candidateRoots[0].id,
+      name: `Rama ${candidateRoots[0].name}`,
+      shortName: candidateRoots[0].name,
+      membersCount: treeData.length,
+      nodeIds: new Set(treeData.map(p => p.id))
+    });
+  }
+
+  // Ordenar de mayor a menor número de miembros
+  branches.sort((a, b) => b.membersCount - a.membersCount);
+
+  return branches;
+}
+
+/**
+ * Llena el selector de ramas en el header y sincroniza el estado
+ */
+function populateBranchSelector(treeData) {
+  const branchContainer = document.getElementById("branch-selector-container");
+  const branchSelect = document.getElementById("branch-select");
+  if (!branchSelect || !branchContainer) return;
+
+  const branches = getAvailableBranches(treeData);
+
+  if (branches.length <= 1) {
+    branchContainer.style.display = "none";
+    if (branches.length === 1) {
+      AppState.currentRootId = branches[0].id;
+    }
+    return;
+  }
+
+  branchContainer.style.display = "inline-flex";
+  branchSelect.innerHTML = "";
+
+  branches.forEach(branch => {
+    const opt = document.createElement("option");
+    opt.value = branch.id.toString();
+    opt.textContent = `${branch.shortName} (${branch.membersCount})`;
+    if (AppState.currentRootId === branch.id) {
+      opt.selected = true;
+    }
+    branchSelect.appendChild(opt);
+  });
+
+  // Validar si la raíz activa actual sigue existiendo
+  if (!AppState.currentRootId || !branches.some(b => b.id === AppState.currentRootId)) {
+    AppState.currentRootId = branches[0].id;
+  }
+  branchSelect.value = AppState.currentRootId.toString();
+
+  updateHeaderSummary();
+}
+
+/**
+ * Cambia la visualización a una rama específica
+ */
+function switchTreeBranch(rootId, focusPersonId = null) {
+  const idNum = parseInt(rootId, 10);
+  if (isNaN(idNum)) return;
+
+  AppState.currentRootId = idNum;
+  
+  const branchSelect = document.getElementById("branch-select");
+  if (branchSelect && branchSelect.value !== idNum.toString()) {
+    branchSelect.value = idNum.toString();
+  }
+
+  initTreeVisualization();
+
+  if (focusPersonId) {
+    setTimeout(() => {
+      if (AppState.treeInstance && typeof AppState.treeInstance.center === "function") {
+        AppState.treeInstance.center(focusPersonId);
+      }
+      openPersonDrawer(focusPersonId);
+    }, 220);
+  }
+}
+
+/**
+ * Navega a una persona en el árbol genealógico, cambiando automáticamente de rama si es necesario
+ */
+function navigateToPerson(personId) {
+  const targetId = parseInt(personId, 10);
+  if (isNaN(targetId)) return;
+
+  const branches = getAvailableBranches(AppState.treeData);
+  const currentBranch = branches.find(b => b.id === AppState.currentRootId);
+
+  if (currentBranch && currentBranch.nodeIds.has(targetId)) {
+    if (AppState.treeInstance && typeof AppState.treeInstance.center === "function") {
+      AppState.treeInstance.center(targetId);
+    }
+    openPersonDrawer(targetId);
+    return;
+  }
+
+  const targetBranch = branches.find(b => b.nodeIds.has(targetId));
+  if (targetBranch) {
+    switchTreeBranch(targetBranch.id, targetId);
+  } else {
+    openPersonDrawer(targetId);
+  }
+}
+
+/**
+ * Determina la raíz óptima para asegurar que el árbol esté siempre
+ * desplegado al máximo abarcando todas las generaciones y ramas familiares.
+ */
+function getBestTreeRoot(treeData) {
+  if (!treeData || treeData.length === 0) return undefined;
+
+  const branches = getAvailableBranches(treeData);
+  if (branches.length === 0) return [treeData[0].id];
+
+  if (AppState.currentRootId && branches.some(b => b.id === AppState.currentRootId)) {
+    return [AppState.currentRootId];
+  }
+
+  AppState.currentRootId = branches[0].id;
+  return [branches[0].id];
+}
+
 function updateHeaderSummary() {
   const summaryEl = document.getElementById("header-tree-summary");
   if (summaryEl) {
     const total = AppState.treeData.length;
-    summaryEl.textContent = `Árbol Genealógico · ${total} familiares`;
+    const branches = getAvailableBranches(AppState.treeData);
+    const currentBranch = branches.find(b => b.id === AppState.currentRootId);
+    
+    if (currentBranch && branches.length > 1) {
+      summaryEl.textContent = `${total} familiares · Mostrando: ${currentBranch.shortName}`;
+    } else {
+      summaryEl.textContent = `Árbol Genealógico · ${total} familiares`;
+    }
   }
 }
 
@@ -525,8 +787,9 @@ function initTreeVisualization() {
       return;
     }
 
-    // Sanear y normalizar el grafo genealógico
+    // Sanear y normalizar el grafo genealógico y actualizar selector de ramas
     cleanAndValidateTreeData(AppState.treeData);
+    populateBranchSelector(AppState.treeData);
 
     // Configuración de plantilla Opción B: Vertical / Ficha (270 x 130 px estilizada y con máxima holgura)
     FamilyTree.templates.montesTheme = Object.assign({}, FamilyTree.templates.john);
@@ -721,58 +984,6 @@ function formatLocationWithProvince(loc) {
         raw: person
       };
     });
-
-/**
- * Determina la raíz óptima para asegurar que el árbol esté siempre
- * desplegado al máximo abarcando todas las generaciones y ramas familiares.
- */
-function getBestTreeRoot(treeData) {
-  if (!treeData || treeData.length === 0) return undefined;
-
-  const candidateRoots = treeData.filter(p => !p.fid && !p.mid);
-  if (candidateRoots.length === 0) return [treeData[0].id];
-
-  function countReachableNodes(startId) {
-    const visited = new Set();
-    const queue = [startId];
-    
-    while (queue.length > 0) {
-      const currId = queue.shift();
-      if (visited.has(currId)) continue;
-      visited.add(currId);
-
-      const p = treeData.find(x => x.id === currId);
-      if (!p) continue;
-
-      if (p.pids) {
-        p.pids.forEach(pid => {
-          if (!visited.has(pid)) queue.push(pid);
-        });
-      }
-
-      treeData.forEach(child => {
-        if ((child.fid === currId || child.mid === currId) && !visited.has(child.id)) {
-          queue.push(child.id);
-        }
-      });
-    }
-
-    return visited.size;
-  }
-
-  let bestRootId = candidateRoots[0].id;
-  let maxCoverage = -1;
-
-  for (const r of candidateRoots) {
-    const coverage = countReachableNodes(r.id);
-    if (coverage > maxCoverage) {
-      maxCoverage = coverage;
-      bestRootId = r.id;
-    }
-  }
-
-  return [bestRootId];
-}
 
     try {
       AppState.treeInstance = new FamilyTree(container, {
@@ -1065,11 +1276,25 @@ function getFamilyRelationshipsSummary(person) {
   const parentRows = [];
   if (person.fid) {
     const f = AppState.treeData.find(p => p.id === person.fid);
-    if (f) parentRows.push(`<div class="drawer-rel-row"><strong>Padre:</strong> <span>${f.name}</span></div>`);
+    if (f) {
+      parentRows.push(`
+        <div class="drawer-rel-row linkable" onclick="navigateToPerson(${f.id})" title="Ver a ${f.name} en el árbol">
+          <strong>Padre:</strong>
+          <span class="person-jump-link">${f.name} <i data-lucide="external-link" style="width: 12px; height: 12px;"></i></span>
+        </div>
+      `);
+    }
   }
   if (person.mid) {
     const m = AppState.treeData.find(p => p.id === person.mid);
-    if (m) parentRows.push(`<div class="drawer-rel-row"><strong>Madre:</strong> <span>${m.name}</span></div>`);
+    if (m) {
+      parentRows.push(`
+        <div class="drawer-rel-row linkable" onclick="navigateToPerson(${m.id})" title="Ver a ${m.name} en el árbol">
+          <strong>Madre:</strong>
+          <span class="person-jump-link">${m.name} <i data-lucide="external-link" style="width: 12px; height: 12px;"></i></span>
+        </div>
+      `);
+    }
   }
   if (parentRows.length > 0) {
     categories.push(`
@@ -1085,7 +1310,10 @@ function getFamilyRelationshipsSummary(person) {
     if (partnerObj) {
       categories.push(`
         <div class="drawer-rel-category">
-          <div class="drawer-rel-row"><strong>Cónyuge:</strong> <span>${partnerObj.name}</span></div>
+          <div class="drawer-rel-row linkable" onclick="navigateToPerson(${partnerObj.id})" title="Ver a ${partnerObj.name} en el árbol">
+            <strong>Cónyuge:</strong>
+            <span class="person-jump-link">${partnerObj.name} <i data-lucide="external-link" style="width: 12px; height: 12px;"></i></span>
+          </div>
         </div>
       `);
     }
@@ -1093,14 +1321,17 @@ function getFamilyRelationshipsSummary(person) {
 
   // 3. Categoría: Hermanos (lista en filas separadas)
   const siblings = AppState.treeData
-    .filter(p => p.id !== person.id && ((person.fid && p.fid === person.fid) || (person.mid && p.mid === person.mid)))
-    .map(p => p.name);
+    .filter(p => p.id !== person.id && ((person.fid && p.fid === person.fid) || (person.mid && p.mid === person.mid)));
   if (siblings.length > 0) {
     categories.push(`
       <div class="drawer-rel-category">
         <div class="drawer-rel-row"><strong>Hermanos (${siblings.length}):</strong></div>
         <ul class="drawer-rel-list">
-          ${siblings.map(name => `<li>${name}</li>`).join("")}
+          ${siblings.map(sib => `
+            <li class="linkable" onclick="navigateToPerson(${sib.id})" title="Ver a ${sib.name} en el árbol">
+              <span class="person-jump-link">${sib.name} <i data-lucide="external-link" style="width: 11px; height: 11px;"></i></span>
+            </li>
+          `).join("")}
         </ul>
       </div>
     `);
@@ -1108,15 +1339,31 @@ function getFamilyRelationshipsSummary(person) {
 
   // 4. Categoría: Hijos (lista en filas separadas)
   const children = AppState.treeData
-    .filter(p => p.fid === person.id || p.mid === person.id)
-    .map(p => p.name);
+    .filter(p => p.fid === person.id || p.mid === person.id);
   if (children.length > 0) {
     categories.push(`
       <div class="drawer-rel-category">
         <div class="drawer-rel-row"><strong>Hijos (${children.length}):</strong></div>
         <ul class="drawer-rel-list">
-          ${children.map(name => `<li>${name}</li>`).join("")}
+          ${children.map(ch => `
+            <li class="linkable" onclick="navigateToPerson(${ch.id})" title="Ver a ${ch.name} en el árbol">
+              <span class="person-jump-link">${ch.name} <i data-lucide="external-link" style="width: 11px; height: 11px;"></i></span>
+            </li>
+          `).join("")}
         </ul>
+      </div>
+    `);
+  }
+
+  // 5. Banner de cambio de rama si la persona conecta con otra rama ancestral
+  const branches = getAvailableBranches(AppState.treeData);
+  const otherBranches = branches.filter(b => b.id !== AppState.currentRootId && b.nodeIds.has(person.id));
+  if (otherBranches.length > 0) {
+    const ob = otherBranches[0];
+    categories.push(`
+      <div class="drawer-branch-switch-banner" onclick="switchTreeBranch(${ob.id}, ${person.id})" title="Desplegar toda la ${ob.name}">
+        <i data-lucide="git-branch" style="width: 15px; height: 15px; flex-shrink: 0;"></i>
+        <span>Desplegar ${ob.shortName}</span>
       </div>
     `);
   }
@@ -1920,29 +2167,33 @@ function setupSearchEvents() {
       return;
     }
 
-    searchResults.innerHTML = matches.map(p => `
-      <div class="search-item" data-id="${p.id}">
-        <img class="search-item-avatar" src="${p.photo || getDefaultAvatar(p.gender)}" alt="${p.name}">
-        <div class="search-item-info">
-          <div class="search-item-name">${p.name}</div>
-          <div class="search-item-meta">${p.city || ''} ${p.birth ? '· ' + formatVitalDatesWithAge(p.birth, p.death) : ''}</div>
+    const branches = getAvailableBranches(AppState.treeData);
+
+    searchResults.innerHTML = matches.map(p => {
+      const branch = branches.find(b => b.nodeIds.has(p.id));
+      const branchTag = (branch && branches.length > 1) 
+        ? `<span class="search-branch-tag">${branch.shortName}</span>` 
+        : "";
+      return `
+        <div class="search-item" data-id="${p.id}">
+          <img class="search-item-avatar" src="${p.photo || getDefaultAvatar(p.gender)}" alt="${p.name}">
+          <div class="search-item-info">
+            <div class="search-item-name">${p.name} ${branchTag}</div>
+            <div class="search-item-meta">${p.city || ''} ${p.birth ? '· ' + formatVitalDatesWithAge(p.birth, p.death) : ''}</div>
+          </div>
         </div>
-      </div>
-    `).join("");
+      `;
+    }).join("");
 
     searchResults.style.display = "block";
 
-    // Clic en resultado de búsqueda
+    // Clic en resultado de búsqueda: navega directamente y cambia de rama si es necesario
     searchResults.querySelectorAll(".search-item").forEach(item => {
       item.addEventListener("click", () => {
         const id = parseInt(item.dataset.id, 10);
         searchInput.value = "";
         searchResults.style.display = "none";
-        
-        if (AppState.treeInstance) {
-          AppState.treeInstance.center(id);
-        }
-        openPersonDrawer(id);
+        navigateToPerson(id);
       });
     });
   });
@@ -1956,6 +2207,14 @@ function setupSearchEvents() {
 }
 
 function setupToolbarEvents() {
+  // Selector de Rama Familiar
+  const branchSelect = document.getElementById("branch-select");
+  if (branchSelect) {
+    branchSelect.addEventListener("change", (e) => {
+      switchTreeBranch(e.target.value);
+    });
+  }
+
   // Nueva Persona Raíz
   document.getElementById("btn-add-root-person").addEventListener("click", openAddRootPersonModal);
 
