@@ -30,7 +30,8 @@
       3
     ],
     "birth_place": "Navianos de la Vega (León)",
-    "fid": 5
+    "fid": 5,
+    "mid": 6
   },
   {
     "id": 3,
@@ -76,7 +77,8 @@
     "pids": [
       6
     ],
-    "fid": 7
+    "fid": 7,
+    "mid": 8
   },
   {
     "id": 6,
@@ -152,7 +154,7 @@
     "photo": "",
     "notes": "",
     "pids": [
-      16
+      9
     ]
   },
   {

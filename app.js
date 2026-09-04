@@ -430,6 +430,26 @@ function cleanAndValidateTreeData(data) {
     if (p.pids.length > 1) {
       p.pids = [p.pids[0]];
     }
+
+    // Completar segundo progenitor si uno de ellos está casado y el hijo no tiene asignado el otro
+    if (p.fid && !p.mid) {
+      const father = personMap.get(p.fid);
+      if (father && father.pids && father.pids.length > 0 && personMap.has(father.pids[0])) {
+        const potentialMother = personMap.get(father.pids[0]);
+        if (potentialMother && potentialMother.gender === "female") {
+          p.mid = potentialMother.id;
+        }
+      }
+    }
+    if (p.mid && !p.fid) {
+      const mother = personMap.get(p.mid);
+      if (mother && mother.pids && mother.pids.length > 0 && personMap.has(mother.pids[0])) {
+        const potentialFather = personMap.get(mother.pids[0]);
+        if (potentialFather && potentialFather.gender !== "female") {
+          p.fid = potentialFather.id;
+        }
+      }
+    }
   });
 
   // Asegurar simetría estricta en parejas
@@ -526,13 +546,6 @@ function initTreeVisualization() {
         <circle cx="135" cy="130" r="12" class="node-btn-circle" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"></circle>
         <path d="M129 130 h12 M135 124 v12" stroke="#64748b" stroke-width="2" stroke-linecap="round" class="node-btn-plus"></path>
       </g>
-
-      <!-- Botón + para Añadir Cónyuge (Derecha) -->
-      <g class="node-add-btn node-add-partner-btn" data-action="add-partner" data-id="{id}" style="{partner_btn_style}">
-        <title>Añadir pareja / cónyuge</title>
-        <circle cx="270" cy="65" r="12" class="node-btn-circle" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"></circle>
-        <path d="M264 65 h12 M270 59 v12" stroke="#64748b" stroke-width="2" stroke-linecap="round" class="node-btn-plus"></path>
-      </g>
     `;
 
     // Tarjetas diferenciadas por género con integración perfecta en las esquinas redondeadas
@@ -550,13 +563,6 @@ function initTreeVisualization() {
         <circle cx="135" cy="130" r="12" class="node-btn-circle" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"></circle>
         <path d="M129 130 h12 M135 124 v12" stroke="#64748b" stroke-width="2" stroke-linecap="round" class="node-btn-plus"></path>
       </g>
-
-      <!-- Botón + para Añadir Cónyuge (Derecha) -->
-      <g class="node-add-btn node-add-partner-btn" data-action="add-partner" data-id="{id}" style="{partner_btn_style}">
-        <title>Añadir pareja / cónyuge</title>
-        <circle cx="270" cy="65" r="12" class="node-btn-circle" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"></circle>
-        <path d="M264 65 h12 M270 59 v12" stroke="#64748b" stroke-width="2" stroke-linecap="round" class="node-btn-plus"></path>
-      </g>
     `;
 
     FamilyTree.templates.montesTheme_female = Object.assign({}, FamilyTree.templates.montesTheme);
@@ -573,14 +579,12 @@ function initTreeVisualization() {
         <circle cx="135" cy="130" r="12" class="node-btn-circle" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"></circle>
         <path d="M129 130 h12 M135 124 v12" stroke="#64748b" stroke-width="2" stroke-linecap="round" class="node-btn-plus"></path>
       </g>
-
-      <!-- Botón + para Añadir Cónyuge (Derecha) -->
-      <g class="node-add-btn node-add-partner-btn" data-action="add-partner" data-id="{id}" style="{partner_btn_style}">
-        <title>Añadir pareja / cónyuge</title>
-        <circle cx="270" cy="65" r="12" class="node-btn-circle" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"></circle>
-        <path d="M264 65 h12 M270 59 v12" stroke="#64748b" stroke-width="2" stroke-linecap="round" class="node-btn-plus"></path>
-      </g>
     `;
+
+    // Botón + para Añadir Cónyuge (Derecha): se inyecta solo si la persona NO tiene cónyuge
+    FamilyTree.templates.montesTheme.field_partner_btn = `{val}`;
+    FamilyTree.templates.montesTheme_male.field_partner_btn = `{val}`;
+    FamilyTree.templates.montesTheme_female.field_partner_btn = `{val}`;
 
     // Fotografía circular centrada verticalmente con cursor de ampliación (cy = 65)
     FamilyTree.templates.montesTheme.img_0 = `
@@ -689,9 +693,15 @@ function formatLocationWithProvince(loc) {
       const nameParts = formatPersonNameLines(person.name);
       const isSingleLine = !nameParts.line2;
 
-      // Si ya tiene pareja asignada, ocultamos el botón + de la derecha
+      // Si ya tiene pareja asignada, NO se renderiza el botón + de la derecha
       const hasPartner = person.pids && person.pids.length > 0;
-      const partnerBtnStyle = hasPartner ? "display: none;" : "display: inline;";
+      const partnerBtnSvg = hasPartner ? "" : `
+        <g class="node-add-btn node-add-partner-btn" data-action="add-partner" data-id="${person.id}">
+          <title>Añadir pareja / cónyuge</title>
+          <circle cx="270" cy="65" r="12" class="node-btn-circle" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"></circle>
+          <path d="M264 65 h12 M270 59 v12" stroke="#64748b" stroke-width="2" stroke-linecap="round" class="node-btn-plus"></path>
+        </g>
+      `;
 
       return {
         id: person.id,
@@ -707,16 +717,69 @@ function formatLocationWithProvince(loc) {
         loc_birth: birthStr,
         loc_res: resStr,
         photo: getPersonPhotoUrl(person.photo, person.gender),
-        partner_btn_style: partnerBtnStyle,
+        field_partner_btn: partnerBtnSvg,
         raw: person
       };
     });
+
+/**
+ * Determina la raíz óptima para asegurar que el árbol esté siempre
+ * desplegado al máximo abarcando todas las generaciones y ramas familiares.
+ */
+function getBestTreeRoot(treeData) {
+  if (!treeData || treeData.length === 0) return undefined;
+
+  const candidateRoots = treeData.filter(p => !p.fid && !p.mid);
+  if (candidateRoots.length === 0) return [treeData[0].id];
+
+  function countReachableNodes(startId) {
+    const visited = new Set();
+    const queue = [startId];
+    
+    while (queue.length > 0) {
+      const currId = queue.shift();
+      if (visited.has(currId)) continue;
+      visited.add(currId);
+
+      const p = treeData.find(x => x.id === currId);
+      if (!p) continue;
+
+      if (p.pids) {
+        p.pids.forEach(pid => {
+          if (!visited.has(pid)) queue.push(pid);
+        });
+      }
+
+      treeData.forEach(child => {
+        if ((child.fid === currId || child.mid === currId) && !visited.has(child.id)) {
+          queue.push(child.id);
+        }
+      });
+    }
+
+    return visited.size;
+  }
+
+  let bestRootId = candidateRoots[0].id;
+  let maxCoverage = -1;
+
+  for (const r of candidateRoots) {
+    const coverage = countReachableNodes(r.id);
+    if (coverage > maxCoverage) {
+      maxCoverage = coverage;
+      bestRootId = r.id;
+    }
+  }
+
+  return [bestRootId];
+}
 
     try {
       AppState.treeInstance = new FamilyTree(container, {
         template: "montesTheme",
         mode: "light",
         collapsible: false,
+        roots: getBestTreeRoot(AppState.treeData),
         enableSearch: false,
         mouseScrool: FamilyTree.action.zoom,
         nodeMouseClick: FamilyTree.action.none,
@@ -732,7 +795,8 @@ function formatLocationWithProvince(loc) {
           field_1: "title",
           field_6: "loc_birth",
           field_2: "loc_res",
-          img_0: "photo"
+          img_0: "photo",
+          field_partner_btn: "field_partner_btn"
         },
         nodes: formattedNodes
       });
