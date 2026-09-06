@@ -487,7 +487,9 @@
     "profession": "Docente / Profesor/a",
     "photo": "",
     "notes": "",
-    "pids": [],
+    "pids": [
+      55
+    ],
     "fid": 30,
     "mid": 26
   },
@@ -817,5 +819,20 @@
     "pids": [],
     "fid": 34,
     "mid": 52
+  },
+  {
+    "id": 55,
+    "name": "Andrea García Pérez-espinosa",
+    "gender": "female",
+    "birth_place": "",
+    "city": "Gijón (Asturias)",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [
+      33
+    ]
   }
 ]
