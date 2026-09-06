@@ -584,20 +584,5 @@
     "pids": [
       38
     ]
-  },
-  {
-    "id": 40,
-    "name": "Alba",
-    "gender": "male",
-    "birth_place": "",
-    "city": "Mucientes (Valladolid)",
-    "birth": "",
-    "death": "",
-    "profession": "",
-    "photo": "",
-    "notes": "",
-    "pids": [],
-    "fid": 39,
-    "mid": 38
   }
 ]
