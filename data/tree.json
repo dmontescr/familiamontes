@@ -347,5 +347,20 @@
     "notes": "",
     "pids": [],
     "mid": 17
+  },
+  {
+    "id": 25,
+    "name": "Simona Montes Carrera",
+    "gender": "female",
+    "birth_place": "Navianos de la Vega (León)",
+    "city": "Alcalá de Henares (Madrid)",
+    "birth": "1943",
+    "death": "2025",
+    "profession": "Docente / Profesor/a",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 5,
+    "mid": 6
   }
 ]
