@@ -488,5 +488,20 @@
     "pids": [],
     "fid": 30,
     "mid": 26
+  },
+  {
+    "id": 34,
+    "name": "David Pellitero Montes",
+    "gender": "male",
+    "birth_place": "",
+    "city": "Gijón",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 30,
+    "mid": 26
   }
 ]
