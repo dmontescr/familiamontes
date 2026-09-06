@@ -614,5 +614,20 @@
     "pids": [],
     "fid": 39,
     "mid": 38
+  },
+  {
+    "id": 42,
+    "name": "Bibiana Montes Lastra",
+    "gender": "female",
+    "birth_place": "",
+    "city": "Villanueva de Oscos (Asturias)",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 28,
+    "mid": 31
   }
 ]
