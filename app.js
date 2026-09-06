@@ -17,8 +17,8 @@ const AppState = {
   isAuthenticated: false,
   photosCache: {},      // Mapeo de 'photos/nombre_persona.jpg' -> base64 DataURL
   deletedPhotos: new Set(), // Set de 'photos/...' marcadas para eliminar
-  prerenderHookAttached: false
 };
+window.AppState = AppState;
 
 // Generar nombre de archivo limpio para la carpeta photos/
 function slugifyPersonName(name) {
@@ -1026,7 +1026,7 @@ class MontesTreeEngine {
     rightSiblings.forEach(id => gen1Units.push({ type: "single", members: [id], family: "carrera" }));
     otherChildren.forEach(id => gen1Units.push({ type: "single", members: [id], family: "martinez" }));
 
-    // Función de cálculo recursivo del ancho de ranura para asegurar que los hijos jamás colisionen
+    // Función de cálculo recursivo del ancho de ranura para asegurar que los hijos jamás colisionen a cualquier profundidad
     const calcUnitSlotWidth = (unit) => {
       const selfW = (unit.type === "couple") ? (2 * this.cardW + this.partnerGap) : this.cardW;
       const childrenIds = getDirectChildren(unit.members);
@@ -1036,120 +1036,69 @@ class MontesTreeEngine {
       let childrenTotalW = 0;
       childUnits.forEach((cu, idx) => {
         if (idx > 0) childrenTotalW += this.siblingGap;
-        const cuSelfW = (cu.type === "couple") ? (2 * this.cardW + this.partnerGap) : this.cardW;
-        const grandChildrenIds = getDirectChildren(cu.members);
-        let cuW = cuSelfW;
-        if (grandChildrenIds.length > 0) {
-          const gcUnits = getFamilyUnits(grandChildrenIds);
-          let gcTotalW = 0;
-          gcUnits.forEach((gcu, gidx) => {
-            if (gidx > 0) gcTotalW += this.siblingGap;
-            gcTotalW += (gcu.type === "couple") ? (2 * this.cardW + this.partnerGap) : this.cardW;
-          });
-          cuW = Math.max(cuSelfW, gcTotalW);
-        }
-        childrenTotalW += cuW;
+        childrenTotalW += calcUnitSlotWidth(cu);
       });
 
       return Math.max(selfW, childrenTotalW);
     };
 
-    // Disposición jerárquica en Gen 1 y su descendencia directa (Gen 2 y Gen 3)
-    let currentX = 50;
-    gen1Units.forEach((unit, idx) => {
-      const slotW = calcUnitSlotWidth(unit);
-      const slotStart = currentX;
-      const slotCenter = slotStart + slotW / 2;
-
-      // Colocar familiar(es) en Gen 1
-      const y1 = 50 + this.step;
+    // Función de colocación recursiva que posiciona a cada unidad familiar y a sus descendientes a cualquier nivel generacional
+    const placeUnitAndDescendants = (unit, slotCenter, currentGen) => {
+      const y = 50 + currentGen * this.step;
       if (unit.type === "single") {
         const cx = slotCenter - this.cardW / 2;
-        this.positions.set(unit.members[0], { x: cx, y: y1 });
+        this.positions.set(unit.members[0], { x: cx, y });
       } else {
         const coupleW = 2 * this.cardW + this.partnerGap;
         const cx = slotCenter - coupleW / 2;
-        this.positions.set(unit.members[0], { x: cx, y: y1 });
-        this.positions.set(unit.members[1], { x: cx + this.cardW + this.partnerGap, y: y1 });
+        this.positions.set(unit.members[0], { x: cx, y });
+        this.positions.set(unit.members[1], { x: cx + this.cardW + this.partnerGap, y });
       }
 
-      // Colocar hijos en Gen 2 centrados bajo sus padres en la ranura asignada
       const childrenIds = getDirectChildren(unit.members);
-      if (childrenIds.length > 0) {
-        const childUnits = getFamilyUnits(childrenIds);
+      if (childrenIds.length === 0) return;
 
-        let childRowTotalW = 0;
-        const childWidths = childUnits.map(cu => {
-          const cuSelfW = (cu.type === "couple") ? (2 * this.cardW + this.partnerGap) : this.cardW;
-          const grandChildrenIds = getDirectChildren(cu.members);
-          if (grandChildrenIds.length > 0) {
-            const gcUnits = getFamilyUnits(grandChildrenIds);
-            let gcTotalW = 0;
-            gcUnits.forEach((gcu, gidx) => {
-              if (gidx > 0) gcTotalW += this.siblingGap;
-              gcTotalW += (gcu.type === "couple") ? (2 * this.cardW + this.partnerGap) : this.cardW;
-            });
-            return Math.max(cuSelfW, gcTotalW);
-          }
-          return cuSelfW;
-        });
+      const childUnits = getFamilyUnits(childrenIds);
+      const childWidths = childUnits.map(cu => calcUnitSlotWidth(cu));
+      let childRowTotalW = 0;
+      childWidths.forEach((w, i) => {
+        if (i > 0) childRowTotalW += this.siblingGap;
+        childRowTotalW += w;
+      });
 
-        childWidths.forEach((w, i) => {
-          if (i > 0) childRowTotalW += this.siblingGap;
-          childRowTotalW += w;
-        });
+      let childSlotX = slotCenter - childRowTotalW / 2;
+      childUnits.forEach((cu, i) => {
+        if (i > 0) childSlotX += this.siblingGap;
+        const cuSlotW = childWidths[i];
+        const cuCenter = childSlotX + cuSlotW / 2;
+        placeUnitAndDescendants(cu, cuCenter, currentGen + 1);
+        childSlotX += cuSlotW;
+      });
+    };
 
-        let childSlotX = slotCenter - childRowTotalW / 2;
-        const y2 = 50 + 2 * this.step;
-        childUnits.forEach((cu, i) => {
-          if (i > 0) childSlotX += this.siblingGap;
-          const cuSlotW = childWidths[i];
-          const cuCenter = childSlotX + cuSlotW / 2;
-
-          if (cu.type === "single") {
-            this.positions.set(cu.members[0], { x: cuCenter - this.cardW / 2, y: y2 });
-          } else {
-            const coupleW = 2 * this.cardW + this.partnerGap;
-            const cx = cuCenter - coupleW / 2;
-            this.positions.set(cu.members[0], { x: cx, y: y2 });
-            this.positions.set(cu.members[1], { x: cx + this.cardW + this.partnerGap, y: y2 });
-          }
-
-          // Colocar nietos en Gen 3 centrados bajo sus padres
-          const grandChildrenIds = getDirectChildren(cu.members);
-          if (grandChildrenIds.length > 0) {
-            const gcUnits = getFamilyUnits(grandChildrenIds);
-            let gcRowTotalW = 0;
-            const gcWidths = gcUnits.map(gcu => (gcu.type === "couple" ? 2 * this.cardW + this.partnerGap : this.cardW));
-            gcWidths.forEach((w, gi) => {
-              if (gi > 0) gcRowTotalW += this.siblingGap;
-              gcRowTotalW += w;
-            });
-
-            let gcX = cuCenter - gcRowTotalW / 2;
-            const y3 = 50 + 3 * this.step;
-            gcUnits.forEach((gcu, gi) => {
-              if (gi > 0) gcX += this.siblingGap;
-              if (gcu.type === "single") {
-                this.positions.set(gcu.members[0], { x: gcX, y: y3 });
-                gcX += this.cardW;
-              } else {
-                this.positions.set(gcu.members[0], { x: gcX, y: y3 });
-                gcX += this.cardW + this.partnerGap;
-                this.positions.set(gcu.members[1], { x: gcX, y: y3 });
-                gcX += this.cardW;
-              }
-            });
-          }
-
-          childSlotX += cuSlotW;
-        });
-      }
+    // Disposición jerárquica en Gen 1 y su descendencia recursiva (Gen 2, Gen 3, Gen 4, Gen 5...)
+    let currentX = 50;
+    gen1Units.forEach((unit, idx) => {
+      const slotW = calcUnitSlotWidth(unit);
+      const slotCenter = currentX + slotW / 2;
+      placeUnitAndDescendants(unit, slotCenter, 1);
 
       const nextUnit = gen1Units[idx + 1];
       const gap = (nextUnit && nextUnit.family !== unit.family) ? this.familyGap : this.siblingGap;
       currentX += slotW + gap;
     });
+
+    // Seguridad: ubicar a cualquier familiar independiente que no pertenezca a los linajes principales
+    const unplaced = visibleData.filter(p => !this.positions.has(p.id) && !montesChildren.includes(p.id) && !carreraChildren.includes(p.id) && ![7, 8, 9, 10, 21].includes(p.id));
+    if (unplaced.length > 0) {
+      const unplacedUnits = getFamilyUnits(unplaced.map(p => p.id));
+      unplacedUnits.forEach(u => {
+        const slotW = calcUnitSlotWidth(u);
+        const slotCenter = currentX + slotW / 2;
+        placeUnitAndDescendants(u, slotCenter, 1);
+        currentX += slotW + this.siblingGap;
+      });
+    }
 
     // Centrado de Bisabuelos en Gen 0 sobre sus respectivos linajes de hijos
     // Rama Montes: Carlos & Bibiana centrados sobre sus hijos (Eloy, Anastasia, Sebastiana, Manuel)
