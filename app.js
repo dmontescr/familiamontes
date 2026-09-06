@@ -703,16 +703,7 @@ function updateHeaderSummary() {
   const summaryEl = document.getElementById("header-tree-summary");
   if (summaryEl) {
     const total = AppState.treeData.length;
-    const branches = getAvailableBranches(AppState.treeData);
-    
-    if (AppState.currentRootId && AppState.currentRootId !== "all") {
-      const currentBranch = branches.find(b => b.id.toString() === AppState.currentRootId.toString());
-      if (currentBranch) {
-        summaryEl.textContent = `${total} familiares · Vista: ${currentBranch.shortName}`;
-        return;
-      }
-    }
-    summaryEl.textContent = `Árbol Completo · ${total} familiares (todas las ramas desplegadas)`;
+    summaryEl.textContent = `Árbol Completo · ${total} familiares`;
   }
 }
 
@@ -1918,18 +1909,6 @@ function getFamilyRelationshipsSummary(person) {
     `);
   }
 
-  // 5. Banner de cambio de rama si la persona conecta con otra rama ancestral
-  const branches = getAvailableBranches(AppState.treeData);
-  const otherBranches = branches.filter(b => b.id !== AppState.currentRootId && b.nodeIds.has(person.id));
-  if (otherBranches.length > 0) {
-    const ob = otherBranches[0];
-    categories.push(`
-      <div class="drawer-branch-switch-banner" onclick="switchTreeBranch(${ob.id}, ${person.id})" title="Desplegar toda la ${ob.name}">
-        <i data-lucide="git-branch" style="width: 15px; height: 15px; flex-shrink: 0;"></i>
-        <span>Desplegar ${ob.shortName}</span>
-      </div>
-    `);
-  }
 
   if (categories.length === 0) {
     return "<em>Sin vínculos directos registrados</em>";
