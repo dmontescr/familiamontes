@@ -374,7 +374,9 @@
     "profession": "",
     "photo": "",
     "notes": "",
-    "pids": [],
+    "pids": [
+      30
+    ],
     "fid": 5,
     "mid": 6
   },
@@ -422,5 +424,20 @@
     "pids": [],
     "fid": 5,
     "mid": 6
+  },
+  {
+    "id": 30,
+    "name": "Pedro Pellitero",
+    "gender": "male",
+    "birth_place": "",
+    "city": "Gijón (Asturias)",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [
+      26
+    ]
   }
 ]
