@@ -423,7 +423,9 @@
     "profession": "",
     "photo": "",
     "notes": "",
-    "pids": [],
+    "pids": [
+      32
+    ],
     "fid": 5,
     "mid": 6
   },
@@ -455,6 +457,21 @@
     "notes": "",
     "pids": [
       28
+    ]
+  },
+  {
+    "id": 32,
+    "name": "Pedro Rivas",
+    "gender": "male",
+    "birth_place": "",
+    "city": "Madrid",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [
+      29
     ]
   }
 ]
