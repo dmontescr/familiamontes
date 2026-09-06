@@ -231,5 +231,20 @@
     "pids": [],
     "fid": 7,
     "mid": 8
+  },
+  {
+    "id": 17,
+    "name": "Anastasia Montes Posado",
+    "gender": "female",
+    "birth_place": "Navianos de la Vega (León)",
+    "city": "Bilbao (Bizkaia)",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 7,
+    "mid": 8
   }
 ]
