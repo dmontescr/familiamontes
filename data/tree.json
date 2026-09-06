@@ -362,5 +362,20 @@
     "pids": [],
     "fid": 5,
     "mid": 6
+  },
+  {
+    "id": 26,
+    "name": "María Montes Carrera",
+    "gender": "female",
+    "birth_place": "Navianos de la Vega (León)",
+    "city": "Gijón (Asturias)",
+    "birth": "1945",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 5,
+    "mid": 6
   }
 ]
