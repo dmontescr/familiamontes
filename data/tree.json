@@ -740,5 +740,20 @@
     "pids": [
       46
     ]
+  },
+  {
+    "id": 50,
+    "name": "Diego Rivas",
+    "gender": "male",
+    "birth_place": "",
+    "city": "Madrid (Madrid)",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 47,
+    "mid": 48
   }
 ]
