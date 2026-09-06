@@ -473,5 +473,20 @@
     "pids": [
       29
     ]
+  },
+  {
+    "id": 33,
+    "name": "Carlos Pellitero Montes",
+    "gender": "male",
+    "birth_place": "",
+    "city": "Gijón",
+    "birth": "",
+    "death": "",
+    "profession": "Docente / Profesor/a",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 30,
+    "mid": 26
   }
 ]
