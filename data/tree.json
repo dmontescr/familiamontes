@@ -391,7 +391,9 @@
     "profession": "",
     "photo": "",
     "notes": "",
-    "pids": [],
+    "pids": [
+      35
+    ],
     "fid": 5,
     "mid": 6
   },
@@ -503,5 +505,20 @@
     "pids": [],
     "fid": 30,
     "mid": 26
+  },
+  {
+    "id": 35,
+    "name": "Vicenta",
+    "gender": "female",
+    "birth_place": "",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [
+      27
+    ]
   }
 ]
