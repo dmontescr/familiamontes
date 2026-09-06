@@ -1216,6 +1216,7 @@ class MontesTreeEngine {
       `;
 
       card.addEventListener("click", (e) => {
+        if (this.isDraggingCanvas) return;
         const actionEl = e.target.closest("[data-action]");
         const action = actionEl ? actionEl.getAttribute("data-action") : "card";
 
@@ -1406,7 +1407,34 @@ class MontesTreeEngine {
     }
   }
 
-  fit() {
+  clampPan() {
+    if (this.positions.size === 0) return;
+    const containerW = this.container.clientWidth || window.innerWidth;
+    const containerH = this.container.clientHeight || (window.innerHeight - 64);
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    this.positions.forEach(pos => {
+      minX = Math.min(minX, pos.x);
+      minY = Math.min(minY, pos.y);
+      maxX = Math.max(maxX, pos.x + this.cardW);
+      maxY = Math.max(maxY, pos.y + this.cardH);
+    });
+
+    const margin = Math.min(220, containerW * 0.45);
+    const minPanX = containerW - margin - maxX * this.scale;
+    const maxPanX = margin - minX * this.scale;
+    const minPanY = containerH - margin - maxY * this.scale;
+    const maxPanY = margin - minY * this.scale;
+
+    if (minPanX <= maxPanX) {
+      this.panX = Math.min(maxPanX, Math.max(minPanX, this.panX));
+    }
+    if (minPanY <= maxPanY) {
+      this.panY = Math.min(maxPanY, Math.max(minPanY, this.panY));
+    }
+  }
+
+  fit(forceFullOverview = false) {
     if (this.positions.size === 0) return;
 
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -1425,11 +1453,30 @@ class MontesTreeEngine {
 
     const scaleX = containerW / treeW;
     const scaleY = containerH / treeH;
-    this.scale = Math.min(0.95, Math.min(scaleX, scaleY));
+    const fullFitScale = Math.min(0.95, Math.min(scaleX, scaleY));
 
-    this.panX = (containerW - (maxX + minX) * this.scale) / 2;
-    this.panY = (containerH - (maxY + minY) * this.scale) / 2;
+    const isMobile = (containerW <= 768);
 
+    // En pantallas móviles, si no se fuerza la vista aérea completa, enfocar la familia troncal
+    // a escala 100% legible (0.75) para que los nombres y fotos sean inmediatamente nítidos y claros
+    if (isMobile && !forceFullOverview && fullFitScale < 0.28) {
+      const corePersonId = this.positions.has(5) ? 5 : (this.positions.has(1) ? 1 : this.treeData[0]?.id);
+      const corePos = corePersonId ? this.positions.get(corePersonId) : null;
+      this.scale = 0.75;
+      if (corePos) {
+        this.panX = (containerW / 2) - (corePos.x + this.cardW / 2) * this.scale;
+        this.panY = (containerH / 2) - (corePos.y + this.cardH / 2) * this.scale;
+      } else {
+        this.panX = (containerW - (maxX + minX) * this.scale) / 2;
+        this.panY = (containerH - (maxY + minY) * this.scale) / 2;
+      }
+    } else {
+      this.scale = fullFitScale;
+      this.panX = (containerW - (maxX + minX) * this.scale) / 2;
+      this.panY = (containerH - (maxY + minY) * this.scale) / 2;
+    }
+
+    this.clampPan();
     this.applyTransform();
   }
 
@@ -1440,7 +1487,8 @@ class MontesTreeEngine {
 
     const containerW = this.container.clientWidth || window.innerWidth;
     const containerH = this.container.clientHeight || (window.innerHeight - 64);
-    const targetScale = Math.max(this.scale, 0.85);
+    const isMobile = (containerW <= 768);
+    const targetScale = isMobile ? 0.78 : Math.max(this.scale, 0.85);
 
     const targetPanX = (containerW / 2) - (pos.x + this.cardW / 2) * targetScale;
     const targetPanY = (containerH / 2) - (pos.y + this.cardH / 2) * targetScale;
@@ -1459,6 +1507,7 @@ class MontesTreeEngine {
       this.panX = startPanX + (targetPanX - startPanX) * ease;
       this.panY = startPanY + (targetPanY - startPanY) * ease;
       this.scale = startScale + (targetScale - startScale) * ease;
+      this.clampPan();
       this.applyTransform();
 
       if (progress < 1) {
@@ -1469,8 +1518,27 @@ class MontesTreeEngine {
   }
 
   zoom(inOut) {
-    const factor = inOut ? 1.25 : 0.8;
-    const newScale = Math.min(2.5, Math.max(0.15, this.scale * factor));
+    let newScale;
+    if (inOut) {
+      // Zoom In inteligente: salto rápido desde vista lejana a escala legible
+      if (this.scale < 0.22) {
+        newScale = 0.65;
+      } else if (this.scale < 0.5) {
+        newScale = 0.85;
+      } else {
+        newScale = Math.min(3.5, this.scale * 1.35);
+      }
+    } else {
+      // Zoom Out
+      if (this.scale > 0.55 && this.scale <= 0.95) {
+        newScale = 0.45;
+      } else if (this.scale <= 0.45 && this.scale > 0.18) {
+        newScale = 0.12;
+      } else {
+        newScale = Math.max(0.04, this.scale * 0.72);
+      }
+    }
+
     const cx = (this.container.clientWidth || window.innerWidth) / 2;
     const cy = (this.container.clientHeight || window.innerHeight) / 2;
 
@@ -1478,6 +1546,16 @@ class MontesTreeEngine {
     this.panY = cy - (cy - this.panY) * (newScale / this.scale);
     this.scale = newScale;
 
+    this.clampPan();
+    this.applyTransform();
+  }
+
+  zoomAtPoint(clientX, clientY, targetScale) {
+    const newScale = Math.min(3.5, Math.max(0.04, targetScale));
+    this.panX = clientX - (clientX - this.panX) * (newScale / this.scale);
+    this.panY = clientY - (clientY - this.panY) * (newScale / this.scale);
+    this.scale = newScale;
+    this.clampPan();
     this.applyTransform();
   }
 
@@ -1493,29 +1571,38 @@ class MontesTreeEngine {
   setupInteractions() {
     let isDown = false;
     let startX, startY;
+    this.isDraggingCanvas = false;
 
+    // --- MOUSE PANNING ---
     this.container.addEventListener("mousedown", (e) => {
-      if (e.target.closest(".tree-card") || e.target.closest(".btn-add-child") || e.target.closest(".btn-add-partner")) return;
+      if (e.target.closest(".card-btn-add") || e.target.closest(".card-add-menu")) return;
       isDown = true;
+      this.isDraggingCanvas = false;
       startX = e.clientX - this.panX;
       startY = e.clientY - this.panY;
     });
 
     window.addEventListener("mousemove", (e) => {
       if (!isDown) return;
+      const dx = Math.abs(e.clientX - (startX + this.panX));
+      const dy = Math.abs(e.clientY - (startY + this.panY));
+      if (dx > 4 || dy > 4) this.isDraggingCanvas = true;
       this.panX = e.clientX - startX;
       this.panY = e.clientY - startY;
+      this.clampPan();
       this.applyTransform();
     });
 
     window.addEventListener("mouseup", () => {
       isDown = false;
+      setTimeout(() => { this.isDraggingCanvas = false; }, 50);
     });
 
+    // --- MOUSE WHEEL ZOOM ---
     this.container.addEventListener("wheel", (e) => {
       e.preventDefault();
-      const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-      const newScale = Math.min(2.5, Math.max(0.15, this.scale * zoomFactor));
+      const zoomFactor = e.deltaY < 0 ? 1.15 : 0.88;
+      const newScale = Math.min(3.5, Math.max(0.04, this.scale * zoomFactor));
 
       const rect = this.container.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
@@ -1524,9 +1611,91 @@ class MontesTreeEngine {
       this.panX = mouseX - (mouseX - this.panX) * (newScale / this.scale);
       this.panY = mouseY - (mouseY - this.panY) * (newScale / this.scale);
       this.scale = newScale;
-
+      this.clampPan();
       this.applyTransform();
     }, { passive: false });
+
+    // --- TOUCH PANNING & PINCH-TO-ZOOM (MÓVIL / TABLET) ---
+    let touchMode = "none"; // "pan" | "pinch"
+    let touchStartX = 0, touchStartY = 0;
+    let initialPinchDist = 0;
+    let initialPinchScale = 1;
+    let pinchCenterX = 0, pinchCenterY = 0;
+    let lastTapTime = 0;
+
+    const getTouchDist = (t1, t2) => {
+      const dx = t1.clientX - t2.clientX;
+      const dy = t1.clientY - t2.clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    };
+
+    this.container.addEventListener("touchstart", (e) => {
+      if (e.target.closest(".card-btn-add") || e.target.closest(".card-add-menu")) return;
+
+      if (e.touches.length === 1) {
+        touchMode = "pan";
+        this.isDraggingCanvas = false;
+        touchStartX = e.touches[0].clientX - this.panX;
+        touchStartY = e.touches[0].clientY - this.panY;
+
+        // Detección de doble toque (double-tap zoom)
+        const now = Date.now();
+        if (now - lastTapTime < 320) {
+          const rect = this.container.getBoundingClientRect();
+          const tapX = e.touches[0].clientX - rect.left;
+          const tapY = e.touches[0].clientY - rect.top;
+          const targetZ = (this.scale < 0.6) ? 0.85 : ((this.scale < 1.1) ? 1.5 : 0.65);
+          this.zoomAtPoint(tapX, tapY, targetZ);
+          lastTapTime = 0;
+          return;
+        }
+        lastTapTime = now;
+      } else if (e.touches.length === 2) {
+        touchMode = "pinch";
+        this.isDraggingCanvas = true;
+        initialPinchDist = getTouchDist(e.touches[0], e.touches[1]);
+        initialPinchScale = this.scale;
+        const rect = this.container.getBoundingClientRect();
+        pinchCenterX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
+        pinchCenterY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+      }
+    }, { passive: false });
+
+    this.container.addEventListener("touchmove", (e) => {
+      if (touchMode === "none") return;
+      e.preventDefault();
+
+      if (touchMode === "pan" && e.touches.length === 1) {
+        const currentPanX = e.touches[0].clientX - touchStartX;
+        const currentPanY = e.touches[0].clientY - touchStartY;
+        if (Math.abs(currentPanX - this.panX) > 4 || Math.abs(currentPanY - this.panY) > 4) {
+          this.isDraggingCanvas = true;
+        }
+        this.panX = currentPanX;
+        this.panY = currentPanY;
+        this.clampPan();
+        this.applyTransform();
+      } else if (touchMode === "pinch" && e.touches.length === 2) {
+        const dist = getTouchDist(e.touches[0], e.touches[1]);
+        if (initialPinchDist > 0) {
+          const ratio = dist / initialPinchDist;
+          const newScale = Math.min(3.5, Math.max(0.04, initialPinchScale * ratio));
+
+          this.panX = pinchCenterX - (pinchCenterX - this.panX) * (newScale / this.scale);
+          this.panY = pinchCenterY - (pinchCenterY - this.panY) * (newScale / this.scale);
+          this.scale = newScale;
+          this.clampPan();
+          this.applyTransform();
+        }
+      }
+    }, { passive: false });
+
+    const endTouch = () => {
+      touchMode = "none";
+      setTimeout(() => { this.isDraggingCanvas = false; }, 60);
+    };
+    this.container.addEventListener("touchend", endTouch);
+    this.container.addEventListener("touchcancel", endTouch);
   }
 }
 
@@ -2807,7 +2976,13 @@ function setupToolbarEvents() {
     if (AppState.treeInstance) AppState.treeInstance.zoom(false);
   });
   document.getElementById("ctrl-center").addEventListener("click", () => {
-    if (AppState.treeInstance) AppState.treeInstance.fit();
+    if (AppState.treeInstance) {
+      if (AppState.treeInstance.scale > 0.35) {
+        AppState.treeInstance.fit(true);
+      } else {
+        AppState.treeInstance.fit(false);
+      }
+    }
   });
 }
 

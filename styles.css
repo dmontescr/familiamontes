@@ -615,6 +615,8 @@ body {
   overflow: hidden;
   cursor: grab;
   user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
 }
 
 #tree-canvas:active {
@@ -627,6 +629,7 @@ body {
   left: 0;
   transform-origin: 0 0;
   will-change: transform;
+  touch-action: none;
 }
 
 .tree-connectors-svg {
@@ -642,6 +645,7 @@ body {
   top: 0;
   left: 0;
   pointer-events: auto;
+  touch-action: none;
 }
 
 .tree-card {
@@ -656,6 +660,8 @@ body {
   align-items: center;
   padding: 12px 14px;
   user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
@@ -1870,6 +1876,30 @@ body {
 
   .form-grid-2 {
     grid-template-columns: 1fr;
+  }
+
+  .floating-controls {
+    bottom: 1rem;
+    right: 1rem;
+    gap: 0.5rem;
+    padding: 0.4rem;
+  }
+
+  .floating-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  .floating-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .floating-legend {
+    bottom: 1rem;
+    left: 1rem;
+    padding: 0.45rem 0.75rem;
+    font-size: 0.8rem;
   }
 }
 
