@@ -691,5 +691,20 @@
     "pids": [],
     "fid": 32,
     "mid": 29
+  },
+  {
+    "id": 47,
+    "name": "Jaime Rivas Montes",
+    "gender": "male",
+    "birth_place": "Madrid (Madrid)",
+    "city": "Madrid (Madrid)",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 32,
+    "mid": 29
   }
 ]
