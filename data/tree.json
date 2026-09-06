@@ -377,5 +377,20 @@
     "pids": [],
     "fid": 5,
     "mid": 6
+  },
+  {
+    "id": 27,
+    "name": "Gumersindo Montes Carrera",
+    "gender": "male",
+    "birth_place": "Navianos de la Vega (León)",
+    "city": "Castronuño (Valladolid)",
+    "birth": "1948",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 5,
+    "mid": 6
   }
 ]
