@@ -564,8 +564,25 @@
     "profession": "",
     "photo": "",
     "notes": "",
-    "pids": [],
+    "pids": [
+      39
+    ],
     "fid": 27,
     "mid": 35
+  },
+  {
+    "id": 39,
+    "name": "Ignacio",
+    "gender": "male",
+    "birth_place": "",
+    "city": "Mucientes (Valladolid)",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [
+      38
+    ]
   }
 ]
