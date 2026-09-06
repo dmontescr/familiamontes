@@ -532,8 +532,25 @@
     "profession": "Bloguero viajes",
     "photo": "",
     "notes": "",
-    "pids": [],
+    "pids": [
+      37
+    ],
     "fid": 27,
     "mid": 35
+  },
+  {
+    "id": 37,
+    "name": "Eva Hernández",
+    "gender": "female",
+    "birth_place": "",
+    "city": "Arroyo de la Encomienda (Valladolid)",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [
+      36
+    ]
   }
 ]
