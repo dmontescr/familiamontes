@@ -806,41 +806,6 @@ function cleanAndValidateTreeData(data) {
 }
 
 /**
- * Parche de seguridad para Balkan FamilyTreeJS:
- * Evita la recursión infinita (Maximum call stack size exceeded) en árboles convergentes
- * donde ambos cónyuges tienen progenitores en el árbol (ej: Manuel Montes y Aurelia Carrera),
- * asegurando que la librería no genere ciclos padre-hijo mutuos durante el recorrido.
- */
-function patchBalkanCycleRecursion() {
-  if (typeof FamilyTree === "undefined" || !FamilyTree.manager || !FamilyTree.manager._iterateFT) return;
-  if (FamilyTree.manager._iterateFTPatched) return;
-  const origIterateFT = FamilyTree.manager._iterateFT;
-  FamilyTree.manager._iterateFT = function(e, t, i, r, a, n, o, l, s) {
-    const c = r[e];
-    if (c && c.pids) {
-      const validPids = [];
-      for (let y = 0; y < c.pids.length; y++) {
-        const g = r[c.pids[y]];
-        if (g && g.childrenIds && g.childrenIds.indexOf(c.id) !== -1) {
-          continue; // El cónyuge ya registró a 'c' como pareja; evitar ciclo inverso
-        }
-        validPids.push(c.pids[y]);
-      }
-      const savedPids = c.pids;
-      c.pids = validPids;
-      try {
-        origIterateFT.call(this, e, t, i, r, a, n, o, l, s);
-      } finally {
-        c.pids = savedPids;
-      }
-      return;
-    }
-    origIterateFT.call(this, e, t, i, r, a, n, o, l, s);
-  };
-  FamilyTree.manager._iterateFTPatched = true;
-}
-
-/**
  * Calcula la profundidad generacional de cada familiar en el árbol genealógico.
  * Raíces ancestrales (sin padres) = Gen 0.
  * Hijos = Gen de progenitores + 1.
@@ -900,174 +865,533 @@ function calculateGenerations(treeList) {
 }
 
 /**
- * Garantiza que todos los cónyuges y miembros de la misma generación se posicionen
- * exactamente a la misma altura / nivel en el lienzo (coordenada Y en vertical, X en horizontal),
- * con separación proporcional y compacta entre generaciones (sin vacíos ni saltos) y
- * mostrando a TODOS los familiares sin duplicidades.
+ * Asegura que todos los municipios muestren su provincia entre paréntesis al lado.
  */
-function alignTreeLevels(args, orientation, treeList) {
-  if (!args || !args.res || !args.res.nodes) return;
-  const res = args.res;
-  const nodes = res.nodes;
-
-  // 1. Desduplicar visibleNodeIds y garantizar que todos los nodos activos del árbol estén presentes
-  const seen = new Set();
-  const uniqueVisible = [];
-  (res.visibleNodeIds || []).forEach(id => {
-    const idNum = parseInt(id, 10);
-    if (!seen.has(idNum)) {
-      seen.add(idNum);
-      uniqueVisible.push(idNum);
+function formatLocationWithProvince(loc) {
+  if (!loc) return "";
+  let trimmed = loc.trim();
+  if (!trimmed) return "";
+  if (trimmed.includes("(") || trimmed.includes("/")) return trimmed;
+  if (typeof allSpanishMunicipalities !== "undefined" && allSpanishMunicipalities.length > 0) {
+    const norm = trimmed.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const match = allSpanishMunicipalities.find(m => m.normCity === norm);
+    if (match) {
+      return `${match.city} (${match.province})`;
     }
-  });
-  treeList.forEach(p => {
-    if (!seen.has(p.id) && nodes[p.id]) {
-      seen.add(p.id);
-      uniqueVisible.push(p.id);
+  }
+  return `${trimmed} (${trimmed})`;
+}
+
+// ==========================================================================
+// 3. MOTOR GENEALÓGICO NATIVO Y DEFINITIVO (MontesTreeEngine)
+// ==========================================================================
+
+class MontesTreeEngine {
+  constructor(container, treeData, options = {}) {
+    this.container = container;
+    this.treeData = treeData || [];
+    this.options = options;
+    this.cardW = 270;
+    this.cardH = 130;
+    this.partnerGap = 24;
+    this.siblingGap = 35;
+    this.familyGap = 70;
+    this.levelGap = 70;
+    this.step = this.cardH + this.levelGap; // 200px
+    this.scale = 1;
+    this.panX = 0;
+    this.panY = 0;
+    this.positions = new Map();
+    this.couples = [];
+    this.childGroups = [];
+    this.isDragging = false;
+    this.dragStartX = 0;
+    this.dragStartY = 0;
+
+    this.initDOM();
+    this.layout();
+    this.render();
+    this.fit();
+    this.setupInteractions();
+  }
+
+  initDOM() {
+    this.container.innerHTML = `
+      <div class="tree-world" id="montes-tree-world">
+        <svg class="tree-connectors-svg" id="montes-tree-connectors"></svg>
+        <div class="tree-cards-layer" id="montes-tree-cards"></div>
+      </div>
+    `;
+    this.world = document.getElementById("montes-tree-world");
+    this.svg = document.getElementById("montes-tree-connectors");
+    this.cardsLayer = document.getElementById("montes-tree-cards");
+  }
+
+  layout() {
+    this.positions.clear();
+    this.couples = [];
+    this.childGroups = [];
+
+    const isHorizontal = (AppState.treeOrientation === "left");
+    const pMap = new Map();
+    this.treeData.forEach(p => pMap.set(p.id, p));
+
+    // Filtrar personas si hay una rama específica seleccionada
+    let visibleData = this.treeData;
+    if (AppState.currentRootId && AppState.currentRootId !== "all") {
+      const branches = getAvailableBranches(this.treeData);
+      const currentBranch = branches.find(b => b.id.toString() === AppState.currentRootId.toString());
+      if (currentBranch && currentBranch.nodeIds) {
+        visibleData = this.treeData.filter(p => currentBranch.nodeIds.has(p.id));
+      }
     }
-  });
-  res.visibleNodeIds = uniqueVisible;
 
-  const cardW = 270;
-  const cardH = 130;
-  const partnerGap = 20;
-  const siblingGap = 35;
-  const familyGap = 70;
-  const levelGap = 70; // Separación limpia y proporcionada entre generaciones (130 + 70 = 200px)
-  const step = cardH + levelGap; // 200px por fila generacional
+    const genMap = calculateGenerations(this.treeData);
 
-  const isHorizontal = (orientation === FamilyTree.orientation.left || AppState.treeOrientation === "left");
+    // Identificar parejas
+    const processedCouples = new Set();
+    visibleData.forEach(p => {
+      if (p.pids && p.pids.length > 0) {
+        const partnerId = p.pids[0];
+        const partner = pMap.get(partnerId);
+        if (partner && visibleData.some(m => m.id === partnerId)) {
+          const key = Math.min(p.id, partner.id) + "_" + Math.max(p.id, partner.id);
+          if (!processedCouples.has(key)) {
+            processedCouples.add(key);
+            const pHasParents = (p.fid || p.mid);
+            const partnerHasParents = (partner.fid || partner.mid);
+            if (partnerHasParents && !pHasParents) {
+              this.couples.push({ p1: partner, p2: p });
+            } else if (pHasParents && !partnerHasParents) {
+              this.couples.push({ p1: p, p2: partner });
+            } else if (p.gender === "female" && partner.gender === "male") {
+              this.couples.push({ p1: partner, p2: p });
+            } else {
+              this.couples.push({ p1: p, p2: partner });
+            }
+          }
+        }
+      }
+    });
 
-  // 2. Calcular mapa de generaciones
-  const genMap = calculateGenerations(treeList);
-  const pMap = new Map();
-  treeList.forEach(p => pMap.set(p.id, p));
-
-  // 3. Agrupar familiares por generación
-  const genGroups = new Map();
-  treeList.forEach(p => {
-    if (nodes[p.id] && seen.has(p.id)) {
+    // Agrupar personas visibles por nivel de generación
+    const genGroups = new Map();
+    visibleData.forEach(p => {
       const g = genMap.get(p.id) || 0;
       if (!genGroups.has(g)) genGroups.set(g, []);
       genGroups.get(g).push(p);
-    }
-  });
+    });
 
-  const sortedGens = [...genGroups.keys()].sort((a, b) => a - b);
+    const sortedGens = [...genGroups.keys()].sort((a, b) => a - b);
 
-  // 4. Posicionar armónicamente cada nivel generacional
-  sortedGens.forEach(g => {
-    const members = genGroups.get(g);
-    if (!members || members.length === 0) return;
+    // Disposición generacional ordenada y matemática
+    sortedGens.forEach(g => {
+      const members = genGroups.get(g);
+      if (!members || members.length === 0) return;
 
-    const couples = [];
-    const singles = [];
-    const processed = new Set();
+      const genCouples = [];
+      const genSingles = [];
+      const placed = new Set();
 
-    members.forEach(p => {
-      if (processed.has(p.id)) return;
-      const partnerId = (p.pids && p.pids.length > 0) ? p.pids[0] : null;
-      const partner = (partnerId && members.find(m => m.id === partnerId));
-      if (partner && !processed.has(partner.id)) {
-        processed.add(p.id);
-        processed.add(partner.id);
-        // Priorizar descendiente consanguíneo o varón a la izquierda
-        const pHasParents = (p.fid || p.mid);
-        const partnerHasParents = (partner.fid || partner.mid);
-        if (partnerHasParents && !pHasParents) {
-          couples.push([partner, p]);
-        } else if (pHasParents && !partnerHasParents) {
-          couples.push([p, partner]);
-        } else if (p.gender === "female" && partner.gender === "male") {
-          couples.push([partner, p]);
-        } else {
-          couples.push([p, partner]);
+      this.couples.forEach(c => {
+        if (members.some(m => m.id === c.p1.id) && members.some(m => m.id === c.p2.id)) {
+          genCouples.push(c);
+          placed.add(c.p1.id);
+          placed.add(c.p2.id);
         }
-      } else if (!partner) {
-        processed.add(p.id);
-        singles.push(p);
+      });
+
+      members.forEach(p => {
+        if (!placed.has(p.id)) {
+          genSingles.push(p);
+          placed.add(p.id);
+        }
+      });
+
+      const rowUnits = [];
+      genCouples.forEach(c => rowUnits.push({ type: "couple", data: c }));
+      genSingles.forEach(s => rowUnits.push({ type: "single", data: s }));
+
+      // Calcular punto de anclaje inicial de la fila
+      let startX = 50;
+      if (g > 0 && rowUnits.length > 0) {
+        const first = rowUnits[0].type === "couple" ? rowUnits[0].data.p1 : rowUnits[0].data;
+        if (first.fid && first.mid && this.positions.has(first.fid) && this.positions.has(first.mid)) {
+          const p1Pos = this.positions.get(first.fid);
+          const p2Pos = this.positions.get(first.mid);
+          const parentMid = (Math.min(p1Pos.x, p2Pos.x) + Math.max(p1Pos.x, p2Pos.x) + this.cardW) / 2;
+          const unitW = rowUnits[0].type === "couple" ? (this.cardW * 2 + this.partnerGap) : this.cardW;
+          startX = Math.max(50, parentMid - (unitW / 2));
+        } else if (first.fid && this.positions.has(first.fid)) {
+          startX = Math.max(50, this.positions.get(first.fid).x);
+        } else if (first.mid && this.positions.has(first.mid)) {
+          startX = Math.max(50, this.positions.get(first.mid).x);
+        }
       }
+
+      let currentX = startX;
+      const targetY = 50 + g * this.step;
+
+      rowUnits.forEach((unit, idx) => {
+        if (idx > 0) {
+          const prevUnit = rowUnits[idx - 1];
+          const isSibling = (unit.type === "single" && prevUnit.type === "couple" && unit.data.fid === prevUnit.data.p2.fid) ||
+                            (unit.type === "single" && prevUnit.type === "single" && unit.data.fid && unit.data.fid === prevUnit.data.fid);
+          currentX += isSibling ? this.siblingGap : this.familyGap;
+        }
+
+        if (unit.type === "couple") {
+          const p1 = unit.data.p1;
+          const p2 = unit.data.p2;
+          this.positions.set(p1.id, { x: currentX, y: targetY });
+          currentX += this.cardW + this.partnerGap;
+          this.positions.set(p2.id, { x: currentX, y: targetY });
+          currentX += this.cardW;
+        } else {
+          const p = unit.data;
+          this.positions.set(p.id, { x: currentX, y: targetY });
+          currentX += this.cardW;
+        }
+      });
     });
 
-    // Ordenar parejas y personas solas preservando el flujo genealógico
-    couples.sort((c1, c2) => {
-      const x1 = (nodes[c1[0].id] && nodes[c1[0].id].x) || 0;
-      const x2 = (nodes[c2[0].id] && nodes[c2[0].id].x) || 0;
-      return x1 - x2;
-    });
-    singles.sort((s1, s2) => {
-      const x1 = (nodes[s1.id] && nodes[s1.id].x) || 0;
-      const x2 = (nodes[s2.id] && nodes[s2.id].x) || 0;
-      return x1 - x2;
-    });
-
-    const orderedMembers = [];
-    couples.forEach(pair => {
-      orderedMembers.push(pair[0]);
-      orderedMembers.push(pair[1]);
-    });
-    singles.forEach(s => orderedMembers.push(s));
-
-    // Determinar X inicial: centrar bajo progenitores si procede
-    let currentX = 30;
-    if (g > 0 && orderedMembers.length > 0) {
-      const first = orderedMembers[0];
-      if (first.fid && first.mid && nodes[first.fid] && nodes[first.mid]) {
-        const parentMidpoint = (nodes[first.fid].x + nodes[first.mid].x + cardW) / 2;
-        const isCoupled = first.pids && first.pids.length > 0;
-        const unitW = isCoupled ? (cardW * 2 + partnerGap) : cardW;
-        currentX = Math.max(30, parentMidpoint - (unitW / 2));
-      } else if (first.fid && nodes[first.fid]) {
-        currentX = Math.max(30, nodes[first.fid].x);
-      } else if (first.mid && nodes[first.mid]) {
-        currentX = Math.max(30, nodes[first.mid].x);
-      }
+    // En orientación horizontal, rotar 90 grados
+    if (isHorizontal) {
+      this.positions.forEach(pos => {
+        const oldX = pos.x;
+        const oldY = pos.y;
+        pos.x = oldY * 1.5;
+        pos.y = oldX;
+      });
     }
 
-    for (let i = 0; i < orderedMembers.length; i++) {
-      const p = orderedMembers[i];
-      const prev = (i > 0) ? orderedMembers[i - 1] : null;
-
-      if (prev) {
-        const isSpouse = (prev.pids && prev.pids.includes(p.id)) || (p.pids && p.pids.includes(prev.id));
-        const isSibling = (prev.fid && prev.fid === p.fid) || (prev.mid && prev.mid === p.mid);
-        const gap = isSpouse ? partnerGap : (isSibling ? siblingGap : familyGap);
-        currentX += cardW + gap;
+    // Identificar grupos de hijos por matrimonio o progenitor
+    const childMap = new Map();
+    visibleData.forEach(p => {
+      if (p.fid && p.mid) {
+        const key = Math.min(p.fid, p.mid) + "_" + Math.max(p.fid, p.mid);
+        if (!childMap.has(key)) childMap.set(key, { pids: [p.fid, p.mid], children: [] });
+        childMap.get(key).children.push(p.id);
+      } else if (p.fid) {
+        const key = "single_" + p.fid;
+        if (!childMap.has(key)) childMap.set(key, { pids: [p.fid], children: [] });
+        childMap.get(key).children.push(p.id);
+      } else if (p.mid) {
+        const key = "single_" + p.mid;
+        if (!childMap.has(key)) childMap.set(key, { pids: [p.mid], children: [] });
+        childMap.get(key).children.push(p.id);
       }
+    });
 
-      const targetY = g * step;
-      if (!isHorizontal) {
-        nodes[p.id].x = currentX;
-        nodes[p.id].y = targetY;
-      } else {
-        nodes[p.id].x = targetY * 1.3;
-        nodes[p.id].y = currentX;
+    this.childGroups = [...childMap.values()];
+  }
+
+  render() {
+    this.cardsLayer.innerHTML = "";
+    const isHorizontal = (AppState.treeOrientation === "left");
+
+    // 1. Renderizado de Tarjetas Físicas
+    this.treeData.forEach(p => {
+      const pos = this.positions.get(p.id);
+      if (!pos) return;
+
+      const card = document.createElement("div");
+      card.className = `tree-card ${p.gender || "male"}`;
+      card.style.left = pos.x + "px";
+      card.style.top = pos.y + "px";
+      card.setAttribute("data-person-id", p.id);
+
+      const photoUrl = getPersonPhotoUrl(p.photo, p.gender);
+      const dates = (p.birth || p.death) ? formatVitalDatesWithAge(p.birth, p.death) : "";
+      const birthStr = (p.birth_place && p.birth_place.trim()) ? formatLocationWithProvince(p.birth_place) : "";
+      const resStr = (p.city && p.city.trim()) ? formatLocationWithProvince(p.city) : "";
+      const hasPartner = (p.pids && p.pids.length > 0) || this.treeData.some(x => x.pids && x.pids.includes(p.id));
+
+      card.innerHTML = `
+        <img class="card-photo" src="${photoUrl}" alt="${p.name}" data-action="photo">
+        <div class="card-info" data-action="card">
+          <div class="card-name" title="${p.name}">${p.name}</div>
+          ${dates ? `<div class="card-dates">${dates}</div>` : ""}
+          ${birthStr ? `
+            <div class="card-meta">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="#b45309"></polygon>
+              </svg>
+              <span>${birthStr}</span>
+            </div>
+          ` : ""}
+          ${resStr ? `
+            <div class="card-meta">
+              <svg viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+                <circle cx="12" cy="10" r="3" fill="#ffffff"></circle>
+              </svg>
+              <span>${resStr}</span>
+            </div>
+          ` : ""}
+        </div>
+        <div class="btn-add-child" data-action="add-child" data-id="${p.id}" title="Añadir hijo/a">+</div>
+        ${!hasPartner ? `<div class="btn-add-partner" data-action="add-partner" data-id="${p.id}" title="Añadir pareja / cónyuge">+</div>` : ""}
+      `;
+
+      card.addEventListener("click", (e) => {
+        const actionEl = e.target.closest("[data-action]");
+        const action = actionEl ? actionEl.getAttribute("data-action") : "card";
+
+        if (action === "add-child") {
+          e.stopPropagation();
+          openAddChildModal(p.id);
+          return;
+        }
+        if (action === "add-partner") {
+          e.stopPropagation();
+          openAddPartnerModal(p.id);
+          return;
+        }
+        if (action === "photo") {
+          e.stopPropagation();
+          openPhotoLightboxById(p.id);
+          return;
+        }
+        openPersonDrawer(p.id);
+      });
+
+      this.cardsLayer.appendChild(card);
+    });
+
+    // 2. Conectores Genealógicos Ortogonales en SVG
+    let svgHtml = "";
+
+    if (!isHorizontal) {
+      // Líneas de Matrimonio
+      this.couples.forEach(c => {
+        const pos1 = this.positions.get(c.p1.id);
+        const pos2 = this.positions.get(c.p2.id);
+        if (!pos1 || !pos2) return;
+
+        const leftX = Math.min(pos1.x, pos2.x) + this.cardW;
+        const rightX = Math.max(pos1.x, pos2.x);
+        const y = pos1.y + this.cardH / 2;
+
+        svgHtml += `<line x1="${leftX}" y1="${y}" x2="${rightX}" y2="${y}" class="marriage-line" />`;
+        const midX = (leftX + rightX) / 2;
+        svgHtml += `<circle cx="${midX}" cy="${y}" r="4.5" class="marriage-badge" />`;
+      });
+
+      // Líneas hacia Hijos
+      this.childGroups.forEach(group => {
+        const childPositions = group.children.map(id => this.positions.get(id)).filter(Boolean);
+        if (childPositions.length === 0) return;
+
+        let sourceX, sourceY;
+        if (group.pids.length === 2) {
+          const p1 = this.positions.get(group.pids[0]);
+          const p2 = this.positions.get(group.pids[1]);
+          if (!p1 || !p2) return;
+          sourceX = (Math.min(p1.x, p2.x) + this.cardW + Math.max(p1.x, p2.x)) / 2;
+          sourceY = p1.y + this.cardH / 2;
+        } else {
+          const p = this.positions.get(group.pids[0]);
+          if (!p) return;
+          sourceX = p.x + this.cardW / 2;
+          sourceY = p.y + this.cardH;
+        }
+
+        const busY = sourceY + (this.cardH / 2) + (this.levelGap / 2);
+        svgHtml += `<path d="M ${sourceX} ${sourceY} V ${busY}" class="connector-line" />`;
+
+        const childCenterXs = childPositions.map(pos => pos.x + this.cardW / 2);
+        const minX = Math.min(sourceX, ...childCenterXs);
+        const maxX = Math.max(sourceX, ...childCenterXs);
+
+        svgHtml += `<line x1="${minX}" y1="${busY}" x2="${maxX}" y2="${busY}" class="connector-line" />`;
+
+        childPositions.forEach(pos => {
+          const cx = pos.x + this.cardW / 2;
+          svgHtml += `<path d="M ${cx} ${busY} V ${pos.y}" class="connector-line" />`;
+        });
+      });
+    } else {
+      // Líneas en orientación horizontal (izquierda -> derecha)
+      this.couples.forEach(c => {
+        const pos1 = this.positions.get(c.p1.id);
+        const pos2 = this.positions.get(c.p2.id);
+        if (!pos1 || !pos2) return;
+
+        const topY = Math.min(pos1.y, pos2.y) + this.cardH;
+        const botY = Math.max(pos1.y, pos2.y);
+        const x = pos1.x + this.cardW / 2;
+
+        svgHtml += `<line x1="${x}" y1="${topY}" x2="${x}" y2="${botY}" class="marriage-line" />`;
+        const midY = (topY + botY) / 2;
+        svgHtml += `<circle cx="${x}" cy="${midY}" r="4.5" class="marriage-badge" />`;
+      });
+
+      this.childGroups.forEach(group => {
+        const childPositions = group.children.map(id => this.positions.get(id)).filter(Boolean);
+        if (childPositions.length === 0) return;
+
+        let sourceX, sourceY;
+        if (group.pids.length === 2) {
+          const p1 = this.positions.get(group.pids[0]);
+          const p2 = this.positions.get(group.pids[1]);
+          if (!p1 || !p2) return;
+          sourceX = p1.x + this.cardW / 2;
+          sourceY = (Math.min(p1.y, p2.y) + this.cardH + Math.max(p1.y, p2.y)) / 2;
+        } else {
+          const p = this.positions.get(group.pids[0]);
+          if (!p) return;
+          sourceX = p.x + this.cardW;
+          sourceY = p.y + this.cardH / 2;
+        }
+
+        const busX = sourceX + (this.cardW / 2) + 35;
+        svgHtml += `<path d="M ${sourceX} ${sourceY} H ${busX}" class="connector-line" />`;
+
+        const childCenterYs = childPositions.map(pos => pos.y + this.cardH / 2);
+        const minY = Math.min(sourceY, ...childCenterYs);
+        const maxY = Math.max(sourceY, ...childCenterYs);
+
+        svgHtml += `<line x1="${busX}" y1="${minY}" x2="${busX}" y2="${maxY}" class="connector-line" />`;
+
+        childPositions.forEach(pos => {
+          const cy = pos.y + this.cardH / 2;
+          svgHtml += `<path d="M ${busX} ${cy} H ${pos.x}" class="connector-line" />`;
+        });
+      });
+    }
+
+    this.svg.innerHTML = svgHtml;
+  }
+
+  applyTransform() {
+    if (this.world) {
+      this.world.style.transform = `translate(${this.panX}px, ${this.panY}px) scale(${this.scale})`;
+    }
+  }
+
+  fit() {
+    if (this.positions.size === 0) return;
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    this.positions.forEach(pos => {
+      minX = Math.min(minX, pos.x);
+      minY = Math.min(minY, pos.y);
+      maxX = Math.max(maxX, pos.x + this.cardW);
+      maxY = Math.max(maxY, pos.y + this.cardH);
+    });
+
+    const pad = 60;
+    const treeW = (maxX - minX) + pad * 2;
+    const treeH = (maxY - minY) + pad * 2;
+    const containerW = this.container.clientWidth || window.innerWidth;
+    const containerH = this.container.clientHeight || (window.innerHeight - 64);
+
+    const scaleX = containerW / treeW;
+    const scaleY = containerH / treeH;
+    this.scale = Math.min(0.95, Math.min(scaleX, scaleY));
+
+    this.panX = (containerW - (maxX + minX) * this.scale) / 2;
+    this.panY = (containerH - (maxY + minY) * this.scale) / 2;
+
+    this.applyTransform();
+  }
+
+  center(personId) {
+    const idNum = parseInt(personId, 10);
+    const pos = this.positions.get(idNum);
+    if (!pos) return;
+
+    const containerW = this.container.clientWidth || window.innerWidth;
+    const containerH = this.container.clientHeight || (window.innerHeight - 64);
+    const targetScale = Math.max(this.scale, 0.85);
+
+    const targetPanX = (containerW / 2) - (pos.x + this.cardW / 2) * targetScale;
+    const targetPanY = (containerH / 2) - (pos.y + this.cardH / 2) * targetScale;
+
+    const startPanX = this.panX;
+    const startPanY = this.panY;
+    const startScale = this.scale;
+    const startTime = performance.now();
+    const duration = 280;
+
+    const animate = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      const ease = progress * (2 - progress);
+
+      this.panX = startPanX + (targetPanX - startPanX) * ease;
+      this.panY = startPanY + (targetPanY - startPanY) * ease;
+      this.scale = startScale + (targetScale - startScale) * ease;
+      this.applyTransform();
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
       }
-      nodes[p.id].w = cardW;
-      nodes[p.id].h = cardH;
-    }
-  });
-
-  // 5. Recalcular dimensiones del lienzo (boundary y viewBox) para fit() y zoom óptimos
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  uniqueVisible.forEach(id => {
-    if (nodes[id]) {
-      minX = Math.min(minX, nodes[id].x);
-      minY = Math.min(minY, nodes[id].y);
-      maxX = Math.max(maxX, nodes[id].x + cardW);
-      maxY = Math.max(maxY, nodes[id].y + cardH);
-    }
-  });
-
-  if (minX !== Infinity) {
-    const pad = 40;
-    res.boundary = {
-      minX: minX - pad,
-      minY: minY - pad,
-      maxX: maxX + pad,
-      maxY: maxY + pad
     };
-    res.viewBox = [minX - pad, minY - pad, (maxX - minX) + pad * 2, (maxY - minY) + pad * 2];
+    requestAnimationFrame(animate);
+  }
+
+  zoom(inOut) {
+    const factor = inOut ? 1.25 : 0.8;
+    const newScale = Math.min(2.5, Math.max(0.15, this.scale * factor));
+    const cx = (this.container.clientWidth || window.innerWidth) / 2;
+    const cy = (this.container.clientHeight || window.innerHeight) / 2;
+
+    this.panX = cx - (cx - this.panX) * (newScale / this.scale);
+    this.panY = cy - (cy - this.panY) * (newScale / this.scale);
+    this.scale = newScale;
+
+    this.applyTransform();
+  }
+
+  draw() {
+    this.layout();
+    this.render();
+  }
+
+  onNodeClick(handler) {
+    this.onNodeClickHandler = handler;
+  }
+
+  setupInteractions() {
+    let isDown = false;
+    let startX, startY;
+
+    this.container.addEventListener("mousedown", (e) => {
+      if (e.target.closest(".tree-card") || e.target.closest(".btn-add-child") || e.target.closest(".btn-add-partner")) return;
+      isDown = true;
+      startX = e.clientX - this.panX;
+      startY = e.clientY - this.panY;
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!isDown) return;
+      this.panX = e.clientX - startX;
+      this.panY = e.clientY - startY;
+      this.applyTransform();
+    });
+
+    window.addEventListener("mouseup", () => {
+      isDown = false;
+    });
+
+    this.container.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+      const newScale = Math.min(2.5, Math.max(0.15, this.scale * zoomFactor));
+
+      const rect = this.container.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      this.panX = mouseX - (mouseX - this.panX) * (newScale / this.scale);
+      this.panY = mouseY - (mouseY - this.panY) * (newScale / this.scale);
+      this.scale = newScale;
+
+      this.applyTransform();
+    }, { passive: false });
   }
 }
 
@@ -1086,382 +1410,51 @@ function initTreeVisualization() {
   const container = document.getElementById("tree-canvas");
   if (!container) return;
 
-  if (typeof FamilyTree === "undefined") {
+  container.innerHTML = "";
+
+  if (!AppState.treeData || AppState.treeData.length === 0) {
     container.innerHTML = `
-    <div style="text-align: center; padding: 4rem 2rem; color: #a64b2a;">
-      <i data-lucide="alert-circle" style="width: 48px; height: 48px; margin: 0 auto 1rem;"></i>
-      <h3>Error al cargar la librería del árbol interactivo</h3>
-      <p style="margin-top: 0.5rem; font-size: 0.9rem;">Por favor, comprueba tu conexión a Internet para cargar la librería desde el CDN.</p>
-    </div>`;
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 450px; text-align: center; padding: 2rem; color: #64748b;">
+        <div style="width: 72px; height: 72px; border-radius: 50%; background: #f8fafc; border: 1.5px dashed #cbd5e1; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; color: #a64b2a;">
+          <i data-lucide="users" style="width: 36px; height: 36px;"></i>
+        </div>
+        <h2 style="font-family: 'Cinzel', Georgia, serif; font-size: 1.5rem; color: #1e293b; margin-bottom: 0.5rem;">Árbol Genealógico Vacío</h2>
+        <p style="max-width: 420px; font-size: 0.95rem; line-height: 1.5; color: #64748b; margin-bottom: 1.5rem;">
+          No hay ningún familiar registrado todavía. Pulsa el botón para añadir a la primera persona y comenzar a construir el árbol desde cero.
+        </p>
+        <button class="btn btn-primary" id="btn-empty-add-first" onclick="openAddRootPersonModal()" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; font-size: 0.95rem; border-radius: 8px;">
+          <i data-lucide="user-plus" style="width: 18px; height: 18px;"></i>
+          Añadir Primer Familiar
+        </button>
+      </div>
+    `;
+    const emptyAddBtn = document.getElementById("btn-empty-add-first");
+    if (emptyAddBtn) {
+      emptyAddBtn.onclick = () => openAddRootPersonModal();
+    }
+    refreshIcons();
+    updateHeaderCount();
     return;
   }
 
-  // Asegurar que el contenedor tenga dimensiones calculadas antes de renderizar
-  setTimeout(() => {
-    container.innerHTML = "";
+  // Sanear datos y selector de ramas
+  cleanAndValidateTreeData(AppState.treeData);
+  populateBranchSelector(AppState.treeData);
 
-    if (AppState.treeData.length === 0) {
-      container.innerHTML = `
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 450px; text-align: center; padding: 2rem; color: #64748b;">
-          <div style="width: 72px; height: 72px; border-radius: 50%; background: #f8fafc; border: 1.5px dashed #cbd5e1; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; color: #a64b2a;">
-            <i data-lucide="users" style="width: 36px; height: 36px;"></i>
-          </div>
-          <h2 style="font-family: 'Cinzel', Georgia, serif; font-size: 1.5rem; color: #1e293b; margin-bottom: 0.5rem;">Árbol Genealógico Vacío</h2>
-          <p style="max-width: 420px; font-size: 0.95rem; line-height: 1.5; color: #64748b; margin-bottom: 1.5rem;">
-            No hay ningún familiar registrado todavía. Pulsa el botón para añadir a la primera persona y comenzar a construir el árbol desde cero.
-          </p>
-          <button class="btn btn-primary" id="btn-empty-add-first" onclick="openAddRootPersonModal()" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; font-size: 0.95rem; border-radius: 8px;">
-            <i data-lucide="user-plus" style="width: 18px; height: 18px;"></i>
-            Añadir Primer Familiar
-          </button>
-        </div>
-      `;
-      const emptyAddBtn = document.getElementById("btn-empty-add-first");
-      if (emptyAddBtn) {
-        emptyAddBtn.onclick = () => openAddRootPersonModal();
-      }
-      refreshIcons();
-      updateHeaderCount();
-      return;
-    }
-
-    // Sanear y normalizar el grafo genealógico y actualizar selector de ramas
-    cleanAndValidateTreeData(AppState.treeData);
-    populateBranchSelector(AppState.treeData);
-
-    // Configuración de plantilla Opción B: Vertical / Ficha (270 x 130 px estilizada y con máxima holgura)
-    FamilyTree.templates.montesTheme = Object.assign({}, FamilyTree.templates.john);
-    FamilyTree.templates.montesTheme.size = [270, 130];
-    
-    // Tarjeta noble genérica
-    FamilyTree.templates.montesTheme.node = `
-      <clipPath id="cardClip{id}">
-        <rect x="0" y="0" height="130" width="270" rx="14" ry="14"></rect>
-      </clipPath>
-      <rect x="0" y="0" height="130" width="270" fill="#ffffff" stroke-width="1.5" stroke="#d5cdbf" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(0,0,0,0.06))"></rect>
-      <rect x="0" y="0" height="130" width="6" fill="#a64b2a" clip-path="url(#cardClip{id})"></rect>
-
-      <!-- Botón + para Añadir Hijo/a (Abajo) -->
-      <g class="node-add-btn node-add-child-btn" data-action="add-child" data-id="{id}">
-        <title>Añadir hijo/a</title>
-        <circle cx="135" cy="130" r="12" class="node-btn-circle" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"></circle>
-        <path d="M129 130 h12 M135 124 v12" stroke="#64748b" stroke-width="2" stroke-linecap="round" class="node-btn-plus"></path>
-      </g>
-    `;
-
-    // Tarjetas diferenciadas por género con integración perfecta en las esquinas redondeadas
-    FamilyTree.templates.montesTheme_male = Object.assign({}, FamilyTree.templates.montesTheme);
-    FamilyTree.templates.montesTheme_male.node = `
-      <clipPath id="cardClipM{id}">
-        <rect x="0" y="0" height="130" width="270" rx="14" ry="14"></rect>
-      </clipPath>
-      <rect x="0" y="0" height="130" width="270" fill="#ffffff" stroke-width="1.5" stroke="#cbd5e1" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(37,99,235,0.07))"></rect>
-      <rect x="0" y="0" height="130" width="6" fill="#3b82f6" clip-path="url(#cardClipM{id})"></rect>
-
-      <!-- Botón + para Añadir Hijo/a (Abajo) -->
-      <g class="node-add-btn node-add-child-btn" data-action="add-child" data-id="{id}">
-        <title>Añadir hijo/a</title>
-        <circle cx="135" cy="130" r="12" class="node-btn-circle" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"></circle>
-        <path d="M129 130 h12 M135 124 v12" stroke="#64748b" stroke-width="2" stroke-linecap="round" class="node-btn-plus"></path>
-      </g>
-    `;
-
-    FamilyTree.templates.montesTheme_female = Object.assign({}, FamilyTree.templates.montesTheme);
-    FamilyTree.templates.montesTheme_female.node = `
-      <clipPath id="cardClipF{id}">
-        <rect x="0" y="0" height="130" width="270" rx="14" ry="14"></rect>
-      </clipPath>
-      <rect x="0" y="0" height="130" width="270" fill="#ffffff" stroke-width="1.5" stroke="#fbcfe8" rx="14" ry="14" class="node-box" filter="drop-shadow(0px 4px 12px rgba(219,39,119,0.07))"></rect>
-      <rect x="0" y="0" height="130" width="6" fill="#ec4899" clip-path="url(#cardClipF{id})"></rect>
-
-      <!-- Botón + para Añadir Hijo/a (Abajo) -->
-      <g class="node-add-btn node-add-child-btn" data-action="add-child" data-id="{id}">
-        <title>Añadir hijo/a</title>
-        <circle cx="135" cy="130" r="12" class="node-btn-circle" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"></circle>
-        <path d="M129 130 h12 M135 124 v12" stroke="#64748b" stroke-width="2" stroke-linecap="round" class="node-btn-plus"></path>
-      </g>
-    `;
-
-    // Botón + para Añadir Cónyuge (Derecha): se inyecta solo si la persona NO tiene cónyuge
-    FamilyTree.templates.montesTheme.field_partner_btn = `{val}`;
-    FamilyTree.templates.montesTheme_male.field_partner_btn = `{val}`;
-    FamilyTree.templates.montesTheme_female.field_partner_btn = `{val}`;
-
-    // Fotografía circular centrada verticalmente con cursor de ampliación (cy = 65)
-    FamilyTree.templates.montesTheme.img_0 = `
-      <clipPath id="ulaImg{id}"><circle cx="40" cy="65" r="26"></circle></clipPath>
-      <circle cx="40" cy="65" r="28" fill="none" stroke="#e2d9cd" stroke-width="2"></circle>
-      <image preserveAspectRatio="xMidYMid slice" clip-path="url(#ulaImg{id})" xlink:href="{val}" x="14" y="39" width="52" height="52" style="cursor: zoom-in; pointer-events: all;"></image>
-    `;
-    FamilyTree.templates.montesTheme_male.img_0 = FamilyTree.templates.montesTheme.img_0;
-    FamilyTree.templates.montesTheme_female.img_0 = FamilyTree.templates.montesTheme.img_0;
-
-    // Nombre Línea 1 (para nombres largos en 2 líneas)
-    FamilyTree.templates.montesTheme.field_0 = `
-      <text style="font-size: 12px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="74" y="19">{val}</text>
-    `;
-    FamilyTree.templates.montesTheme_male.field_0 = FamilyTree.templates.montesTheme.field_0;
-    FamilyTree.templates.montesTheme_female.field_0 = FamilyTree.templates.montesTheme.field_0;
-
-    // Nombre Línea 2 (para nombres largos en 2 líneas)
-    FamilyTree.templates.montesTheme.field_3 = `
-      <text style="font-size: 12px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="74" y="33">{val}</text>
-    `;
-    FamilyTree.templates.montesTheme_male.field_3 = FamilyTree.templates.montesTheme.field_3;
-    FamilyTree.templates.montesTheme_female.field_3 = FamilyTree.templates.montesTheme.field_3;
-
-    // Nombre en 1 sola línea (centrado y equilibrado)
-    FamilyTree.templates.montesTheme.field_4 = `
-      <text style="font-size: 13px; font-weight: 700; font-family: 'Outfit', -apple-system, sans-serif;" fill="#1e293b" x="74" y="31">{val}</text>
-    `;
-    FamilyTree.templates.montesTheme_male.field_4 = FamilyTree.templates.montesTheme.field_4;
-    FamilyTree.templates.montesTheme_female.field_4 = FamilyTree.templates.montesTheme.field_4;
-
-    // Fechas vitales y edad
-    FamilyTree.templates.montesTheme.field_1 = `
-      <text style="font-size: 11px; font-weight: 600; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="74" y="57">{val}</text>
-    `;
-    FamilyTree.templates.montesTheme_male.field_1 = FamilyTree.templates.montesTheme.field_1;
-    FamilyTree.templates.montesTheme_female.field_1 = FamilyTree.templates.montesTheme.field_1;
-
-    // Lugar de Nacimiento con brújula (compass) en tono ámbar/dorado noble
-    FamilyTree.templates.montesTheme.field_6 = `
-      <g>
-        <svg x="74" y="69" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="#b45309"></polygon>
-        </svg>
-        <text style="font-size: 10px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="89" y="80">{val}</text>
-      </g>
-    `;
-    FamilyTree.templates.montesTheme_male.field_6 = FamilyTree.templates.montesTheme.field_6;
-    FamilyTree.templates.montesTheme_female.field_6 = FamilyTree.templates.montesTheme.field_6;
-
-    // Ubicación Línea 1: Lugar de Residencia con chincheta roja (map-pin)
-    FamilyTree.templates.montesTheme.field_2 = `
-      <g>
-        <svg x="74" y="92" width="12" height="12" viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
-          <circle cx="12" cy="10" r="3" fill="#ffffff"></circle>
-        </svg>
-        <text style="font-size: 10px; font-weight: 500; font-family: 'Outfit', -apple-system, sans-serif;" fill="#64748b" x="89" y="103">{val}</text>
-      </g>
-    `;
-    FamilyTree.templates.montesTheme_male.field_2 = FamilyTree.templates.montesTheme.field_2;
-    FamilyTree.templates.montesTheme_female.field_2 = FamilyTree.templates.montesTheme.field_2;
-
-    // Limpiar campos extras
-    for (let i = 7; i <= 15; i++) {
-      delete FamilyTree.templates.montesTheme['field_' + i];
-      delete FamilyTree.templates.montesTheme_male['field_' + i];
-      delete FamilyTree.templates.montesTheme_female['field_' + i];
-    }
-    delete FamilyTree.templates.montesTheme.field_5;
-    delete FamilyTree.templates.montesTheme_male.field_5;
-    delete FamilyTree.templates.montesTheme_female.field_5;
-
-/**
- * Asegura que todos los municipios muestren su provincia entre paréntesis al lado.
- */
-function formatLocationWithProvince(loc) {
-  if (!loc) return "";
-  let trimmed = loc.trim();
-  if (!trimmed) return "";
-  if (trimmed.includes("(") || trimmed.includes("/")) return trimmed;
-  if (allSpanishMunicipalities && allSpanishMunicipalities.length > 0) {
-    const norm = trimmed.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const match = allSpanishMunicipalities.find(m => m.normCity === norm);
-    if (match) {
-      return `${match.city} (${match.province})`;
-    }
+  // Sincronizar selectores en la cabecera
+  const orientSelect = document.getElementById("tree-orientation-select");
+  if (orientSelect && orientSelect.value !== AppState.treeOrientation) {
+    orientSelect.value = AppState.treeOrientation;
   }
-  return `${trimmed} (${trimmed})`;
-}
+  const layoutSelect = document.getElementById("tree-layout-select");
+  if (layoutSelect && layoutSelect.value !== AppState.treeLayout) {
+    layoutSelect.value = AppState.treeLayout;
+  }
 
-    // Mapeo de datos a formato FamilyTreeJS
-    const formattedNodes = AppState.treeData.map(person => {
-      const datesStr = (person.birth || person.death) 
-        ? formatVitalDatesWithAge(person.birth, person.death) 
-        : "";
-      
-      const resStr = (person.city && person.city.trim()) 
-        ? formatLocationWithProvince(person.city) 
-        : "";
-      const birthStr = (person.birth_place && person.birth_place.trim()) 
-        ? formatLocationWithProvince(person.birth_place) 
-        : "";
-
-      const nameParts = formatPersonNameLines(person.name);
-      const isSingleLine = !nameParts.line2;
-
-      // Si ya tiene pareja asignada (en sus pids o en los pids de su cónyuge), NO se renderiza el botón + de la derecha
-      const hasPartner = (person.pids && person.pids.length > 0) || AppState.treeData.some(p => p.pids && p.pids.includes(person.id));
-      const partnerBtnSvg = hasPartner ? "" : `
-        <g class="node-add-btn node-add-partner-btn" data-action="add-partner" data-id="${person.id}">
-          <title>Añadir pareja / cónyuge</title>
-          <circle cx="270" cy="65" r="12" class="node-btn-circle" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"></circle>
-          <path d="M264 65 h12 M270 59 v12" stroke="#64748b" stroke-width="2" stroke-linecap="round" class="node-btn-plus"></path>
-        </g>
-      `;
-
-      return {
-        id: person.id,
-        mid: person.mid,
-        fid: person.fid,
-        pids: person.pids || [],
-        gender: person.gender || "male",
-        name_l1: isSingleLine ? "" : nameParts.line1,
-        name_l2: isSingleLine ? "" : nameParts.line2,
-        name_single: isSingleLine ? nameParts.line1 : "",
-        name: person.name,
-        title: datesStr,
-        loc_birth: birthStr,
-        loc_res: resStr,
-        photo: getPersonPhotoUrl(person.photo, person.gender),
-        field_partner_btn: partnerBtnSvg,
-        raw: person
-      };
-    });
-
-    const orientMap = {
-      top: FamilyTree.orientation.top,
-      left: FamilyTree.orientation.left,
-      bottom: FamilyTree.orientation.bottom
-    };
-
-    const layoutMap = {
-      normal: FamilyTree.layout.normal,
-      treeRightOffset: FamilyTree.layout.treeRightOffset,
-      treeLeft: FamilyTree.layout.treeLeft,
-      grid: FamilyTree.layout.grid
-    };
-
-    const selectedOrientation = orientMap[AppState.treeOrientation] || FamilyTree.orientation.top;
-    const selectedLayout = layoutMap[AppState.treeLayout] || FamilyTree.layout.normal;
-
-    // Sincronizar selectores en la cabecera
-    const orientSelect = document.getElementById("tree-orientation-select");
-    if (orientSelect && orientSelect.value !== AppState.treeOrientation) {
-      orientSelect.value = AppState.treeOrientation;
-    }
-    const layoutSelect = document.getElementById("tree-layout-select");
-    if (layoutSelect && layoutSelect.value !== AppState.treeLayout) {
-      layoutSelect.value = AppState.treeLayout;
-    }
-
-    // Conectar gancho de prerenderizado para asegurar que cónyuges y generaciones estén siempre a la misma altura
-    if (!AppState.prerenderHookAttached && typeof FamilyTree !== "undefined" && FamilyTree.events) {
-      FamilyTree.events.on("prerender", (treeInstance, args) => {
-        alignTreeLevels(args, AppState.treeOrientation, AppState.treeData);
-      });
-      AppState.prerenderHookAttached = true;
-    }
-
-    // Aplicar parche de prevención de ciclos en parejas con ascendencia común
-    patchBalkanCycleRecursion();
-
-    try {
-      AppState.treeInstance = new FamilyTree(container, {
-        template: "montesTheme",
-        mode: "light",
-        collapsible: false,
-        roots: getBestTreeRoot(AppState.treeData),
-        orientation: selectedOrientation,
-        layout: selectedLayout,
-        enableSearch: false,
-        mouseScrool: FamilyTree.action.zoom,
-        nodeMouseClick: FamilyTree.action.none,
-        siblingSeparation: 55,
-        levelSeparation: 110,
-        subtreeSeparation: 55,
-        partnerSeparation: 35,
-        scaleInitial: FamilyTree.match.boundary,
-        nodeBinding: {
-          field_0: "name_l1",
-          field_3: "name_l2",
-          field_4: "name_single",
-          field_1: "title",
-          field_6: "loc_birth",
-          field_2: "loc_res",
-          img_0: "photo",
-          field_partner_btn: "field_partner_btn"
-        },
-        nodes: formattedNodes
-      });
-
-      // Guardar copia del estado válido
-      AppState.lastValidTreeData = JSON.parse(JSON.stringify(AppState.treeData));
-
-      // Evento al hacer clic en un nodo
-      AppState.treeInstance.onNodeClick((args) => {
-        const personId = parseInt(args.node.id, 10);
-        const target = args.event && (args.event.target || args.event.srcElement);
-
-        if (target) {
-          // 1. Verificar si se hizo clic en los botones de acción rápida (+ hijo / + pareja)
-          let el = target;
-          let action = null;
-          while (el && el !== (args.event.currentTarget || document.body) && el.getAttribute) {
-            if (el.getAttribute("data-action")) {
-              action = el.getAttribute("data-action");
-              break;
-            }
-            el = el.parentElement;
-          }
-
-          if (action === "add-child") {
-            openAddChildModal(personId);
-            return false;
-          }
-
-          if (action === "add-partner") {
-            openAddPartnerModal(personId);
-            return false;
-          }
-
-          // 2. Verificar si se hizo clic en la foto para abrir el visor ampliado
-          const tagName = target.tagName ? target.tagName.toLowerCase() : "";
-          const clipPath = target.getAttribute ? (target.getAttribute("clip-path") || "") : "";
-          const cx = target.getAttribute ? target.getAttribute("cx") : "";
-
-          if (tagName === "image" || (tagName === "circle" && cx === "40") || clipPath.includes("ulaImg")) {
-            openPhotoLightboxById(personId);
-            return false;
-          }
-        }
-
-        openPersonDrawer(personId);
-        return false;
-      });
-
-      setTimeout(() => {
-        if (AppState.treeInstance) {
-          AppState.treeInstance.fit();
-        }
-      }, 150);
-
-    } catch (err) {
-      console.error("Error al inicializar FamilyTree:", err);
-      container.innerHTML = `
-        <div class="tree-error-banner">
-          <div class="tree-error-card">
-            <div class="tree-error-icon">
-              <i data-lucide="alert-triangle" style="width: 28px; height: 28px;"></i>
-            </div>
-            <h3>No se pudo organizar el mapa</h3>
-            <p>El cambio de parentesco generó un conflicto en el árbol: <strong>${err.message}</strong></p>
-            <div class="tree-error-actions">
-              <button type="button" class="btn-primary" onclick="restoreLastValidTree()">
-                <i data-lucide="rotate-ccw" style="width: 16px; height: 16px;"></i>
-                <span>Restaurar versión anterior</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
-      refreshIcons();
-    }
-  }, 60);
+  // Inicializar MontesTreeEngine nativo
+  AppState.treeInstance = new MontesTreeEngine(container, AppState.treeData);
+  AppState.lastValidTreeData = JSON.parse(JSON.stringify(AppState.treeData));
+  updateHeaderSummary();
 }
 
 
@@ -2374,112 +2367,72 @@ function persistLocalTree() {
 // ==========================================================================
 // 6. EXPORTACIÓN A PDF HORIZONTAL DE ALTA RESOLUCIÓN
 // ==========================================================================
-function exportTreeLandscapePDF() {
-  showToast("Generando PDF del árbol genealógico en alta resolución...", "info", 5000);
+async function exportTreeLandscapePDF() {
+  showToast("Generando PDF del árbol genealógico en alta resolución...", "info", 6000);
 
-  // 1. Si FamilyTree tiene exportPDF nativo, usar formato normalizado A3
-  if (AppState.treeInstance && typeof AppState.treeInstance.exportPDF === "function") {
-    try {
-      AppState.treeInstance.exportPDF({
-        filename: "arbol_genealogico_familia_montes.pdf",
-        landscape: true,
-        fit: "all",
-        format: "A3",
-        expandChildren: true,
-        margin: [15, 15, 15, 15]
-      });
-      showToast("¡PDF del árbol genealógico descargado con éxito!", "success");
-      return;
-    } catch (err) {
-      console.warn("Fallo exportPDF nativo de la librería, usando motor jsPDF:", err);
-    }
+  const worldEl = document.getElementById("montes-tree-world") || document.querySelector(".tree-world");
+  if (!worldEl) {
+    showToast("No se encontró el árbol en pantalla para exportar.", "error");
+    return;
   }
 
-  // 2. Motor de renderizado vectorial de ultra alta resolución con proporción estándar
   try {
-    const svgEl = document.querySelector("#tree-canvas svg");
-    if (!svgEl) {
-      showToast("No se encontró el árbol en pantalla para exportar.", "error");
-      return;
+    // 1. Guardar estado de transformación actual
+    const prevTransform = worldEl.style.transform;
+    const prevTransition = worldEl.style.transition;
+
+    // 2. Calcular límites totales del árbol completo
+    const cards = worldEl.querySelectorAll(".tree-card");
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    cards.forEach(card => {
+      const left = parseFloat(card.style.left) || 0;
+      const top = parseFloat(card.style.top) || 0;
+      const w = card.offsetWidth || 270;
+      const h = card.offsetHeight || 130;
+      minX = Math.min(minX, left);
+      minY = Math.min(minY, top);
+      maxX = Math.max(maxX, left + w);
+      maxY = Math.max(maxY, top + h);
+    });
+
+    if (minX === Infinity) {
+      minX = 0; minY = 0; maxX = 2000; maxY = 900;
     }
 
-    // Calcular el área total del árbol completo
-    let bbox;
-    try {
-      if (svgEl.getBBox) {
-        bbox = svgEl.getBBox();
-      }
-    } catch (e) {
-      console.warn("getBBox warn:", e);
-    }
+    const pad = 60;
+    const totalW = (maxX - minX) + pad * 2;
+    const totalH = (maxY - minY) + pad * 2;
 
-    if (!bbox || bbox.width <= 0 || bbox.height <= 0) {
-      const nodes = svgEl.querySelectorAll("rect, g[data-n-id]");
-      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-      nodes.forEach(el => {
-        if (el.getBBox) {
-          const b = el.getBBox();
-          if (b.width > 0 && b.height > 0) {
-            minX = Math.min(minX, b.x);
-            minY = Math.min(minY, b.y);
-            maxX = Math.max(maxX, b.x + b.width);
-            maxY = Math.max(maxY, b.y + b.height);
-          }
-        }
+    // 3. Normalizar temporalmente a posición absoluta para captura
+    worldEl.style.transition = "none";
+    worldEl.style.transform = `translate(${-minX + pad}px, ${-minY + pad}px) scale(1)`;
+
+    // 4. Renderizar con html2canvas si está disponible
+    if (typeof html2canvas === "function") {
+      const canvas = await html2canvas(worldEl, {
+        backgroundColor: "#f8f6f0",
+        scale: 2.0,
+        width: totalW,
+        height: totalH,
+        useCORS: true,
+        logging: false
       });
-      if (minX !== Infinity) {
-        bbox = { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
-      } else {
-        bbox = { x: 0, y: 0, width: 2600, height: 1600 };
-      }
-    }
 
-    const padding = 70;
-    const cropX = bbox.x - padding;
-    const cropY = bbox.y - padding;
-    const totalWidth = Math.max(bbox.width + padding * 2, 800);
-    const totalHeight = Math.max(bbox.height + padding * 2, 500);
-
-    const clonedSvg = svgEl.cloneNode(true);
-    clonedSvg.setAttribute("width", totalWidth);
-    clonedSvg.setAttribute("height", totalHeight);
-    clonedSvg.setAttribute("viewBox", `${cropX} ${cropY} ${totalWidth} ${totalHeight}`);
-    clonedSvg.style.background = "#f8f6f0";
-
-    const svgData = new XMLSerializer().serializeToString(clonedSvg);
-    const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
-    const DOMURL = window.URL || window.webkitURL || window;
-    const url = DOMURL.createObjectURL(svgBlob);
-
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      // Escala 3.0 para nitidez fotográfica y vectorial superior (300+ DPI)
-      const scale = 3.0;
-      const canvas = document.createElement("canvas");
-      canvas.width = totalWidth * scale;
-      canvas.height = totalHeight * scale;
-
-      const ctx = canvas.getContext("2d");
-      ctx.fillStyle = "#f8f6f0";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.scale(scale, scale);
-      ctx.drawImage(img, 0, 0);
+      // Restaurar estado visual original del árbol interactivo
+      worldEl.style.transform = prevTransform;
+      worldEl.style.transition = prevTransition;
 
       const imgData = canvas.toDataURL("image/jpeg", 0.95);
-      DOMURL.revokeObjectURL(url);
 
       if (window.jspdf && window.jspdf.jsPDF) {
         const { jsPDF } = window.jspdf;
 
-        // Proporción estándar DIN (A3 / A2 según tamaño total)
         let dinFormat = "a3";
-        if (totalWidth > 2200 || totalHeight > 1500) {
+        if (totalW > 2400 || totalH > 1600) {
           dinFormat = "a2";
         }
 
-        const isLandscape = totalWidth >= totalHeight;
+        const isLandscape = totalW >= totalH;
         const pdf = new jsPDF({
           orientation: isLandscape ? "landscape" : "portrait",
           unit: "mm",
@@ -2489,27 +2442,28 @@ function exportTreeLandscapePDF() {
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
 
-        // Margen perimetral limpio de 12 mm
         const marginMm = 12;
         const usableWidth = pageWidth - marginMm * 2;
         const usableHeight = pageHeight - marginMm * 2;
 
-        // Escalar proporcionalmente para encajar en el área imprimible
-        const scaleFactor = Math.min(usableWidth / totalWidth, usableHeight / totalHeight);
-        const renderWidth = totalWidth * scaleFactor;
-        const renderHeight = totalHeight * scaleFactor;
+        const scaleFactor = Math.min(usableWidth / totalW, usableHeight / totalH);
+        const renderWidth = totalW * scaleFactor;
+        const renderHeight = totalH * scaleFactor;
 
-        // Centrado exacto en la página
         const posX = marginMm + (usableWidth - renderWidth) / 2;
         const posY = marginMm + (usableHeight - renderHeight) / 2;
 
         pdf.addImage(imgData, "JPEG", posX, posY, renderWidth, renderHeight);
         pdf.save("arbol_genealogico_familia_montes.pdf");
         showToast("¡PDF del árbol genealógico descargado con éxito!", "success");
+        return;
       }
-    };
-    img.src = url;
+    }
 
+    // Restaurar si no se pudo generar
+    worldEl.style.transform = prevTransform;
+    worldEl.style.transition = prevTransition;
+    showToast("No se encontró la biblioteca jsPDF/html2canvas para la descarga.", "error");
   } catch (error) {
     console.error("Error al exportar PDF:", error);
     showToast("Error al generar el PDF: " + error.message, "error");
