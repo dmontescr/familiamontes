@@ -502,7 +502,9 @@
     "profession": "",
     "photo": "",
     "notes": "",
-    "pids": [],
+    "pids": [
+      52
+    ],
     "fid": 30,
     "mid": 26
   },
@@ -770,5 +772,20 @@
     "pids": [],
     "fid": 49,
     "mid": 46
+  },
+  {
+    "id": 52,
+    "name": "Noelia Gutiérrez",
+    "gender": "female",
+    "birth_place": "",
+    "city": "Gijón (Asturias)",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [
+      34
+    ]
   }
 ]
