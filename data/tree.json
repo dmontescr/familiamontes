@@ -261,5 +261,19 @@
     "pids": [],
     "fid": 7,
     "mid": 8
+  },
+  {
+    "id": 19,
+    "name": "Gregorio Montes",
+    "gender": "male",
+    "birth_place": "Bilbao (Bizkaia)",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 16
   }
 ]
