@@ -279,7 +279,7 @@
   {
     "id": 20,
     "name": "Luisa Montes",
-    "gender": "female",
+    "gender": "male",
     "birth_place": "Bilbao (Bizkaia)",
     "city": "",
     "birth": "",
@@ -292,44 +292,15 @@
   },
   {
     "id": 21,
-    "name": "Esther",
+    "name": "Aureliano Martínez",
     "gender": "male",
-    "birth_place": "Bilbao (Bizkaia)",
+    "birth_place": "",
     "city": "",
     "birth": "",
     "death": "",
     "profession": "",
     "photo": "",
     "notes": "",
-    "pids": [],
-    "mid": 17
-  },
-  {
-    "id": 22,
-    "name": "Celia",
-    "gender": "male",
-    "birth_place": "Bilbao (Bizkaia)",
-    "city": "",
-    "birth": "",
-    "death": "",
-    "profession": "",
-    "photo": "",
-    "notes": "",
-    "pids": [],
-    "mid": 17
-  },
-  {
-    "id": 23,
-    "name": "Petra",
-    "gender": "female",
-    "birth_place": "Bilbao",
-    "city": "",
-    "birth": "",
-    "death": "",
-    "profession": "",
-    "photo": "",
-    "notes": "",
-    "pids": [],
-    "mid": 17
+    "pids": []
   }
 ]
