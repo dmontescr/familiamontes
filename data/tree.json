@@ -275,5 +275,19 @@
     "notes": "",
     "pids": [],
     "fid": 16
+  },
+  {
+    "id": 20,
+    "name": "Luisa Montes",
+    "gender": "male",
+    "birth_place": "Bilbao (Bizkaia)",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 16
   }
 ]
