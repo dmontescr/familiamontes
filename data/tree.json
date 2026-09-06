@@ -552,5 +552,20 @@
     "pids": [
       36
     ]
+  },
+  {
+    "id": 38,
+    "name": "Cristina Montes",
+    "gender": "female",
+    "birth_place": "",
+    "city": "Mucientes (Valladolid)",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 27,
+    "mid": 35
   }
 ]
