@@ -214,6 +214,22 @@
     "photo": "",
     "notes": "",
     "pids": [],
-    "mid": 10
+    "mid": 10,
+    "fid": 9
+  },
+  {
+    "id": 16,
+    "name": "Eloy Montes Posado",
+    "gender": "male",
+    "birth_place": "",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 7,
+    "mid": 8
   }
 ]
