@@ -289,5 +289,19 @@
     "notes": "",
     "pids": [],
     "fid": 16
+  },
+  {
+    "id": 21,
+    "name": "Esther",
+    "gender": "male",
+    "birth_place": "Bilbao (Bizkaia)",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "mid": 17
   }
 ]
