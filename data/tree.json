@@ -392,5 +392,20 @@
     "pids": [],
     "fid": 5,
     "mid": 6
+  },
+  {
+    "id": 28,
+    "name": "Faustiniano Montes Carrera",
+    "gender": "male",
+    "birth_place": "Navianos de la Vega (León)",
+    "city": "Villanueva de Oscos (Asturias)",
+    "birth": "1952",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 5,
+    "mid": 6
   }
 ]
