@@ -626,8 +626,25 @@
     "profession": "",
     "photo": "",
     "notes": "",
-    "pids": [],
+    "pids": [
+      43
+    ],
     "fid": 28,
     "mid": 31
+  },
+  {
+    "id": 43,
+    "name": "Mario",
+    "gender": "male",
+    "birth_place": "",
+    "city": "Villanueva de Oscos (Asturias)",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [
+      42
+    ]
   }
 ]
