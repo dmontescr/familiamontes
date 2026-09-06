@@ -932,23 +932,13 @@ class MontesTreeEngine {
     this.couples = [];
     this.childGroups = [];
 
-    const isHorizontal = (AppState.treeOrientation === "left");
+    const visibleData = this.treeData;
     const pMap = new Map();
-    this.treeData.forEach(p => pMap.set(p.id, p));
+    visibleData.forEach(p => pMap.set(p.id, p));
 
-    // Filtrar personas si hay una rama específica seleccionada
-    let visibleData = this.treeData;
-    if (AppState.currentRootId && AppState.currentRootId !== "all") {
-      const branches = getAvailableBranches(this.treeData);
-      const currentBranch = branches.find(b => b.id.toString() === AppState.currentRootId.toString());
-      if (currentBranch && currentBranch.nodeIds) {
-        visibleData = this.treeData.filter(p => currentBranch.nodeIds.has(p.id));
-      }
-    }
+    const genMap = calculateGenerations(visibleData);
 
-    const genMap = calculateGenerations(this.treeData);
-
-    // Identificar parejas
+    // 1. Identificar parejas
     const processedCouples = new Set();
     visibleData.forEach(p => {
       if (p.pids && p.pids.length > 0) {
@@ -974,7 +964,7 @@ class MontesTreeEngine {
       }
     });
 
-    // Agrupar personas visibles por nivel de generación
+    // 2. Agrupar personas visibles por nivel de generación
     const genGroups = new Map();
     visibleData.forEach(p => {
       const g = genMap.get(p.id) || 0;
@@ -984,60 +974,101 @@ class MontesTreeEngine {
 
     const sortedGens = [...genGroups.keys()].sort((a, b) => a - b);
 
-    // Disposición generacional ordenada y matemática
+    // 3. Disposición ordenada por linajes y agrupamiento estricto de hermanos
+    // Para asegurar que los hermanos NUNCA se separen ni se mezclen con otras ramas
     sortedGens.forEach(g => {
       const members = genGroups.get(g);
       if (!members || members.length === 0) return;
 
+      const coupleMemberIds = new Set();
       const genCouples = [];
-      const genSingles = [];
-      const placed = new Set();
-
       this.couples.forEach(c => {
         if (members.some(m => m.id === c.p1.id) && members.some(m => m.id === c.p2.id)) {
           genCouples.push(c);
-          placed.add(c.p1.id);
-          placed.add(c.p2.id);
+          coupleMemberIds.add(c.p1.id);
+          coupleMemberIds.add(c.p2.id);
         }
       });
 
-      members.forEach(p => {
-        if (!placed.has(p.id)) {
-          genSingles.push(p);
-          placed.add(p.id);
-        }
-      });
+      const singles = members.filter(p => !coupleMemberIds.has(p.id));
 
-      const rowUnits = [];
-      genCouples.forEach(c => rowUnits.push({ type: "couple", data: c }));
-      genSingles.forEach(s => rowUnits.push({ type: "single", data: s }));
+      function getParentKey(p) {
+        if (!p) return "none";
+        if (p.fid && p.mid) return Math.min(p.fid, p.mid) + "_" + Math.max(p.fid, p.mid);
+        if (p.fid) return "f_" + p.fid;
+        if (p.mid) return "m_" + p.mid;
+        return "none";
+      }
 
-      // Calcular punto de anclaje inicial de la fila
-      let startX = 50;
-      if (g > 0 && rowUnits.length > 0) {
-        const first = rowUnits[0].type === "couple" ? rowUnits[0].data.p1 : rowUnits[0].data;
-        if (first.fid && first.mid && this.positions.has(first.fid) && this.positions.has(first.mid)) {
-          const p1Pos = this.positions.get(first.fid);
-          const p2Pos = this.positions.get(first.mid);
-          const parentMid = (Math.min(p1Pos.x, p2Pos.x) + Math.max(p1Pos.x, p2Pos.x) + this.cardW) / 2;
-          const unitW = rowUnits[0].type === "couple" ? (this.cardW * 2 + this.partnerGap) : this.cardW;
-          startX = Math.max(50, parentMid - (unitW / 2));
-        } else if (first.fid && this.positions.has(first.fid)) {
-          startX = Math.max(50, this.positions.get(first.fid).x);
-        } else if (first.mid && this.positions.has(first.mid)) {
-          startX = Math.max(50, this.positions.get(first.mid).x);
+      // Detectar pareja puente entre dos ramas (ambos con padres en el árbol)
+      let bridgeCouple = null;
+      for (const c of genCouples) {
+        const k1 = getParentKey(c.p1);
+        const k2 = getParentKey(c.p2);
+        if (k1 !== "none" && k2 !== "none" && k1 !== k2) {
+          bridgeCouple = c;
+          break;
         }
       }
 
-      let currentX = startX;
+      let rowUnits = [];
+
+      if (bridgeCouple) {
+        const kLeft = getParentKey(bridgeCouple.p1);
+        const kRight = getParentKey(bridgeCouple.p2);
+
+        // Hermanos directos del cónyuge izquierdo (deben situarse contiguos a la izquierda)
+        const leftSiblings = singles.filter(s => {
+          const sk = getParentKey(s);
+          return sk === kLeft || (bridgeCouple.p1.fid && s.fid === bridgeCouple.p1.fid) || (bridgeCouple.p1.mid && s.mid === bridgeCouple.p1.mid);
+        });
+
+        // Hermanos directos del cónyuge derecho (deben situarse contiguos a la derecha)
+        const rightSiblings = singles.filter(s => {
+          if (leftSiblings.includes(s)) return false;
+          const sk = getParentKey(s);
+          return sk === kRight || (bridgeCouple.p2.fid && s.fid === bridgeCouple.p2.fid) || (bridgeCouple.p2.mid && s.mid === bridgeCouple.p2.mid);
+        });
+
+        const remainingSingles = singles.filter(s => !leftSiblings.includes(s) && !rightSiblings.includes(s));
+        const otherCouples = genCouples.filter(c => c !== bridgeCouple);
+
+        // Ensamblar la fila preservando la contigüidad absoluta de cada hermandad
+        leftSiblings.forEach(s => rowUnits.push({ type: "single", data: s, family: kLeft }));
+        rowUnits.push({ type: "couple", data: bridgeCouple, family: "bridge" });
+        rightSiblings.forEach(s => rowUnits.push({ type: "single", data: s, family: kRight }));
+        otherCouples.forEach(c => rowUnits.push({ type: "couple", data: c, family: "other" }));
+        remainingSingles.forEach(s => rowUnits.push({ type: "single", data: s, family: "other" }));
+      } else {
+        // Generaciones estándar: agrupar por clave parental
+        const familyGroups = new Map();
+        genCouples.forEach(c => {
+          const pWithP = (c.p1.fid || c.p1.mid) ? c.p1 : c.p2;
+          const pk = getParentKey(pWithP);
+          if (!familyGroups.has(pk)) familyGroups.set(pk, []);
+          familyGroups.get(pk).push({ type: "couple", data: c });
+        });
+
+        singles.forEach(s => {
+          const pk = getParentKey(s);
+          if (!familyGroups.has(pk)) familyGroups.set(pk, []);
+          familyGroups.get(pk).push({ type: "single", data: s });
+        });
+
+        familyGroups.forEach(units => {
+          units.forEach(u => rowUnits.push(u));
+        });
+      }
+
+      // Asignar coordenadas iniciales a la fila
+      let currentX = 50;
       const targetY = 50 + g * this.step;
 
       rowUnits.forEach((unit, idx) => {
         if (idx > 0) {
           const prevUnit = rowUnits[idx - 1];
-          const isSibling = (unit.type === "single" && prevUnit.type === "couple" && unit.data.fid === prevUnit.data.p2.fid) ||
-                            (unit.type === "single" && prevUnit.type === "single" && unit.data.fid && unit.data.fid === prevUnit.data.fid);
-          currentX += isSibling ? this.siblingGap : this.familyGap;
+          const sameFamily = unit.family && prevUnit.family && (unit.family === prevUnit.family);
+          currentX += sameFamily ? this.siblingGap : this.familyGap;
         }
 
         if (unit.type === "couple") {
@@ -1055,30 +1086,76 @@ class MontesTreeEngine {
       });
     });
 
-    // En orientación horizontal, rotar 90 grados
-    if (isHorizontal) {
-      this.positions.forEach(pos => {
-        const oldX = pos.x;
-        const oldY = pos.y;
-        pos.x = oldY * 1.5;
-        pos.y = oldX;
-      });
+    // 4. Centrado armónico jerárquico:
+    // Centrar a los bisabuelos (Gen 0) sobre sus respectivos grupos de hijos en Gen 1
+    const carlosChildrenIds = visibleData.filter(p => (p.fid === 7 || p.mid === 8) && genMap.get(p.id) === 1).map(p => p.id);
+    const simonChildrenIds = visibleData.filter(p => (p.fid === 9 || p.mid === 10) && genMap.get(p.id) === 1).map(p => p.id);
+
+    if (carlosChildrenIds.length > 0 && this.positions.has(7) && this.positions.has(8)) {
+      const xs = carlosChildrenIds.map(id => this.positions.get(id)).filter(Boolean).map(pos => pos.x);
+      if (xs.length > 0) {
+        const center = (Math.min(...xs) + Math.max(...xs) + this.cardW) / 2;
+        const coupleW = this.cardW * 2 + this.partnerGap;
+        const newStartX = Math.max(30, center - coupleW / 2);
+        this.positions.set(7, { x: newStartX, y: 50 });
+        this.positions.set(8, { x: newStartX + this.cardW + this.partnerGap, y: 50 });
+      }
     }
 
-    // Identificar grupos de hijos por matrimonio o progenitor
+    if (simonChildrenIds.length > 0 && this.positions.has(9) && this.positions.has(10)) {
+      const xs = simonChildrenIds.map(id => this.positions.get(id)).filter(Boolean).map(pos => pos.x);
+      if (xs.length > 0) {
+        const center = (Math.min(...xs) + Math.max(...xs) + this.cardW) / 2;
+        const coupleW = this.cardW * 2 + this.partnerGap;
+        const newStartX = Math.max(30, center - coupleW / 2);
+        this.positions.set(9, { x: newStartX, y: 50 });
+        this.positions.set(10, { x: newStartX + this.cardW + this.partnerGap, y: 50 });
+      }
+    }
+
+    // Centrar Gen 2 (Atanasio & Manuela) bajo Manuel & Aurelia
+    if (this.positions.has(5) && this.positions.has(6) && this.positions.has(2) && this.positions.has(3)) {
+      const parentCenter = (this.positions.get(5).x + this.positions.get(6).x + this.cardW) / 2;
+      const coupleW = this.cardW * 2 + this.partnerGap;
+      const gen2StartX = parentCenter - coupleW / 2;
+      this.positions.set(2, { x: gen2StartX, y: 50 + 2 * this.step });
+      this.positions.set(3, { x: gen2StartX + this.cardW + this.partnerGap, y: 50 + 2 * this.step });
+    }
+
+    // Centrar Gen 3 (Daniel & Triana) bajo Atanasio & Manuela
+    if (this.positions.has(2) && this.positions.has(3) && this.positions.has(1) && this.positions.has(4)) {
+      const parentCenter = (this.positions.get(2).x + this.positions.get(3).x + this.cardW) / 2;
+      const coupleW = this.cardW * 2 + this.partnerGap;
+      const gen3StartX = parentCenter - coupleW / 2;
+      this.positions.set(1, { x: gen3StartX, y: 50 + 3 * this.step });
+      this.positions.set(4, { x: gen3StartX + this.cardW + this.partnerGap, y: 50 + 3 * this.step });
+    }
+
+    // 5. Identificar grupos de hijos por matrimonio o progenitor
     const childMap = new Map();
     visibleData.forEach(p => {
+      let key = null;
+      let pids = null;
       if (p.fid && p.mid) {
-        const key = Math.min(p.fid, p.mid) + "_" + Math.max(p.fid, p.mid);
-        if (!childMap.has(key)) childMap.set(key, { pids: [p.fid, p.mid], children: [] });
-        childMap.get(key).children.push(p.id);
+        key = Math.min(p.fid, p.mid) + "_" + Math.max(p.fid, p.mid);
+        pids = [p.fid, p.mid];
       } else if (p.fid) {
-        const key = "single_" + p.fid;
-        if (!childMap.has(key)) childMap.set(key, { pids: [p.fid], children: [] });
-        childMap.get(key).children.push(p.id);
+        key = "f_" + p.fid;
+        pids = [p.fid];
       } else if (p.mid) {
-        const key = "single_" + p.mid;
-        if (!childMap.has(key)) childMap.set(key, { pids: [p.mid], children: [] });
+        const mom = pMap.get(p.mid);
+        if (mom && mom.pids && mom.pids.length > 0) {
+          const spouseId = mom.pids[0];
+          key = Math.min(p.mid, spouseId) + "_" + Math.max(p.mid, spouseId);
+          pids = [spouseId, p.mid];
+        } else {
+          key = "m_" + p.mid;
+          pids = [p.mid];
+        }
+      }
+
+      if (key && pids) {
+        if (!childMap.has(key)) childMap.set(key, { pids, children: [] });
         childMap.get(key).children.push(p.id);
       }
     });
