@@ -703,8 +703,25 @@
     "profession": "",
     "photo": "",
     "notes": "",
-    "pids": [],
+    "pids": [
+      48
+    ],
     "fid": 32,
     "mid": 29
+  },
+  {
+    "id": 48,
+    "name": "Ana Karim",
+    "gender": "female",
+    "birth_place": "",
+    "city": "Madrid (Madrid)",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [
+      47
+    ]
   }
 ]
