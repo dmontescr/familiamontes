@@ -688,7 +688,9 @@
     "profession": "",
     "photo": "",
     "notes": "",
-    "pids": [],
+    "pids": [
+      49
+    ],
     "fid": 32,
     "mid": 29
   },
@@ -722,6 +724,21 @@
     "notes": "",
     "pids": [
       47
+    ]
+  },
+  {
+    "id": 49,
+    "name": "Pablo",
+    "gender": "male",
+    "birth_place": "",
+    "city": "Coslada (Madrid)",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [
+      46
     ]
   }
 ]
