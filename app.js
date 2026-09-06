@@ -16,7 +16,8 @@ const AppState = {
   hasUnsavedChanges: false,
   isAuthenticated: false,
   photosCache: {},      // Mapeo de 'photos/nombre_persona.jpg' -> base64 DataURL
-  deletedPhotos: new Set() // Set de 'photos/...' marcadas para eliminar
+  deletedPhotos: new Set(), // Set de 'photos/...' marcadas para eliminar
+  prerenderHookAttached: false
 };
 
 // Generar nombre de archivo limpio para la carpeta photos/
@@ -813,6 +814,138 @@ function cleanAndValidateTreeData(data) {
   return data;
 }
 
+/**
+ * Calcula la profundidad generacional de cada familiar en el árbol genealógico.
+ * Raíces ancestrales (sin padres) = Gen 0.
+ * Hijos = Gen de progenitores + 1.
+ * Cónyuges = Se sincronizan a la misma generación máxima de la pareja.
+ */
+function calculateGenerations(treeList) {
+  if (!Array.isArray(treeList) || treeList.length === 0) return new Map();
+  const pMap = new Map();
+  treeList.forEach(p => pMap.set(p.id, p));
+
+  const genMap = new Map();
+  function getPersonGen(id, visited = new Set()) {
+    if (visited.has(id)) return 0;
+    visited.add(id);
+    if (genMap.has(id)) return genMap.get(id);
+
+    const person = pMap.get(id);
+    if (!person) return 0;
+
+    let maxParentGen = -1;
+    if (person.fid && pMap.has(person.fid)) {
+      maxParentGen = Math.max(maxParentGen, getPersonGen(person.fid, new Set(visited)));
+    }
+    if (person.mid && pMap.has(person.mid)) {
+      maxParentGen = Math.max(maxParentGen, getPersonGen(person.mid, new Set(visited)));
+    }
+
+    const gen = (maxParentGen >= 0) ? maxParentGen + 1 : 0;
+    genMap.set(id, gen);
+    return gen;
+  }
+
+  treeList.forEach(p => getPersonGen(p.id));
+
+  // Sincronización bidireccional entre cónyuges para que compartan siempre la misma generación
+  for (let i = 0; i < 3; i++) {
+    treeList.forEach(p => {
+      let partnerId = null;
+      if (p.pids && p.pids.length > 0) {
+        partnerId = p.pids[0];
+      } else {
+        const spouse = treeList.find(x => x.pids && x.pids.includes(p.id));
+        if (spouse) partnerId = spouse.id;
+      }
+
+      if (partnerId) {
+        const g1 = genMap.get(p.id) || 0;
+        const g2 = genMap.get(partnerId) || 0;
+        const maxG = Math.max(g1, g2);
+        genMap.set(p.id, maxG);
+        genMap.set(partnerId, maxG);
+      }
+    });
+  }
+
+  return genMap;
+}
+
+/**
+ * Garantiza que todos los cónyuges y miembros de la misma generación se posicionen
+ * exactamente a la misma altura / nivel en el lienzo (coordenada Y en vertical, X en horizontal).
+ */
+function alignTreeLevels(args, orientation, treeList) {
+  if (!args || !args.res || !args.res.nodes) return;
+  const nodes = args.res.nodes;
+  const genMap = calculateGenerations(treeList);
+
+  const isHorizontal = (orientation === FamilyTree.orientation.left || AppState.treeOrientation === "left");
+
+  // Agrupar nodos por nivel de generación
+  const genGroups = new Map();
+  treeList.forEach(p => {
+    if (nodes[p.id]) {
+      const g = genMap.get(p.id) || 0;
+      if (!genGroups.has(g)) genGroups.set(g, []);
+      genGroups.get(g).push(p.id);
+    }
+  });
+
+  const sortedGens = [...genGroups.keys()].sort((a, b) => a - b);
+  
+  sortedGens.forEach(g => {
+    const pIds = genGroups.get(g);
+    if (!pIds || pIds.length === 0) return;
+
+    if (!isHorizontal) {
+      // Orientación vertical (top / bottom): Alinear exactamente en Y
+      let maxY = 0;
+      pIds.forEach(id => {
+        if (nodes[id] && nodes[id].y > maxY) maxY = nodes[id].y;
+      });
+      
+      pIds.forEach(id => {
+        if (nodes[id]) nodes[id].y = maxY;
+      });
+    } else {
+      // Orientación horizontal (left): Alinear exactamente en X
+      let maxX = 0;
+      pIds.forEach(id => {
+        if (nodes[id] && nodes[id].x > maxX) maxX = nodes[id].x;
+      });
+      pIds.forEach(id => {
+        if (nodes[id]) nodes[id].x = maxX;
+      });
+    }
+  });
+
+  // Garantía directa e incondicional para cada pareja registrada
+  treeList.forEach(p => {
+    let partnerId = null;
+    if (p.pids && p.pids.length > 0) {
+      partnerId = p.pids[0];
+    } else {
+      const spouse = treeList.find(x => x.pids && x.pids.includes(p.id));
+      if (spouse) partnerId = spouse.id;
+    }
+
+    if (partnerId && nodes[p.id] && nodes[partnerId]) {
+      if (!isHorizontal) {
+        const targetY = Math.max(nodes[p.id].y, nodes[partnerId].y);
+        nodes[p.id].y = targetY;
+        nodes[partnerId].y = targetY;
+      } else {
+        const targetX = Math.max(nodes[p.id].x, nodes[partnerId].x);
+        nodes[p.id].x = targetX;
+        nodes[partnerId].x = targetX;
+      }
+    }
+  });
+}
+
 window.restoreLastValidTree = function() {
   if (AppState.lastValidTreeData && AppState.lastValidTreeData.length > 0) {
     AppState.treeData = JSON.parse(JSON.stringify(AppState.lastValidTreeData));
@@ -1089,6 +1222,14 @@ function formatLocationWithProvince(loc) {
     const layoutSelect = document.getElementById("tree-layout-select");
     if (layoutSelect && layoutSelect.value !== AppState.treeLayout) {
       layoutSelect.value = AppState.treeLayout;
+    }
+
+    // Conectar gancho de prerenderizado para asegurar que cónyuges y generaciones estén siempre a la misma altura
+    if (!AppState.prerenderHookAttached && typeof FamilyTree !== "undefined" && FamilyTree.events) {
+      FamilyTree.events.on("prerender", (treeInstance, args) => {
+        alignTreeLevels(args, AppState.treeOrientation, AppState.treeData);
+      });
+      AppState.prerenderHookAttached = true;
     }
 
     try {
