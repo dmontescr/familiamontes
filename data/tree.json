@@ -317,5 +317,19 @@
     "notes": "",
     "pids": [],
     "mid": 17
+  },
+  {
+    "id": 23,
+    "name": "Petra",
+    "gender": "female",
+    "birth_place": "Bilbao",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "mid": 17
   }
 ]
