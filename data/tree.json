@@ -864,5 +864,20 @@
     "pids": [],
     "fid": 33,
     "mid": 55
+  },
+  {
+    "id": 58,
+    "name": "Víctor",
+    "gender": "male",
+    "birth_place": "",
+    "city": "Coslada (Madrid)",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 49,
+    "mid": 46
   }
 ]
