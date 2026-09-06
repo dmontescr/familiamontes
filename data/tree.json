@@ -787,5 +787,20 @@
     "pids": [
       34
     ]
+  },
+  {
+    "id": 53,
+    "name": "Pelayo Pellitero Gutiérrez",
+    "gender": "male",
+    "birth_place": "",
+    "city": "Gijón (Asturias)",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 34,
+    "mid": 52
   }
 ]
