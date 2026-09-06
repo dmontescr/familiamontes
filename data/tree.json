@@ -802,5 +802,20 @@
     "pids": [],
     "fid": 34,
     "mid": 52
+  },
+  {
+    "id": 54,
+    "name": "María Pellitero Gutiérrez",
+    "gender": "female",
+    "birth_place": "",
+    "city": "Gijón (Asturias)",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 34,
+    "mid": 52
   }
 ]
