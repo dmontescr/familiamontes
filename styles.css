@@ -757,11 +757,14 @@ body {
   flex-shrink: 0;
 }
 
-.btn-add-child {
+.tree-card.menu-open {
+  z-index: 100 !important;
+}
+
+.card-btn-add {
   position: absolute;
-  bottom: -12px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 8px;
+  right: 8px;
   width: 24px;
   height: 24px;
   border-radius: 50%;
@@ -770,49 +773,102 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #64748b;
-  font-size: 15px;
+  color: #0284c7;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-  transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
-  z-index: 10;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 20;
+  padding: 0;
+  line-height: 1;
 }
 
-.btn-add-child:hover {
-  background: var(--color-primary);
+.card-btn-add:hover {
+  background: #0284c7;
   color: #ffffff;
-  border-color: var(--color-primary);
-  transform: translateX(-50%) scale(1.15);
+  border-color: #0284c7;
+  transform: scale(1.12);
+  box-shadow: 0 3px 10px rgba(2, 132, 199, 0.28);
 }
 
-.btn-add-partner {
+.tree-card.female .card-btn-add {
+  color: #e11d48;
+  border-color: #fbcfe8;
+}
+
+.tree-card.female .card-btn-add:hover {
+  background: #e11d48;
+  color: #ffffff;
+  border-color: #e11d48;
+  box-shadow: 0 3px 10px rgba(225, 29, 72, 0.28);
+}
+
+/* Menú Contextual Desplegable estilo FamilySearch */
+.card-add-menu {
   position: absolute;
-  right: -12px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #ffffff;
-  border: 1.5px solid #cbd5e1;
+  top: 22px;
+  left: calc(100% - 28px);
+  background: #ffffff !important;
+  border-radius: 10px;
+  box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.18), 0 6px 12px -4px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 175px;
+  z-index: 150;
+  animation: cardMenuFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+}
+
+@keyframes cardMenuFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.add-menu-item {
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: #64748b;
-  font-size: 15px;
-  font-weight: 600;
+  gap: 9px;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #334155;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-  transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
-  z-index: 10;
+  text-align: left;
+  transition: background 0.12s ease, color 0.12s ease;
+  white-space: nowrap;
+  width: 100%;
 }
 
-.btn-add-partner:hover {
-  background: var(--color-primary);
-  color: #ffffff;
-  border-color: var(--color-primary);
-  transform: translateY(-50%) scale(1.15);
+.add-menu-item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.add-menu-item svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  stroke-width: 2;
+  flex-shrink: 0;
+  color: #64748b;
+  transition: color 0.12s ease;
+}
+
+.add-menu-item:hover svg {
+  color: var(--color-primary);
 }
 
 .connector-line {

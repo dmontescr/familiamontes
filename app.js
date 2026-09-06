@@ -852,6 +852,17 @@ function formatLocationWithProvince(loc) {
   return `${trimmed} (${trimmed})`;
 }
 
+function closeAllCardAddMenus() {
+  document.querySelectorAll(".card-add-menu").forEach(m => m.remove());
+  document.querySelectorAll(".tree-card.menu-open").forEach(c => c.classList.remove("menu-open"));
+}
+
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".card-add-menu") && !e.target.closest("[data-action='toggle-add-menu']")) {
+    closeAllCardAddMenus();
+  }
+});
+
 // ==========================================================================
 // 3. MOTOR GENEALÓGICO NATIVO Y DEFINITIVO (MontesTreeEngine)
 // ==========================================================================
@@ -1261,24 +1272,78 @@ class MontesTreeEngine {
             </div>
           ` : ""}
         </div>
-        <div class="btn-add-child" data-action="add-child" data-id="${p.id}" title="Añadir hijo/a">+</div>
-        ${!hasPartner ? `<div class="btn-add-partner" data-action="add-partner" data-id="${p.id}" title="Añadir pareja / cónyuge">+</div>` : ""}
+        <button class="card-btn-add" data-action="toggle-add-menu" data-id="${p.id}" title="Añadir pariente">+</button>
       `;
 
       card.addEventListener("click", (e) => {
         const actionEl = e.target.closest("[data-action]");
         const action = actionEl ? actionEl.getAttribute("data-action") : "card";
 
-        if (action === "add-child") {
+        if (action === "toggle-add-menu") {
           e.stopPropagation();
-          openAddChildModal(p.id);
+          const isMenuOpen = card.querySelector(".card-add-menu");
+          closeAllCardAddMenus();
+          if (isMenuOpen) return;
+
+          card.classList.add("menu-open");
+
+          // Opciones adaptadas según el nivel y estado de parentesco (Estilo FamilySearch)
+          const canAddChild = true;
+          const canAddPartner = !p.pids || p.pids.length === 0;
+          const canAddSibling = Boolean(p.fid || p.mid);
+          const canAddFather = !p.fid;
+          const canAddMother = !p.mid;
+
+          const menu = document.createElement("div");
+          menu.className = "card-add-menu";
+          menu.innerHTML = `
+            <button class="add-menu-item" data-menu-action="add-child">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+              <span>Agregar hijo</span>
+            </button>
+            ${canAddPartner ? `
+              <button class="add-menu-item" data-menu-action="add-partner">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                <span>Agregar cónyuge</span>
+              </button>
+            ` : ""}
+            ${canAddSibling ? `
+              <button class="add-menu-item" data-menu-action="add-sibling">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span>Agregar hermano</span>
+              </button>
+            ` : ""}
+            ${canAddFather ? `
+              <button class="add-menu-item" data-menu-action="add-father">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/></svg>
+                <span>Agregar padre</span>
+              </button>
+            ` : ""}
+            ${canAddMother ? `
+              <button class="add-menu-item" data-menu-action="add-mother">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/></svg>
+                <span>Agregar madre</span>
+              </button>
+            ` : ""}
+          `;
+
+          menu.querySelectorAll(".add-menu-item").forEach(item => {
+            item.addEventListener("click", (evt) => {
+              evt.stopPropagation();
+              const act = item.getAttribute("data-menu-action");
+              closeAllCardAddMenus();
+              if (act === "add-child") openAddChildModal(p.id);
+              else if (act === "add-partner") openAddPartnerModal(p.id);
+              else if (act === "add-sibling") openAddSiblingModal(p.id);
+              else if (act === "add-father") openAddParentModal(p.id, "father");
+              else if (act === "add-mother") openAddParentModal(p.id, "mother");
+            });
+          });
+
+          card.appendChild(menu);
           return;
         }
-        if (action === "add-partner") {
-          e.stopPropagation();
-          openAddPartnerModal(p.id);
-          return;
-        }
+
         if (action === "photo") {
           e.stopPropagation();
           openPhotoLightboxById(p.id);
@@ -2194,6 +2259,78 @@ function openAddPartnerModal(personId) {
   openModal("modal-person");
 }
 
+function openAddSiblingModal(personId) {
+  const person = AppState.treeData.find(p => p.id === personId);
+  if (!person) return;
+
+  const form = document.getElementById("form-person");
+  form.reset();
+
+  document.getElementById("form-person-id").value = "";
+  document.getElementById("group-form-links").style.display = "block";
+  document.getElementById("form-gender").disabled = false;
+  document.getElementById("form-gender").value = "male";
+
+  document.getElementById("modal-person-title").querySelector("span").textContent = `Añadir Hermano/a de ${person.name}`;
+
+  const birthPlaceInput = document.getElementById("form-birth-place");
+  if (birthPlaceInput) birthPlaceInput.value = person.birth_place || "";
+  const cityInput = document.getElementById("form-city");
+  if (cityInput) cityInput.value = person.city || "";
+  document.getElementById("form-photo").value = "";
+  document.getElementById("form-photo-file").value = "";
+  document.getElementById("form-photo-preview").src = getDefaultAvatar("male");
+  document.getElementById("btn-remove-photo").style.display = "none";
+
+  const suggestionBox = document.getElementById("name-suggestion-box");
+  if (suggestionBox) suggestionBox.style.display = "none";
+
+  populateParentAndPartnerSelectors(null, {
+    fid: person.fid || null,
+    mid: person.mid || null
+  });
+
+  openModal("modal-person");
+}
+
+function openAddParentModal(childId, role) {
+  const child = AppState.treeData.find(p => p.id === childId);
+  if (!child) return;
+
+  const form = document.getElementById("form-person");
+  form.reset();
+
+  document.getElementById("form-person-id").value = "";
+  document.getElementById("group-form-links").style.display = "block";
+
+  const gender = (role === "father") ? "male" : "female";
+  document.getElementById("form-gender").value = gender;
+  document.getElementById("form-gender").disabled = true;
+
+  document.getElementById("modal-person-title").querySelector("span").textContent = (role === "father") ? `Añadir Padre de ${child.name}` : `Añadir Madre de ${child.name}`;
+
+  const birthPlaceInput = document.getElementById("form-birth-place");
+  if (birthPlaceInput) birthPlaceInput.value = child.birth_place || "";
+  const cityInput = document.getElementById("form-city");
+  if (cityInput) cityInput.value = child.city || "";
+  document.getElementById("form-photo").value = "";
+  document.getElementById("form-photo-file").value = "";
+  document.getElementById("form-photo-preview").src = getDefaultAvatar(gender);
+  document.getElementById("btn-remove-photo").style.display = "none";
+
+  const suggestionBox = document.getElementById("name-suggestion-box");
+  if (suggestionBox) suggestionBox.style.display = "none";
+
+  const otherParentId = (role === "father") ? child.mid : child.fid;
+  AppState.pendingChildLink = { childId: child.id, role };
+
+  populateParentAndPartnerSelectors(null, {
+    pid: otherParentId || null
+  });
+
+  openModal("modal-person");
+}
+
 function openEditPersonModal(personId) {
   const person = AppState.treeData.find(p => p.id === personId);
   if (!person) return;
@@ -2403,6 +2540,36 @@ async function savePersonFromForm() {
     }
 
     AppState.treeData.push(newPerson);
+
+    // Si se estaba añadiendo un padre/madre directamente desde la tarjeta del hijo
+    if (AppState.pendingChildLink) {
+      const child = AppState.treeData.find(p => p.id === AppState.pendingChildLink.childId);
+      if (child) {
+        if (AppState.pendingChildLink.role === "father") {
+          child.fid = newId;
+          if (child.mid) {
+            newPerson.pids = [child.mid];
+            const mom = AppState.treeData.find(p => p.id === child.mid);
+            if (mom) {
+              if (!Array.isArray(mom.pids)) mom.pids = [];
+              if (!mom.pids.includes(newId)) mom.pids.push(newId);
+            }
+          }
+        } else if (AppState.pendingChildLink.role === "mother") {
+          child.mid = newId;
+          if (child.fid) {
+            newPerson.pids = [child.fid];
+            const dad = AppState.treeData.find(p => p.id === child.fid);
+            if (dad) {
+              if (!Array.isArray(dad.pids)) dad.pids = [];
+              if (!dad.pids.includes(newId)) dad.pids.push(newId);
+            }
+          }
+        }
+      }
+      AppState.pendingChildLink = null;
+    }
+
     showToast(`Se ha añadido a ${name} al árbol genealógico`, "success");
   }
 
@@ -3206,6 +3373,7 @@ function openModal(modalId) {
 }
 
 function closeAllModals() {
+  AppState.pendingChildLink = null;
   document.querySelectorAll(".modal-backdrop").forEach(modal => {
     modal.classList.remove("active");
   });
