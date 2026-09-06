@@ -520,5 +520,20 @@
     "pids": [
       27
     ]
+  },
+  {
+    "id": 36,
+    "name": "José Manuel Montes",
+    "gender": "male",
+    "birth_place": "",
+    "city": "Arroyo de la Encomienda (Valladolid)",
+    "birth": "",
+    "death": "",
+    "profession": "Bloguero viajes",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 27,
+    "mid": 35
   }
 ]
