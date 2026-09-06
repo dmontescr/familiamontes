@@ -834,5 +834,20 @@
     "pids": [
       33
     ]
+  },
+  {
+    "id": 56,
+    "name": "Javier Pellitero García",
+    "gender": "male",
+    "birth_place": "",
+    "city": "Gijón (Asturias)",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 33,
+    "mid": 55
   }
 ]
