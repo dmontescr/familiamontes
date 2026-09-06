@@ -755,5 +755,20 @@
     "pids": [],
     "fid": 47,
     "mid": 48
+  },
+  {
+    "id": 51,
+    "name": "Lucas",
+    "gender": "male",
+    "birth_place": "",
+    "city": "Coslada (Madrid)",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 49,
+    "mid": 46
   }
 ]
