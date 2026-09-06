@@ -646,5 +646,20 @@
     "pids": [
       42
     ]
+  },
+  {
+    "id": 44,
+    "name": "Eloy",
+    "gender": "male",
+    "birth_place": "",
+    "city": "Villanueva de Oscos (Asturias)",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 43,
+    "mid": 42
   }
 ]
