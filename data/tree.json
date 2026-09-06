@@ -303,5 +303,19 @@
     "notes": "",
     "pids": [],
     "mid": 17
+  },
+  {
+    "id": 22,
+    "name": "Celia",
+    "gender": "male",
+    "birth_place": "Bilbao (Bizkaia)",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "mid": 17
   }
 ]
