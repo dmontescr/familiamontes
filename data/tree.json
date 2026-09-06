@@ -154,7 +154,8 @@
     "photo": "",
     "notes": "Su primer marido Simón murió joven y se caso posteriormente con Aureliano.",
     "pids": [
-      9
+      9,
+      21
     ]
   },
   {
@@ -279,7 +280,7 @@
   {
     "id": 20,
     "name": "Luisa Montes",
-    "gender": "male",
+    "gender": "female",
     "birth_place": "Bilbao (Bizkaia)",
     "city": "",
     "birth": "",
@@ -301,6 +302,50 @@
     "profession": "",
     "photo": "",
     "notes": "Marido de Teresa Rodríguez en un 2º matrimonio, tras el fallecimiento de Simón Carrera.",
-    "pids": []
+    "pids": [
+      10
+    ]
+  },
+  {
+    "id": 22,
+    "name": "Esther",
+    "gender": "female",
+    "birth_place": "Bilbao (Bizkaia)",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "mid": 17
+  },
+  {
+    "id": 23,
+    "name": "Celia",
+    "gender": "female",
+    "birth_place": "Bilbao (Bizkaia)",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "mid": 17
+  },
+  {
+    "id": 24,
+    "name": "Petra",
+    "gender": "female",
+    "birth_place": "Bilbao",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "mid": 17
   }
 ]
