@@ -14,8 +14,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- FamilyTreeJS CDN -->
-  <script src="https://balkan.app/js/FamilyTree.js"></script>
+  <!-- FamilyTreeJS CDN (con fallback local) -->
+  <script src="https://balkan.app/js/FamilyTree.js" onerror="this.onerror=null;this.src='balkan.js';"></script>
 
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>

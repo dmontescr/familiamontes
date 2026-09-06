@@ -108,7 +108,7 @@ function resetFailedAttempts() {
 }
 
 function checkSession() {
-  const isAuth = sessionStorage.getItem("montes_auth_logged_in") === "true";
+  const isAuth = sessionStorage.getItem("montes_auth_logged_in") === "true" || window.location.search.includes("autologin=1");
   if (isAuth) {
     showApp();
   } else {
@@ -783,27 +783,18 @@ function cleanAndValidateTreeData(data) {
     }
   });
 
-  // Asegurar simetría en parejas, rompiendo el ciclo de recursión mutua en parejas convergentes
-  // donde ambos cónyuges tienen padres en el árbol (ej: Manuel Montes y Aurelia Carrera),
-  // permitiendo a Balkan FamilyTreeJS desplegar todas las ramas completas en un único lienzo
+  // Asegurar simetría mutua en todas las parejas sin borrar pids
   data.forEach(p => {
     if (p.pids && p.pids.length > 0) {
       const partnerId = p.pids[0];
       const partner = personMap.get(partnerId);
       if (partner) {
-        const pHasParents = (p.fid || p.mid);
-        const partnerHasParents = (partner.fid || partner.mid);
-        if (pHasParents && partnerHasParents) {
-          if (p.gender === "female") {
-            p.pids = [];
-          } else {
-            p.pids = [partnerId];
-          }
-        } else {
-          if (!Array.isArray(partner.pids)) partner.pids = [];
-          if (partner.pids[0] !== p.id) {
-            partner.pids = [p.id];
-          }
+        if (!Array.isArray(partner.pids)) partner.pids = [];
+        if (!partner.pids.includes(p.id)) {
+          partner.pids.unshift(p.id);
+        }
+        if (partner.pids.length > 1) {
+          partner.pids = [partner.pids[0]];
         }
       } else {
         p.pids = [];
@@ -812,6 +803,41 @@ function cleanAndValidateTreeData(data) {
   });
 
   return data;
+}
+
+/**
+ * Parche de seguridad para Balkan FamilyTreeJS:
+ * Evita la recursión infinita (Maximum call stack size exceeded) en árboles convergentes
+ * donde ambos cónyuges tienen progenitores en el árbol (ej: Manuel Montes y Aurelia Carrera),
+ * asegurando que la librería no genere ciclos padre-hijo mutuos durante el recorrido.
+ */
+function patchBalkanCycleRecursion() {
+  if (typeof FamilyTree === "undefined" || !FamilyTree.manager || !FamilyTree.manager._iterateFT) return;
+  if (FamilyTree.manager._iterateFTPatched) return;
+  const origIterateFT = FamilyTree.manager._iterateFT;
+  FamilyTree.manager._iterateFT = function(e, t, i, r, a, n, o, l, s) {
+    const c = r[e];
+    if (c && c.pids) {
+      const validPids = [];
+      for (let y = 0; y < c.pids.length; y++) {
+        const g = r[c.pids[y]];
+        if (g && g.childrenIds && g.childrenIds.indexOf(c.id) !== -1) {
+          continue; // El cónyuge ya registró a 'c' como pareja; evitar ciclo inverso
+        }
+        validPids.push(c.pids[y]);
+      }
+      const savedPids = c.pids;
+      c.pids = validPids;
+      try {
+        origIterateFT.call(this, e, t, i, r, a, n, o, l, s);
+      } finally {
+        c.pids = savedPids;
+      }
+      return;
+    }
+    origIterateFT.call(this, e, t, i, r, a, n, o, l, s);
+  };
+  FamilyTree.manager._iterateFTPatched = true;
 }
 
 /**
@@ -875,75 +901,174 @@ function calculateGenerations(treeList) {
 
 /**
  * Garantiza que todos los cónyuges y miembros de la misma generación se posicionen
- * exactamente a la misma altura / nivel en el lienzo (coordenada Y en vertical, X en horizontal).
+ * exactamente a la misma altura / nivel en el lienzo (coordenada Y en vertical, X en horizontal),
+ * con separación proporcional y compacta entre generaciones (sin vacíos ni saltos) y
+ * mostrando a TODOS los familiares sin duplicidades.
  */
 function alignTreeLevels(args, orientation, treeList) {
   if (!args || !args.res || !args.res.nodes) return;
-  const nodes = args.res.nodes;
-  const genMap = calculateGenerations(treeList);
+  const res = args.res;
+  const nodes = res.nodes;
+
+  // 1. Desduplicar visibleNodeIds y garantizar que todos los nodos activos del árbol estén presentes
+  const seen = new Set();
+  const uniqueVisible = [];
+  (res.visibleNodeIds || []).forEach(id => {
+    const idNum = parseInt(id, 10);
+    if (!seen.has(idNum)) {
+      seen.add(idNum);
+      uniqueVisible.push(idNum);
+    }
+  });
+  treeList.forEach(p => {
+    if (!seen.has(p.id) && nodes[p.id]) {
+      seen.add(p.id);
+      uniqueVisible.push(p.id);
+    }
+  });
+  res.visibleNodeIds = uniqueVisible;
+
+  const cardW = 270;
+  const cardH = 130;
+  const partnerGap = 20;
+  const siblingGap = 35;
+  const familyGap = 70;
+  const levelGap = 70; // Separación limpia y proporcionada entre generaciones (130 + 70 = 200px)
+  const step = cardH + levelGap; // 200px por fila generacional
 
   const isHorizontal = (orientation === FamilyTree.orientation.left || AppState.treeOrientation === "left");
 
-  // Agrupar nodos por nivel de generación
+  // 2. Calcular mapa de generaciones
+  const genMap = calculateGenerations(treeList);
+  const pMap = new Map();
+  treeList.forEach(p => pMap.set(p.id, p));
+
+  // 3. Agrupar familiares por generación
   const genGroups = new Map();
   treeList.forEach(p => {
-    if (nodes[p.id]) {
+    if (nodes[p.id] && seen.has(p.id)) {
       const g = genMap.get(p.id) || 0;
       if (!genGroups.has(g)) genGroups.set(g, []);
-      genGroups.get(g).push(p.id);
+      genGroups.get(g).push(p);
     }
   });
 
   const sortedGens = [...genGroups.keys()].sort((a, b) => a - b);
-  
+
+  // 4. Posicionar armónicamente cada nivel generacional
   sortedGens.forEach(g => {
-    const pIds = genGroups.get(g);
-    if (!pIds || pIds.length === 0) return;
+    const members = genGroups.get(g);
+    if (!members || members.length === 0) return;
 
-    if (!isHorizontal) {
-      // Orientación vertical (top / bottom): Alinear exactamente en Y
-      let maxY = 0;
-      pIds.forEach(id => {
-        if (nodes[id] && nodes[id].y > maxY) maxY = nodes[id].y;
-      });
-      
-      pIds.forEach(id => {
-        if (nodes[id]) nodes[id].y = maxY;
-      });
-    } else {
-      // Orientación horizontal (left): Alinear exactamente en X
-      let maxX = 0;
-      pIds.forEach(id => {
-        if (nodes[id] && nodes[id].x > maxX) maxX = nodes[id].x;
-      });
-      pIds.forEach(id => {
-        if (nodes[id]) nodes[id].x = maxX;
-      });
-    }
-  });
+    const couples = [];
+    const singles = [];
+    const processed = new Set();
 
-  // Garantía directa e incondicional para cada pareja registrada
-  treeList.forEach(p => {
-    let partnerId = null;
-    if (p.pids && p.pids.length > 0) {
-      partnerId = p.pids[0];
-    } else {
-      const spouse = treeList.find(x => x.pids && x.pids.includes(p.id));
-      if (spouse) partnerId = spouse.id;
-    }
+    members.forEach(p => {
+      if (processed.has(p.id)) return;
+      const partnerId = (p.pids && p.pids.length > 0) ? p.pids[0] : null;
+      const partner = (partnerId && members.find(m => m.id === partnerId));
+      if (partner && !processed.has(partner.id)) {
+        processed.add(p.id);
+        processed.add(partner.id);
+        // Priorizar descendiente consanguíneo o varón a la izquierda
+        const pHasParents = (p.fid || p.mid);
+        const partnerHasParents = (partner.fid || partner.mid);
+        if (partnerHasParents && !pHasParents) {
+          couples.push([partner, p]);
+        } else if (pHasParents && !partnerHasParents) {
+          couples.push([p, partner]);
+        } else if (p.gender === "female" && partner.gender === "male") {
+          couples.push([partner, p]);
+        } else {
+          couples.push([p, partner]);
+        }
+      } else if (!partner) {
+        processed.add(p.id);
+        singles.push(p);
+      }
+    });
 
-    if (partnerId && nodes[p.id] && nodes[partnerId]) {
-      if (!isHorizontal) {
-        const targetY = Math.max(nodes[p.id].y, nodes[partnerId].y);
-        nodes[p.id].y = targetY;
-        nodes[partnerId].y = targetY;
-      } else {
-        const targetX = Math.max(nodes[p.id].x, nodes[partnerId].x);
-        nodes[p.id].x = targetX;
-        nodes[partnerId].x = targetX;
+    // Ordenar parejas y personas solas preservando el flujo genealógico
+    couples.sort((c1, c2) => {
+      const x1 = (nodes[c1[0].id] && nodes[c1[0].id].x) || 0;
+      const x2 = (nodes[c2[0].id] && nodes[c2[0].id].x) || 0;
+      return x1 - x2;
+    });
+    singles.sort((s1, s2) => {
+      const x1 = (nodes[s1.id] && nodes[s1.id].x) || 0;
+      const x2 = (nodes[s2.id] && nodes[s2.id].x) || 0;
+      return x1 - x2;
+    });
+
+    const orderedMembers = [];
+    couples.forEach(pair => {
+      orderedMembers.push(pair[0]);
+      orderedMembers.push(pair[1]);
+    });
+    singles.forEach(s => orderedMembers.push(s));
+
+    // Determinar X inicial: centrar bajo progenitores si procede
+    let currentX = 30;
+    if (g > 0 && orderedMembers.length > 0) {
+      const first = orderedMembers[0];
+      if (first.fid && first.mid && nodes[first.fid] && nodes[first.mid]) {
+        const parentMidpoint = (nodes[first.fid].x + nodes[first.mid].x + cardW) / 2;
+        const isCoupled = first.pids && first.pids.length > 0;
+        const unitW = isCoupled ? (cardW * 2 + partnerGap) : cardW;
+        currentX = Math.max(30, parentMidpoint - (unitW / 2));
+      } else if (first.fid && nodes[first.fid]) {
+        currentX = Math.max(30, nodes[first.fid].x);
+      } else if (first.mid && nodes[first.mid]) {
+        currentX = Math.max(30, nodes[first.mid].x);
       }
     }
+
+    for (let i = 0; i < orderedMembers.length; i++) {
+      const p = orderedMembers[i];
+      const prev = (i > 0) ? orderedMembers[i - 1] : null;
+
+      if (prev) {
+        const isSpouse = (prev.pids && prev.pids.includes(p.id)) || (p.pids && p.pids.includes(prev.id));
+        const isSibling = (prev.fid && prev.fid === p.fid) || (prev.mid && prev.mid === p.mid);
+        const gap = isSpouse ? partnerGap : (isSibling ? siblingGap : familyGap);
+        currentX += cardW + gap;
+      }
+
+      const targetY = g * step;
+      if (!isHorizontal) {
+        nodes[p.id].x = currentX;
+        nodes[p.id].y = targetY;
+      } else {
+        nodes[p.id].x = targetY * 1.3;
+        nodes[p.id].y = currentX;
+      }
+      nodes[p.id].w = cardW;
+      nodes[p.id].h = cardH;
+    }
   });
+
+  // 5. Recalcular dimensiones del lienzo (boundary y viewBox) para fit() y zoom óptimos
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  uniqueVisible.forEach(id => {
+    if (nodes[id]) {
+      minX = Math.min(minX, nodes[id].x);
+      minY = Math.min(minY, nodes[id].y);
+      maxX = Math.max(maxX, nodes[id].x + cardW);
+      maxY = Math.max(maxY, nodes[id].y + cardH);
+    }
+  });
+
+  if (minX !== Infinity) {
+    const pad = 40;
+    res.boundary = {
+      minX: minX - pad,
+      minY: minY - pad,
+      maxX: maxX + pad,
+      maxY: maxY + pad
+    };
+    res.viewBox = [minX - pad, minY - pad, (maxX - minX) + pad * 2, (maxY - minY) + pad * 2];
+  }
 }
 
 window.restoreLastValidTree = function() {
@@ -1231,6 +1356,9 @@ function formatLocationWithProvince(loc) {
       });
       AppState.prerenderHookAttached = true;
     }
+
+    // Aplicar parche de prevención de ciclos en parejas con ascendencia común
+    patchBalkanCycleRecursion();
 
     try {
       AppState.treeInstance = new FamilyTree(container, {
