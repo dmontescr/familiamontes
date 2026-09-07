@@ -1490,5 +1490,20 @@
     "pids": [],
     "fid": 97,
     "mid": 15
+  },
+  {
+    "id": 99,
+    "name": "Dolores Prieto Martínez",
+    "gender": "female",
+    "birth_place": "",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 97,
+    "mid": 15
   }
 ]
