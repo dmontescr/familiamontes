@@ -1278,5 +1278,20 @@
     "pids": [],
     "fid": 68,
     "mid": 13
+  },
+  {
+    "id": 85,
+    "name": "Elisa Manjón Carrera",
+    "gender": "female",
+    "birth_place": "",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 69,
+    "mid": 14
   }
 ]
