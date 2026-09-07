@@ -186,7 +186,9 @@
     "profession": "",
     "photo": "",
     "notes": "2º Hija. Las dos hermanas, se casaron con 2 hermanos de la familia Manjón.",
-    "pids": [],
+    "pids": [
+      68
+    ],
     "fid": 9,
     "mid": 10
   },
@@ -1027,7 +1029,9 @@
     "profession": "",
     "photo": "",
     "notes": "",
-    "pids": []
+    "pids": [
+      13
+    ]
   },
   {
     "id": 69,
