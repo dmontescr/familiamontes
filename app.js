@@ -17,6 +17,8 @@ const AppState = {
   isAuthenticated: false,
   photosCache: {},      // Mapeo de 'photos/nombre_persona.jpg' -> base64 DataURL
   deletedPhotos: new Set(), // Set de 'photos/...' marcadas para eliminar
+  pendingSiblingLink: null,
+  pendingChildLink: null,
 };
 window.AppState = AppState;
 
@@ -284,6 +286,19 @@ async function loadTreeData() {
         }
         initTreeVisualization();
         updateHeaderSummary();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const focusId = urlParams.get("focus");
+        if (focusId) {
+          openPersonDrawer(parseInt(focusId, 10));
+          if (AppState.treeInstance && typeof AppState.treeInstance.center === "function") {
+            AppState.treeInstance.center(parseInt(focusId, 10));
+          }
+        }
+        const addSiblingId = urlParams.get("addSibling");
+        if (addSiblingId) {
+          openAddSiblingModal(parseInt(addSiblingId, 10));
+        }
         return;
       }
     }
@@ -761,6 +776,25 @@ function cleanAndValidateTreeData(data) {
         }
       });
     }
+
+    // Asegurar simetría mutua en hermandades de raíz (sids) y propagación de progenitores
+    if (Array.isArray(p.sids)) {
+      p.sids = p.sids.filter(sid => sid !== p.id && personMap.has(sid));
+      p.sids.forEach(sid => {
+        const sib = personMap.get(sid);
+        if (sib) {
+          if (!Array.isArray(sib.sids)) sib.sids = [];
+          if (!sib.sids.includes(p.id)) {
+            sib.sids.push(p.id);
+          }
+          if (p.fid && !sib.fid) sib.fid = p.fid;
+          if (p.mid && !sib.mid) sib.mid = p.mid;
+          if (sib.fid && !p.fid) p.fid = sib.fid;
+          if (sib.mid && !p.mid) p.mid = sib.mid;
+        }
+      });
+      if (p.sids.length === 0) delete p.sids;
+    }
   });
 
   return data;
@@ -770,7 +804,7 @@ function cleanAndValidateTreeData(data) {
  * Calcula la profundidad generacional de cada familiar en el árbol genealógico.
  * Raíces ancestrales (sin padres) = Gen 0.
  * Hijos = Gen de progenitores + 1.
- * Cónyuges = Se sincronizan a la misma generación máxima de la pareja.
+ * Cónyuges y hermanos raíz (sids) = Se sincronizan a la misma generación máxima.
  */
 function calculateGenerations(treeList) {
   if (!Array.isArray(treeList) || treeList.length === 0) return new Map();
@@ -801,9 +835,23 @@ function calculateGenerations(treeList) {
 
   treeList.forEach(p => getPersonGen(p.id));
 
-  // Sincronización bidireccional entre cónyuges para que compartan siempre la misma generación
+  // Sincronización bidireccional entre cónyuges y hermanos sin padres (sids)
   for (let i = 0; i < 3; i++) {
     treeList.forEach(p => {
+      // Sincronizar con hermanos en sids
+      if (Array.isArray(p.sids)) {
+        p.sids.forEach(sid => {
+          if (pMap.has(sid)) {
+            const g1 = genMap.get(p.id) || 0;
+            const g2 = genMap.get(sid) || 0;
+            const maxG = Math.max(g1, g2);
+            genMap.set(p.id, maxG);
+            genMap.set(sid, maxG);
+          }
+        });
+      }
+
+      // Sincronizar con parejas
       const pids = new Set();
       if (Array.isArray(p.pids)) p.pids.forEach(id => pids.add(id));
       treeList.forEach(x => {
@@ -1088,18 +1136,6 @@ class MontesTreeEngine {
       currentX += slotW + gap;
     });
 
-    // Seguridad: ubicar a cualquier familiar independiente que no pertenezca a los linajes principales
-    const unplaced = visibleData.filter(p => !this.positions.has(p.id) && !montesChildren.includes(p.id) && !carreraChildren.includes(p.id) && ![7, 8, 9, 10, 21].includes(p.id));
-    if (unplaced.length > 0) {
-      const unplacedUnits = getFamilyUnits(unplaced.map(p => p.id));
-      unplacedUnits.forEach(u => {
-        const slotW = calcUnitSlotWidth(u);
-        const slotCenter = currentX + slotW / 2;
-        placeUnitAndDescendants(u, slotCenter, 1);
-        currentX += slotW + this.siblingGap;
-      });
-    }
-
     // Centrado de Bisabuelos en Gen 0 sobre sus respectivos linajes de hijos
     // Rama Montes: Carlos & Bibiana centrados sobre sus hijos (Eloy, Anastasia, Sebastiana, Manuel)
     const montesCards = montesChildren.map(id => this.positions.get(id)).filter(Boolean);
@@ -1115,6 +1151,7 @@ class MontesTreeEngine {
 
     // Rama Carrera y Martínez: Tríada Simón (1er marido), Teresa, Aureliano (2º marido)
     const carreraCards = carreraChildren.map(id => this.positions.get(id)).filter(Boolean);
+    let teresaSiblings = [];
     if (carreraCards.length > 0) {
       const minX = Math.min(...carreraCards.map(p => p.x));
       const maxX = Math.max(...carreraCards.map(p => p.x + this.cardW));
@@ -1127,6 +1164,52 @@ class MontesTreeEngine {
       this.positions.set(9, { x: simonX, y: 50 });
       this.positions.set(10, { x: teresaX, y: 50 });
       this.positions.set(21, { x: aurelianoX, y: 50 });
+    }
+
+    // Rama Rodríguez: Hermanas/os de Teresa Rodríguez (Antonia, Herminia...) en Gen 0 (y = 50)
+    const getPersonSiblings = (personId) => {
+      const p = pMap.get(personId);
+      if (!p) return [];
+      return visibleData.filter(other => {
+        if (other.id === personId) return false;
+        if (p.fid && other.fid === p.fid) return true;
+        if (p.mid && other.mid === p.mid) return true;
+        if (Array.isArray(p.sids) && p.sids.includes(other.id)) return true;
+        if (Array.isArray(other.sids) && other.sids.includes(personId)) return true;
+        return false;
+      }).map(other => other.id);
+    };
+
+    teresaSiblings = getPersonSiblings(10).filter(id => ![9, 21, 7, 8].includes(id));
+    this.rootSiblingGroups = [];
+    if (teresaSiblings.length > 0) {
+      this.rootSiblingGroups.push([10, ...teresaSiblings]);
+
+      const teresaSiblingUnits = getFamilyUnits(teresaSiblings);
+      const aurelianoPos = this.positions.get(21);
+      const aurelianoRight = aurelianoPos ? (aurelianoPos.x + this.cardW) : currentX;
+      let sisterSlotX = Math.max(aurelianoRight + this.siblingGap, currentX);
+
+      teresaSiblingUnits.forEach(unit => {
+        const slotW = calcUnitSlotWidth(unit);
+        const slotCenter = sisterSlotX + slotW / 2;
+        placeUnitAndDescendants(unit, slotCenter, 0);
+        sisterSlotX += slotW + this.siblingGap;
+      });
+      currentX = sisterSlotX;
+    }
+
+    // Seguridad: ubicar a cualquier familiar independiente que no pertenezca a los linajes principales
+    const rootPlacedIds = [7, 8, 9, 10, 21, ...teresaSiblings];
+    const unplaced = visibleData.filter(p => !this.positions.has(p.id) && !montesChildren.includes(p.id) && !carreraChildren.includes(p.id) && !rootPlacedIds.includes(p.id));
+    if (unplaced.length > 0) {
+      const unplacedUnits = getFamilyUnits(unplaced.map(p => p.id));
+      unplacedUnits.forEach(u => {
+        const slotW = calcUnitSlotWidth(u);
+        const slotCenter = currentX + slotW / 2;
+        placeUnitAndDescendants(u, slotCenter, 1);
+        currentX += slotW + this.siblingGap;
+      });
     }
 
     // Detección de solapamiento de barras horizontales entre grupos con el mismo origen generacional
@@ -1231,7 +1314,7 @@ class MontesTreeEngine {
           // Opciones adaptadas según el nivel y estado de parentesco (Estilo FamilySearch)
           const canAddChild = true;
           const canAddPartner = !p.pids || p.pids.length === 0;
-          const canAddSibling = Boolean(p.fid || p.mid);
+          const canAddSibling = true; // Siempre permitido, incluso en personas raíz
           const canAddFather = !p.fid;
           const canAddMother = !p.mid;
 
@@ -1300,6 +1383,29 @@ class MontesTreeEngine {
     let svgHtml = "";
 
     if (!isHorizontal) {
+      // Líneas de Hermandad Raíz (para hermanos sin padres conocidos en Gen 0)
+      if (Array.isArray(this.rootSiblingGroups)) {
+        this.rootSiblingGroups.forEach(group => {
+          const sibPositions = group.map(id => this.positions.get(id)).filter(Boolean);
+          if (sibPositions.length < 2) return;
+
+          const centerXs = sibPositions.map(pos => pos.x + this.cardW / 2);
+          const minX = Math.min(...centerXs);
+          const maxX = Math.max(...centerXs);
+          const busY = Math.min(...sibPositions.map(pos => pos.y)) - 14;
+
+          // Barra horizontal superior
+          svgHtml += `<line x1="${minX}" y1="${busY}" x2="${maxX}" y2="${busY}" class="connector-line" />`;
+
+          // Bajantes hacia cada hermano con pin circular
+          sibPositions.forEach(pos => {
+            const cx = pos.x + this.cardW / 2;
+            svgHtml += `<path d="M ${cx} ${busY} V ${pos.y}" class="connector-line" />`;
+            svgHtml += `<circle cx="${cx}" cy="${pos.y}" r="3" fill="#94a3b8" />`;
+          });
+        });
+      }
+
       // Líneas de Matrimonio
       this.couples.forEach(c => {
         const pos1 = this.positions.get(c.p1.id);
@@ -1419,6 +1525,9 @@ class MontesTreeEngine {
       maxX = Math.max(maxX, pos.x + this.cardW);
       maxY = Math.max(maxY, pos.y + this.cardH);
     });
+    if (this.rootSiblingGroups && this.rootSiblingGroups.length > 0) {
+      minY = Math.min(minY, 25);
+    }
 
     const margin = Math.min(220, containerW * 0.45);
     const minPanX = containerW - margin - maxX * this.scale;
@@ -1444,6 +1553,9 @@ class MontesTreeEngine {
       maxX = Math.max(maxX, pos.x + this.cardW);
       maxY = Math.max(maxY, pos.y + this.cardH);
     });
+    if (this.rootSiblingGroups && this.rootSiblingGroups.length > 0) {
+      minY = Math.min(minY, 25);
+    }
 
     const pad = 60;
     const treeW = (maxX - minX) + pad * 2;
@@ -1993,7 +2105,12 @@ function getFamilyRelationshipsSummary(person) {
 
   // 3. Categoría: Hermanos (lista en filas separadas)
   const siblings = AppState.treeData
-    .filter(p => p.id !== person.id && ((person.fid && p.fid === person.fid) || (person.mid && p.mid === person.mid)));
+    .filter(p => p.id !== person.id && (
+      (person.fid && p.fid === person.fid) || 
+      (person.mid && p.mid === person.mid) ||
+      (Array.isArray(person.sids) && person.sids.includes(p.id)) ||
+      (Array.isArray(p.sids) && p.sids.includes(person.id))
+    ));
   if (siblings.length > 0) {
     categories.push(`
       <div class="drawer-rel-category">
@@ -2131,10 +2248,12 @@ function getDirectBloodRelatives(personId, overrideFid = null, overrideMid = nul
 
   // 3. Hermanos/as y toda su descendencia (Sobrinos, Sobrinos-nietos)
   const siblingIds = new Set();
-  if (fid || mid) {
+  const hasParent = Boolean(fid || mid);
+  const hasSids = person && Array.isArray(person.sids) && person.sids.length > 0;
+  if (hasParent || hasSids) {
     AppState.treeData.forEach(p => {
       if (p.id !== personId) {
-        if ((fid && p.fid === fid) || (mid && p.mid === mid)) {
+        if ((fid && p.fid === fid) || (mid && p.mid === mid) || (hasSids && person.sids.includes(p.id)) || (Array.isArray(p.sids) && p.sids.includes(personId))) {
           siblingIds.add(p.id);
           relatives.add(p.id);
         }
@@ -2381,6 +2500,8 @@ function openAddSiblingModal(personId) {
 
   const suggestionBox = document.getElementById("name-suggestion-box");
   if (suggestionBox) suggestionBox.style.display = "none";
+
+  AppState.pendingSiblingLink = { targetId: person.id };
 
   populateParentAndPartnerSelectors(null, {
     fid: person.fid || null,
@@ -2665,6 +2786,34 @@ async function savePersonFromForm() {
         }
       }
       AppState.pendingChildLink = null;
+    }
+
+    // Si se estaba añadiendo un hermano
+    if (AppState.pendingSiblingLink) {
+      const target = AppState.treeData.find(p => p.id === AppState.pendingSiblingLink.targetId);
+      if (target) {
+        // Si no tienen padres conocidos (hermanos en nivel raíz), vincular en sids recíprocamente
+        if (!newPerson.fid && !newPerson.mid && !target.fid && !target.mid) {
+          if (!Array.isArray(target.sids)) target.sids = [];
+          if (!target.sids.includes(newId)) target.sids.push(newId);
+
+          if (!Array.isArray(newPerson.sids)) newPerson.sids = [];
+          if (!newPerson.sids.includes(target.id)) newPerson.sids.push(target.id);
+
+          // También vincular con todos los hermanos ya existentes del target
+          target.sids.forEach(otherSibId => {
+            if (otherSibId !== newId) {
+              const otherSib = AppState.treeData.find(p => p.id === otherSibId);
+              if (otherSib) {
+                if (!Array.isArray(otherSib.sids)) otherSib.sids = [];
+                if (!otherSib.sids.includes(newId)) otherSib.sids.push(newId);
+                if (!newPerson.sids.includes(otherSibId)) newPerson.sids.push(otherSibId);
+              }
+            }
+          });
+        }
+      }
+      AppState.pendingSiblingLink = null;
     }
 
     showToast(`Se ha añadido a ${name} al árbol genealógico`, "success");
@@ -3477,6 +3626,7 @@ function openModal(modalId) {
 
 function closeAllModals() {
   AppState.pendingChildLink = null;
+  AppState.pendingSiblingLink = null;
   document.querySelectorAll(".modal-backdrop").forEach(modal => {
     modal.classList.remove("active");
   });

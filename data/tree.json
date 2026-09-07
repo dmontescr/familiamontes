@@ -152,6 +152,10 @@
     "pids": [
       9,
       21
+    ],
+    "sids": [
+      70,
+      71
     ]
   },
   {
@@ -1038,6 +1042,40 @@
     "notes": "",
     "pids": [
       14
+    ]
+  },
+  {
+    "id": 70,
+    "name": "Antonia Rodríguez Cartón",
+    "gender": "female",
+    "birth_place": "Altobar de la Encomienda (León)",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "Hermana de Teresa Rodríguez Cartón",
+    "pids": [],
+    "sids": [
+      10,
+      71
+    ]
+  },
+  {
+    "id": 71,
+    "name": "Herminia Rodríguez Cartón",
+    "gender": "female",
+    "birth_place": "Altobar de la Encomienda (León)",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "Hermana de Teresa Rodríguez Cartón",
+    "pids": [],
+    "sids": [
+      10,
+      70
     ]
   }
 ]
