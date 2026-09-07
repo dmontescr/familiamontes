@@ -880,7 +880,7 @@ function formatLocationWithProvince(loc) {
   if (!loc) return "";
   let trimmed = loc.trim();
   if (!trimmed) return "";
-  if (trimmed.includes("(") || trimmed.includes("/")) return trimmed;
+  if (trimmed.includes("(") && trimmed.includes(")")) return trimmed;
   if (typeof allSpanishMunicipalities !== "undefined" && allSpanishMunicipalities.length > 0) {
     const norm = trimmed.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const match = allSpanishMunicipalities.find(m => m.normCity === norm);
@@ -3377,28 +3377,39 @@ async function searchMunicipalities(query) {
   const seen = new Set();
 
   if (allSpanishMunicipalities.length > 0) {
+    const add = (item) => {
+      const key = `${item.city} (${item.province})`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        list.push({ city: item.city, province: item.province });
+      }
+    };
+
     // 1. Coincidencias que empiezan por el nombre del municipio (máxima prioridad)
     for (const item of allSpanishMunicipalities) {
       if (item.normCity.startsWith(normalizedQuery)) {
-        const key = `${item.city} (${item.province})`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          list.push({ city: item.city, province: item.province });
+        add(item);
+        if (list.length >= 8) break;
+      }
+    }
+
+    // 2. Coincidencias por palabra/token en nombres compuestos o bilingües (ej. Pamplona/Iruña, Vitoria-Gasteiz)
+    if (list.length < 8) {
+      for (const item of allSpanishMunicipalities) {
+        const tokens = item.normCity.split(/[\/\-,\s]+/);
+        if (tokens.some(t => t.startsWith(normalizedQuery))) {
+          add(item);
           if (list.length >= 8) break;
         }
       }
     }
 
-    // 2. Coincidencias que contienen la palabra en el municipio o provincia
+    // 3. Coincidencias que contienen la palabra en el municipio o empiezan por la provincia
     if (list.length < 8) {
       for (const item of allSpanishMunicipalities) {
         if (item.normCity.includes(normalizedQuery) || item.normProv.startsWith(normalizedQuery)) {
-          const key = `${item.city} (${item.province})`;
-          if (!seen.has(key)) {
-            seen.add(key);
-            list.push({ city: item.city, province: item.province });
-            if (list.length >= 8) break;
-          }
+          add(item);
+          if (list.length >= 8) break;
         }
       }
     }
