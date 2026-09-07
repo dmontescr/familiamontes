@@ -405,7 +405,23 @@ function getPersonPartner(person) {
     const direct = AppState.treeData.find(p => p.id === person.pids[0]);
     if (direct) return direct;
   }
-  return AppState.treeData.find(p => p.id !== person.id && p.pids && p.pids.includes(person.id)) || null;
+  const indirect = AppState.treeData.find(p => p.id !== person.id && p.pids && p.pids.includes(person.id));
+  if (indirect) return indirect;
+
+  // Si no hay pids explícitos, buscar si comparte hijos reconocidos con otra persona
+  const childWithPartner = AppState.treeData.find(c => {
+    if (person.gender === "female") {
+      return c.mid === person.id && c.fid;
+    } else {
+      return c.fid === person.id && c.mid;
+    }
+  });
+  if (childWithPartner) {
+    const partnerId = (person.gender === "female") ? childWithPartner.fid : childWithPartner.mid;
+    return AppState.treeData.find(p => p.id === partnerId) || null;
+  }
+
+  return null;
 }
 
 /**
@@ -777,6 +793,18 @@ function cleanAndValidateTreeData(data) {
       });
     }
 
+    // Asegurar que progenitores de los mismos hijos (fid y mid) compartan pids por definición genealógica
+    if (p.fid && p.mid && personMap.has(p.fid) && personMap.has(p.mid)) {
+      const father = personMap.get(p.fid);
+      const mother = personMap.get(p.mid);
+      if (father && mother) {
+        if (!Array.isArray(father.pids)) father.pids = [];
+        if (!father.pids.includes(mother.id)) father.pids.push(mother.id);
+        if (!Array.isArray(mother.pids)) mother.pids = [];
+        if (!mother.pids.includes(father.id)) mother.pids.push(father.id);
+      }
+    }
+
     // Asegurar simetría mutua en hermandades de raíz (sids) y propagación de progenitores
     if (Array.isArray(p.sids)) {
       p.sids = p.sids.filter(sid => sid !== p.id && personMap.has(sid));
@@ -978,6 +1006,20 @@ class MontesTreeEngine {
             if (!partner.pids.includes(p.id)) partner.pids.push(p.id);
           }
         });
+      }
+    });
+
+    // Progenitores de los mismos hijos comparten pids por definición genealógica
+    visibleData.forEach(p => {
+      if (p.fid && p.mid && pMap.has(p.fid) && pMap.has(p.mid)) {
+        const father = pMap.get(p.fid);
+        const mother = pMap.get(p.mid);
+        if (father && mother) {
+          if (!Array.isArray(father.pids)) father.pids = [];
+          if (!father.pids.includes(mother.id)) father.pids.push(mother.id);
+          if (!Array.isArray(mother.pids)) mother.pids = [];
+          if (!mother.pids.includes(father.id)) mother.pids.push(father.id);
+        }
       }
     });
 
@@ -2330,11 +2372,19 @@ function populateParentAndPartnerSelectors(excludePersonId = null, preselected =
   const initialMid = preselected.mid !== undefined ? preselected.mid : (currentPerson ? currentPerson.mid : null);
   const initialPid = preselected.pid !== undefined ? preselected.pid : getPersonPartnerId(currentPerson);
 
+  // Inicializar limpiamente la pareja seleccionada
+  let selectedPartnerId = (initialPid !== null && initialPid !== undefined && initialPid !== "") 
+    ? parseInt(initialPid, 10) 
+    : null;
+
   // Refrescar candidatos a cónyuge excluyendo a toda la familia directa (ancestros, descendientes, hermanos, tíos, sobrinos)
-  const refreshPartnerOptions = () => {
+  const refreshPartnerOptions = (keepUserSelection = false) => {
     const selectedFid = fatherSelect.value ? parseInt(fatherSelect.value, 10) : null;
     const selectedMid = motherSelect.value ? parseInt(motherSelect.value, 10) : null;
-    const currentSelectedPid = partnerSelect.value ? parseInt(partnerSelect.value, 10) : (initialPid ? parseInt(initialPid, 10) : null);
+    
+    if (keepUserSelection && partnerSelect.value) {
+      selectedPartnerId = parseInt(partnerSelect.value, 10);
+    }
 
     // Obtener todos los familiares de sangre prohibidos
     const forbiddenPartnerIds = excludePersonId 
@@ -2359,8 +2409,8 @@ function populateParentAndPartnerSelectors(excludePersonId = null, preselected =
     partnerSelect.innerHTML = '<option value="">-- Sin pareja / cónyuge --</option>' + 
       partnerCandidates.map(p => `<option value="${p.id}">${p.name} ${p.birth ? `(${p.birth})` : ''}</option>`).join("");
     
-    if (currentSelectedPid && !forbiddenPartnerIds.has(currentSelectedPid)) {
-      partnerSelect.value = currentSelectedPid.toString();
+    if (selectedPartnerId && !forbiddenPartnerIds.has(selectedPartnerId) && partnerCandidates.some(c => c.id === selectedPartnerId)) {
+      partnerSelect.value = selectedPartnerId.toString();
     } else {
       partnerSelect.value = "";
     }
@@ -2397,11 +2447,14 @@ function populateParentAndPartnerSelectors(excludePersonId = null, preselected =
   motherSelect.value = initialMid ? initialMid.toString() : "";
 
   // 3. Poblar cónyuges con las restricciones de parentesco
-  refreshPartnerOptions();
+  refreshPartnerOptions(false);
 
-  // Escuchar cambios dinámicos en los selectores de padre y madre
-  fatherSelect.onchange = refreshPartnerOptions;
-  motherSelect.onchange = refreshPartnerOptions;
+  // Escuchar cambios dinámicos en los selectores de padre, madre y cónyuge
+  fatherSelect.onchange = () => refreshPartnerOptions(true);
+  motherSelect.onchange = () => refreshPartnerOptions(true);
+  partnerSelect.onchange = () => {
+    selectedPartnerId = partnerSelect.value ? parseInt(partnerSelect.value, 10) : null;
+  };
 }
 
 function openAddRootPersonModal() {
@@ -2628,7 +2681,7 @@ function openEditPersonModal(personId) {
   populateParentAndPartnerSelectors(personId, {
     fid: person.fid,
     mid: person.mid,
-    pid: getPersonPartnerId(person) || ""
+    pid: getPersonPartnerId(person)
   });
 
   openModal("modal-person");
@@ -2712,8 +2765,19 @@ async function savePersonFromForm() {
       const oldPerson = AppState.treeData[index];
       const oldPid = (oldPerson.pids && oldPerson.pids.length > 0) ? oldPerson.pids[0] : null;
 
-      // Desvincular antigua pareja si ha cambiado
-      if (oldPid && oldPid !== manualPid) {
+      // Si manualPid viene vacío, pero la persona tiene hijos en común con oldPid, preservar a la pareja
+      let effectivePid = manualPid;
+      if (!effectivePid && oldPid) {
+        const hasChildrenTogether = AppState.treeData.some(c => 
+          (c.fid === personId && c.mid === oldPid) || (c.mid === personId && c.fid === oldPid)
+        );
+        if (hasChildrenTogether) {
+          effectivePid = oldPid;
+        }
+      }
+
+      // Desvincular antigua pareja si ha cambiado deliberadamente
+      if (oldPid && oldPid !== effectivePid) {
         const formerPartner = AppState.treeData.find(p => p.id === oldPid);
         if (formerPartner && formerPartner.pids) {
           formerPartner.pids = formerPartner.pids.filter(id => id !== personId);
@@ -2721,9 +2785,9 @@ async function savePersonFromForm() {
       }
 
       // Vincular nueva pareja si se seleccionó
-      const newPids = manualPid ? [manualPid] : [];
-      if (manualPid) {
-        const newPartner = AppState.treeData.find(p => p.id === manualPid);
+      const newPids = effectivePid ? [effectivePid] : [];
+      if (effectivePid) {
+        const newPartner = AppState.treeData.find(p => p.id === effectivePid);
         if (newPartner) {
           if (!newPartner.pids) newPartner.pids = [];
           // Desvincular a terceros si la nueva pareja tenía otra anterior
@@ -2731,7 +2795,7 @@ async function savePersonFromForm() {
             if (otherPid !== personId) {
               const otherP = AppState.treeData.find(p => p.id === otherPid);
               if (otherP && otherP.pids) {
-                otherP.pids = otherP.pids.filter(id => id !== manualPid);
+                otherP.pids = otherP.pids.filter(id => id !== effectivePid);
               }
             }
           });
