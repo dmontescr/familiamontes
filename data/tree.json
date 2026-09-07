@@ -1323,5 +1323,20 @@
     "pids": [],
     "fid": 69,
     "mid": 14
+  },
+  {
+    "id": 88,
+    "name": "Manuel Manjón Carrera",
+    "gender": "male",
+    "birth_place": "Navianos de la Vega (León)",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "Se fue a Pamplona y se dedicó al negocio de los Desguaces. Fueron los desguaces más importantes del Norte de España.",
+    "pids": [],
+    "fid": 69,
+    "mid": 14
   }
 ]
