@@ -1043,7 +1043,7 @@ class MontesTreeEngine {
         if (!p) return;
         let partnerId = null;
         if (Array.isArray(p.pids) && p.pids.length > 0) {
-          partnerId = p.pids.find(pid => pMap.has(pid) && !processed.has(pid));
+          partnerId = p.pids.find(pid => pMap.has(pid) && !processed.has(pid) && !this.positions.has(pid));
         }
         if (partnerId) {
           const p1 = (p.gender === "female" && pMap.get(partnerId)?.gender === "male") ? partnerId : id;
@@ -1069,10 +1069,10 @@ class MontesTreeEngine {
     const otherChildren = martinezChildren.filter(id => !montesChildren.includes(id) && !carreraChildren.includes(id));
 
     const gen1Units = [];
-    leftSiblings.forEach(id => gen1Units.push({ type: "single", members: [id], family: "montes" }));
+    getFamilyUnits(leftSiblings).forEach(u => gen1Units.push({ ...u, family: "montes" }));
     gen1Units.push({ type: "couple", members: [5, 6], family: "bridge" });
-    rightSiblings.forEach(id => gen1Units.push({ type: "single", members: [id], family: "carrera" }));
-    otherChildren.forEach(id => gen1Units.push({ type: "single", members: [id], family: "martinez" }));
+    getFamilyUnits(rightSiblings).forEach(u => gen1Units.push({ ...u, family: "carrera" }));
+    getFamilyUnits(otherChildren).forEach(u => gen1Units.push({ ...u, family: "martinez" }));
 
     // Función de cálculo recursivo del ancho de ranura para asegurar que los hijos jamás colisionen a cualquier profundidad
     const calcUnitSlotWidth = (unit) => {
@@ -1150,7 +1150,7 @@ class MontesTreeEngine {
     }
 
     // Rama Carrera y Martínez: Tríada Simón (1er marido), Teresa, Aureliano (2º marido)
-    const carreraCards = carreraChildren.map(id => this.positions.get(id)).filter(Boolean);
+    const carreraCards = [...carreraChildren, ...martinezChildren].map(id => this.positions.get(id)).filter(Boolean);
     let teresaSiblings = [];
     if (carreraCards.length > 0) {
       const minX = Math.min(...carreraCards.map(p => p.x));
@@ -1188,15 +1188,27 @@ class MontesTreeEngine {
       const teresaSiblingUnits = getFamilyUnits(teresaSiblings);
       const aurelianoPos = this.positions.get(21);
       const aurelianoRight = aurelianoPos ? (aurelianoPos.x + this.cardW) : currentX;
-      let sisterSlotX = Math.max(aurelianoRight + this.siblingGap, currentX);
+      let sisterSlotX = aurelianoRight + this.siblingGap;
 
       teresaSiblingUnits.forEach(unit => {
-        const slotW = calcUnitSlotWidth(unit);
-        const slotCenter = sisterSlotX + slotW / 2;
-        placeUnitAndDescendants(unit, slotCenter, 0);
-        sisterSlotX += slotW + this.siblingGap;
+        const childrenIds = getDirectChildren(unit.members);
+        let slotCenter;
+        if (childrenIds.length === 0) {
+          // Si no tiene hijos, se coloca compacta e inmediatamente al lado de Teresa y Aureliano en Gen 0
+          const selfW = (unit.type === "couple") ? (2 * this.cardW + this.partnerGap) : this.cardW;
+          slotCenter = sisterSlotX + selfW / 2;
+          placeUnitAndDescendants(unit, slotCenter, 0);
+          sisterSlotX += selfW + this.siblingGap;
+        } else {
+          // Si tiene hijos y descendientes, se ubica a continuación del último bloque para no colisionar en Gen 1
+          const slotW = calcUnitSlotWidth(unit);
+          const branchX = Math.max(sisterSlotX, currentX);
+          slotCenter = branchX + slotW / 2;
+          placeUnitAndDescendants(unit, slotCenter, 0);
+          sisterSlotX = branchX + slotW + this.siblingGap;
+          currentX = sisterSlotX;
+        }
       });
-      currentX = sisterSlotX;
     }
 
     // Seguridad: ubicar a cualquier familiar independiente que no pertenezca a los linajes principales
