@@ -1248,5 +1248,20 @@
     "pids": [],
     "fid": 75,
     "mid": 80
+  },
+  {
+    "id": 83,
+    "name": "Juan Carlos Manjón Rodríguez",
+    "gender": "male",
+    "birth_place": "",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 75,
+    "mid": 80
   }
 ]
