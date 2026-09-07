@@ -3054,11 +3054,11 @@ async function exportTreeLandscapePDF() {
       <svg viewBox="0 0 24 24" style="width: 15px; height: 15px; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; margin-right: 6px;">
         <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="32" stroke-linecap="round"/>
       </svg>
-      <span>Preparando páginas A3...</span>
+      <span>Preparando páginas...</span>
     `;
   }
 
-  showToast("Calculando páginas en formato A3 con diseño idéntico a la web...", "info", 3000);
+  showToast("Generando documento PDF en alta definición con el diseño de la web...", "info", 3000);
 
   let stageHost = null;
   try {
@@ -3105,7 +3105,7 @@ async function exportTreeLandscapePDF() {
     const baseMmPerPx = 38 / engine.cardW;
     const treeTotalH = Math.max(100, maxY - minY);
     const treeHeightMmAtBase = treeTotalH * baseMmPerPx;
-    // Escala uniforme para que todas las generaciones quepan verticalmente en la página A3
+    // Escala uniforme para que todas las generaciones quepan verticalmente en la página
     const contentScale = (treeHeightMmAtBase > usableHeightMm) ? (usableHeightMm / treeHeightMmAtBase) : 1.0;
     const effectiveMmPerPx = baseMmPerPx * contentScale;
     const pageTreeW = Math.round(usableWidthMm / effectiveMmPerPx);
@@ -3167,7 +3167,7 @@ async function exportTreeLandscapePDF() {
       format: "a3"
     });
 
-    // Dimensiones en píxeles de la plantilla A3
+    // Dimensiones en píxeles de la plantilla
     const a3RenderW = Math.round(a3WidthMm / baseMmPerPx);
     const a3RenderH = Math.round(a3HeightMm / baseMmPerPx);
     const headerPxH = Math.round(headerHMm / baseMmPerPx);
@@ -3176,7 +3176,7 @@ async function exportTreeLandscapePDF() {
     const usableHeightPx = a3RenderH - headerPxH - footerPxH - (marginPx * 2);
 
     stageHost = document.createElement("div");
-    stageHost.id = "tree-pdf-a3-stage";
+    stageHost.id = "tree-pdf-stage";
     stageHost.style.cssText = `
       position: fixed;
       left: -99999px;
@@ -3192,14 +3192,14 @@ async function exportTreeLandscapePDF() {
     `;
     document.body.appendChild(stageHost);
 
-    // 5. Renderizar cada página A3 por separado
+    // 5. Renderizar cada página por separado
     for (let pageIdx = 0; pageIdx < numPages; pageIdx++) {
       if (exportBtn) {
         exportBtn.innerHTML = `
           <svg viewBox="0 0 24 24" style="width: 15px; height: 15px; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; margin-right: 6px;">
             <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="32" stroke-linecap="round"/>
           </svg>
-          <span>Página ${pageIdx + 1} de ${numPages} (A3)...</span>
+          <span>Página ${pageIdx + 1} de ${numPages}...</span>
         `;
       }
 
@@ -3212,7 +3212,7 @@ async function exportTreeLandscapePDF() {
 
       stageHost.innerHTML = "";
 
-      // A. Cabecera editorial A3
+      // A. Cabecera editorial
       const headerEl = document.createElement("div");
       headerEl.style.cssText = `
         position: absolute;
@@ -3238,13 +3238,13 @@ async function exportTreeLandscapePDF() {
           </div>
         </div>
         <div style="text-align: right; font-size: 12px; color: #78716c;">
-          <div style="font-weight: 600; color: #44403c;">Página ${pageIdx + 1} de ${numPages} (Formato A3)</div>
+          <div style="font-weight: 600; color: #44403c;">Página ${pageIdx + 1} de ${numPages}</div>
           <div style="color: #92877d; margin-top: 2px;">${new Date().toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })}</div>
         </div>
       `;
       stageHost.appendChild(headerEl);
 
-      // B. Pie de página A3
+      // B. Pie de página
       const footerEl = document.createElement("div");
       footerEl.style.cssText = `
         position: absolute;
@@ -3263,7 +3263,7 @@ async function exportTreeLandscapePDF() {
         box-sizing: border-box;
       `;
       footerEl.innerHTML = `
-        <span>Árbol Genealógico Familia Montes · Archivo Familiar Histórico · Edición Panorámica A3</span>
+        <span>Árbol Genealógico Familia Montes · Archivo Familiar Histórico</span>
         <span>Página ${pageIdx + 1} de ${numPages}</span>
       `;
       stageHost.appendChild(footerEl);
@@ -3467,11 +3467,11 @@ async function exportTreeLandscapePDF() {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "_")
       .replace(/^_+|_+$/g, "");
-    const fileName = `arbol_genealogico_familia_montes_${slugBranch}_A3.pdf`;
+    const fileName = `arbol_genealogico_familia_montes_${slugBranch}.pdf`;
 
     window.__lastExportedPdf = doc;
     doc.save(fileName);
-    showToast(`¡Documento PDF en formato A3 generado con éxito (${numPages} páginas)!`, "success");
+    showToast(`¡Documento PDF generado con éxito (${numPages} páginas)!`, "success");
   } catch (error) {
     console.error("Error al exportar PDF:", error);
     showToast("Error al generar el PDF: " + error.message, "error");
