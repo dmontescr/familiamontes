@@ -949,5 +949,20 @@
     "pids": [
       12
     ]
+  },
+  {
+    "id": 64,
+    "name": "Rosa",
+    "gender": "female",
+    "birth_place": "Navianos de la Vega (León)",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 12,
+    "mid": 63
   }
 ]
