@@ -1308,5 +1308,20 @@
     "pids": [],
     "fid": 69,
     "mid": 14
+  },
+  {
+    "id": 87,
+    "name": "Ángel Manjón Carrera",
+    "gender": "male",
+    "birth_place": "Navianos de la Vega (León)",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 69,
+    "mid": 14
   }
 ]
