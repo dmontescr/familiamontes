@@ -2271,10 +2271,18 @@ function openPhotoLightboxById(personId) {
   const lightboxImg = document.getElementById("lightbox-img");
   const lightboxName = document.getElementById("lightbox-person-name");
   const lightboxDates = document.getElementById("lightbox-person-dates");
+  const downloadLink = document.getElementById("lightbox-download-link");
 
-  if (lightboxImg) lightboxImg.src = photoUrl;
+  if (lightboxImg) {
+    lightboxImg.src = photoUrl;
+    lightboxImg.alt = `Fotografía de ${person.name}`;
+  }
   if (lightboxName) lightboxName.textContent = person.name;
   if (lightboxDates) lightboxDates.textContent = datesText;
+  if (downloadLink) {
+    downloadLink.href = photoUrl;
+    downloadLink.download = `foto_${slugifyPersonName(person.name)}.jpg`;
+  }
 
   openModal("modal-photo-lightbox");
 }
@@ -3024,108 +3032,324 @@ function persistLocalTree() {
 }
 
 // ==========================================================================
-// 6. EXPORTACIÓN A PDF HORIZONTAL DE ALTA RESOLUCIÓN
+// 6. EXPORTACIÓN A PDF HORIZONTAL DE ALTA RESOLUCIÓN Y MÁXIMA NITIDEZ
 // ==========================================================================
 async function exportTreeLandscapePDF() {
-  showToast("Generando PDF del árbol genealógico en alta resolución...", "info", 6000);
-
-  const worldEl = document.getElementById("montes-tree-world") || document.querySelector(".tree-world");
-  if (!worldEl) {
+  const engine = AppState.treeInstance;
+  if (!engine || !engine.positions || engine.positions.size === 0) {
     showToast("No se encontró el árbol en pantalla para exportar.", "error");
     return;
   }
 
-  try {
-    // 1. Guardar estado de transformación actual
-    const prevTransform = worldEl.style.transform;
-    const prevTransition = worldEl.style.transition;
+  const exportBtn = document.getElementById("btn-export-pdf");
+  const originalBtnHtml = exportBtn ? exportBtn.innerHTML : "";
+  if (exportBtn) {
+    exportBtn.disabled = true;
+    exportBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" style="width: 15px; height: 15px; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; margin-right: 6px;">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="32" stroke-linecap="round"/>
+      </svg>
+      <span>Generando PDF...</span>
+    `;
+  }
 
-    // 2. Calcular límites totales del árbol completo
-    const cards = worldEl.querySelectorAll(".tree-card");
+  showToast("Generando documento PDF en alta resolución...", "info", 5000);
+
+  try {
+    const isBranchFiltered = AppState.currentBranch && AppState.currentBranch !== "all";
+    let branchName = "Árbol Genealógico Completo";
+    if (isBranchFiltered) {
+      const branches = getAvailableBranches(AppState.treeData);
+      const cur = branches.find(b => b.id === AppState.currentBranch);
+      if (cur) branchName = cur.name;
+    }
+
+    const visibleData = engine.treeData;
+    if (!visibleData || visibleData.length === 0) {
+      showToast("No hay familiares para exportar.", "error");
+      return;
+    }
+
+    // 1. Calcular límites exactos basados en las posiciones de las tarjetas
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    cards.forEach(card => {
-      const left = parseFloat(card.style.left) || 0;
-      const top = parseFloat(card.style.top) || 0;
-      const w = card.offsetWidth || 270;
-      const h = card.offsetHeight || 130;
-      minX = Math.min(minX, left);
-      minY = Math.min(minY, top);
-      maxX = Math.max(maxX, left + w);
-      maxY = Math.max(maxY, top + h);
+    visibleData.forEach(p => {
+      const pos = engine.positions.get(p.id);
+      if (pos) {
+        minX = Math.min(minX, pos.x);
+        minY = Math.min(minY, pos.y);
+        maxX = Math.max(maxX, pos.x + engine.cardW);
+        maxY = Math.max(maxY, pos.y + engine.cardH);
+      }
     });
 
     if (minX === Infinity) {
       minX = 0; minY = 0; maxX = 2000; maxY = 900;
     }
 
-    const pad = 60;
-    const totalW = (maxX - minX) + pad * 2;
-    const totalH = (maxY - minY) + pad * 2;
+    const padX = 80;
+    const padY = 60;
+    const headerH = 100;
+    const totalW = Math.round((maxX - minX) + padX * 2);
+    const totalH = Math.round((maxY - minY) + padY * 2 + headerH);
 
-    // 3. Normalizar temporalmente a posición absoluta para captura
-    worldEl.style.transition = "none";
-    worldEl.style.transform = `translate(${-minX + pad}px, ${-minY + pad}px) scale(1)`;
+    const offsetX = -minX + padX;
+    const offsetY = -minY + padY + headerH;
 
-    // 4. Renderizar con html2canvas si está disponible
-    if (typeof html2canvas === "function") {
-      const canvas = await html2canvas(worldEl, {
-        backgroundColor: "#f8f6f0",
-        scale: 2.0,
-        width: totalW,
-        height: totalH,
-        useCORS: true,
-        logging: false
-      });
+    // 2. Crear contenedor de renderizado fuera de pantalla (Off-screen Staging)
+    // Esto previene cualquier corte de overflow:hidden y solapamientos de CSS transforms
+    const stage = document.createElement("div");
+    stage.id = "tree-pdf-export-stage";
+    stage.style.cssText = `
+      position: fixed;
+      left: -99999px;
+      top: 0;
+      width: ${totalW}px;
+      height: ${totalH}px;
+      background-color: #faf8f5;
+      overflow: visible;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #1c1917;
+      z-index: -9999;
+    `;
 
-      // Restaurar estado visual original del árbol interactivo
-      worldEl.style.transform = prevTransform;
-      worldEl.style.transition = prevTransition;
+    // 3. Cabecera editorial del documento genealógico
+    const headerEl = document.createElement("div");
+    headerEl.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: ${totalW}px;
+      height: ${headerH}px;
+      padding: 24px 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #e7dfd5;
+      background: #fffcf8;
+      box-sizing: border-box;
+    `;
+    headerEl.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 24px;">
+        <div style="font-family: 'Cinzel', Georgia, serif; font-size: 32px; font-weight: 700; color: #78350f; letter-spacing: 1.5px;">FAMILIA MONTES</div>
+        <div style="height: 38px; width: 2px; background: #d6cbbf;"></div>
+        <div style="font-size: 15px; color: #57534e; font-weight: 500;">
+          <span>Memoria y Genealogía · Navianos de la Vega (León)</span>
+          <span style="display: block; font-size: 13px; color: #8c827a; font-weight: 400; margin-top: 3px;">${branchName}</span>
+        </div>
+      </div>
+      <div style="text-align: right; font-size: 13px; color: #78716c;">
+        <div style="font-weight: 600; color: #44403c; font-size: 14px;">${visibleData.length} familiares registrados</div>
+        <div style="color: #92877d; margin-top: 3px;">Documento oficial generado el ${new Date().toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })}</div>
+      </div>
+    `;
+    stage.appendChild(headerEl);
 
-      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+    // 4. Capa SVG de conectores desplazados con exactitud absoluta
+    const svgEl = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svgEl.setAttribute("width", totalW);
+    svgEl.setAttribute("height", totalH);
+    svgEl.style.cssText = `
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: ${totalW}px;
+      height: ${totalH}px;
+      pointer-events: none;
+    `;
 
-      if (window.jspdf && window.jspdf.jsPDF) {
-        const { jsPDF } = window.jspdf;
+    let svgInner = "";
 
-        let dinFormat = "a3";
-        if (totalW > 2400 || totalH > 1600) {
-          dinFormat = "a2";
-        }
+    // 4a. Líneas de hermandad raíz
+    if (Array.isArray(engine.rootSiblingGroups)) {
+      engine.rootSiblingGroups.forEach(group => {
+        const sibPositions = group.map(id => engine.positions.get(id)).filter(Boolean);
+        if (sibPositions.length < 2) return;
+        const centerXs = sibPositions.map(pos => pos.x + engine.cardW / 2 + offsetX);
+        const minLineX = Math.min(...centerXs);
+        const maxLineX = Math.max(...centerXs);
+        const busY = Math.min(...sibPositions.map(pos => pos.y + offsetY)) - 14;
 
-        const isLandscape = totalW >= totalH;
-        const pdf = new jsPDF({
-          orientation: isLandscape ? "landscape" : "portrait",
-          unit: "mm",
-          format: dinFormat
+        svgInner += `<line x1="${minLineX}" y1="${busY}" x2="${maxLineX}" y2="${busY}" stroke="#94a3b8" stroke-width="2.5" />`;
+        sibPositions.forEach(pos => {
+          const cx = pos.x + engine.cardW / 2 + offsetX;
+          const cy = pos.y + offsetY;
+          svgInner += `<line x1="${cx}" y1="${busY}" x2="${cx}" y2="${cy}" stroke="#94a3b8" stroke-width="2.5" />`;
+          svgInner += `<circle cx="${cx}" cy="${cy}" r="3.5" fill="#94a3b8" />`;
         });
-
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
-
-        const marginMm = 12;
-        const usableWidth = pageWidth - marginMm * 2;
-        const usableHeight = pageHeight - marginMm * 2;
-
-        const scaleFactor = Math.min(usableWidth / totalW, usableHeight / totalH);
-        const renderWidth = totalW * scaleFactor;
-        const renderHeight = totalH * scaleFactor;
-
-        const posX = marginMm + (usableWidth - renderWidth) / 2;
-        const posY = marginMm + (usableHeight - renderHeight) / 2;
-
-        pdf.addImage(imgData, "JPEG", posX, posY, renderWidth, renderHeight);
-        pdf.save("arbol_genealogico_familia_montes.pdf");
-        showToast("¡PDF del árbol genealógico descargado con éxito!", "success");
-        return;
-      }
+      });
     }
 
-    // Restaurar si no se pudo generar
-    worldEl.style.transform = prevTransform;
-    worldEl.style.transition = prevTransition;
-    showToast("No se encontró la biblioteca jsPDF/html2canvas para la descarga.", "error");
+    // 4b. Líneas de matrimonio
+    engine.couples.forEach(c => {
+      const pos1 = engine.positions.get(c.p1.id);
+      const pos2 = engine.positions.get(c.p2.id);
+      if (!pos1 || !pos2) return;
+
+      const leftX = Math.min(pos1.x, pos2.x) + engine.cardW + offsetX;
+      const rightX = Math.max(pos1.x, pos2.x) + offsetX;
+      const y = pos1.y + engine.cardH / 2 + offsetY;
+
+      svgInner += `<line x1="${leftX}" y1="${y}" x2="${rightX}" y2="${y}" stroke="#d97706" stroke-width="2.5" stroke-dasharray="4 3" />`;
+      const midX = (leftX + rightX) / 2;
+      svgInner += `<circle cx="${midX}" cy="${y}" r="4.5" fill="#d97706" stroke="#ffffff" stroke-width="1.5" />`;
+    });
+
+    // 4c. Líneas hacia hijos
+    engine.childGroups.forEach(group => {
+      const childPositions = group.children.map(id => engine.positions.get(id)).filter(Boolean);
+      if (childPositions.length === 0) return;
+
+      let sourceX, sourceY;
+      if (group.pids.length === 2) {
+        const p1 = engine.positions.get(group.pids[0]);
+        const p2 = engine.positions.get(group.pids[1]);
+        if (!p1 || !p2) return;
+        sourceX = (Math.min(p1.x, p2.x) + engine.cardW + Math.max(p1.x, p2.x)) / 2 + offsetX;
+        sourceY = p1.y + engine.cardH / 2 + offsetY;
+      } else {
+        const p = engine.positions.get(group.pids[0]);
+        if (!p) return;
+        sourceX = p.x + engine.cardW / 2 + offsetX;
+        sourceY = p.y + engine.cardH + offsetY;
+      }
+
+      const busY = sourceY + (engine.cardH / 2) + (engine.levelGap / 2) + (group.busYOffset || 0);
+      svgInner += `<line x1="${sourceX}" y1="${sourceY}" x2="${sourceX}" y2="${busY}" stroke="#94a3b8" stroke-width="2.5" />`;
+
+      const childCenterXs = childPositions.map(pos => pos.x + engine.cardW / 2 + offsetX);
+      const minBusX = Math.min(sourceX, ...childCenterXs);
+      const maxBusX = Math.max(sourceX, ...childCenterXs);
+
+      svgInner += `<line x1="${minBusX}" y1="${busY}" x2="${maxBusX}" y2="${busY}" stroke="#94a3b8" stroke-width="2.5" />`;
+
+      childPositions.forEach(pos => {
+        const cx = pos.x + engine.cardW / 2 + offsetX;
+        const cy = pos.y + offsetY;
+        svgInner += `<line x1="${cx}" y1="${busY}" x2="${cx}" y2="${cy}" stroke="#94a3b8" stroke-width="2.5" />`;
+      });
+    });
+
+    svgEl.innerHTML = svgInner;
+    stage.appendChild(svgEl);
+
+    // 5. Renderizado de Tarjetas Físicas estáticas y limpias (sin botones interactivos de edición)
+    visibleData.forEach(p => {
+      const pos = engine.positions.get(p.id);
+      if (!pos) return;
+
+      const card = document.createElement("div");
+      card.className = `tree-card ${p.gender || "male"}`;
+      card.style.cssText = `
+        position: absolute;
+        left: ${pos.x + offsetX}px;
+        top: ${pos.y + offsetY}px;
+        width: ${engine.cardW}px;
+        height: ${engine.cardH}px;
+        box-sizing: border-box;
+        margin: 0;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      `;
+
+      const photoUrl = getPersonPhotoUrl(p.photo, p.gender);
+      const dates = (p.birth || p.death) ? formatVitalDatesWithAge(p.birth, p.death) : "";
+      const birthStr = (p.birth_place && p.birth_place.trim()) ? formatLocationWithProvince(p.birth_place) : "";
+      const resStr = (p.city && p.city.trim()) ? formatLocationWithProvince(p.city) : "";
+
+      card.innerHTML = `
+        <img class="card-photo" src="${photoUrl}" alt="${p.name}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex-shrink: 0;">
+        <div class="card-info" style="flex: 1; min-width: 0;">
+          <div class="card-name" style="font-weight: 700; font-size: 13px; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${p.name}</div>
+          ${dates ? `<div class="card-dates" style="font-size: 11px; color: #64748b; margin-top: 1px;">${dates}</div>` : ""}
+          ${birthStr ? `
+            <div class="card-meta" style="font-size: 10px; color: #b45309; display: flex; align-items: center; gap: 4px; margin-top: 2px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2" style="width: 11px; height: 11px; flex-shrink: 0;"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="#b45309"/></svg>
+              <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${birthStr}</span>
+            </div>
+          ` : ""}
+          ${resStr ? `
+            <div class="card-meta" style="font-size: 10px; color: #e11d48; display: flex; align-items: center; gap: 4px; margin-top: 1px;">
+              <svg viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1.5" style="width: 11px; height: 11px; flex-shrink: 0;"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3" fill="#ffffff"/></svg>
+              <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${resStr}</span>
+            </div>
+          ` : ""}
+        </div>
+      `;
+
+      stage.appendChild(card);
+    });
+
+    document.body.appendChild(stage);
+
+    // Esperar a que las imágenes carguen
+    await Promise.all(Array.from(stage.querySelectorAll("img")).map(img => {
+      if (img.complete) return Promise.resolve();
+      return new Promise(res => {
+        img.onload = res;
+        img.onerror = res;
+      });
+    }));
+
+    // 6. Captura en canvas de alta resolución controlando memoria de canvas
+    const maxSafeCanvasW = 16384;
+    const renderScale = Math.max(1.0, Math.min(2.0, maxSafeCanvasW / totalW));
+
+    const canvas = await html2canvas(stage, {
+      backgroundColor: "#faf8f5",
+      scale: renderScale,
+      width: totalW,
+      height: totalH,
+      useCORS: true,
+      logging: false,
+      allowTaint: true
+    });
+
+    // Retirar stage del DOM
+    document.body.removeChild(stage);
+
+    // 7. Generar documento PDF con dimensiones proporcionales a alta definición
+    if (window.jspdf && window.jspdf.jsPDF) {
+      const { jsPDF } = window.jspdf;
+
+      // Escala física: ~48 mm de ancho por tarjeta en el papel para lectura perfecta
+      const mmPerPx = 48 / engine.cardW;
+      const pdfW = Math.round(totalW * mmPerPx);
+      const pdfH = Math.round(totalH * mmPerPx);
+
+      const pdf = new jsPDF({
+        orientation: (pdfW >= pdfH) ? "landscape" : "portrait",
+        unit: "mm",
+        format: [pdfW, pdfH]
+      });
+
+      const imgData = canvas.toDataURL("image/jpeg", 0.94);
+      pdf.addImage(imgData, "JPEG", 0, 0, pdfW, pdfH, undefined, "FAST");
+
+      const slugBranch = branchName
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+      const fileName = `arbol_genealogico_familia_montes_${slugBranch}.pdf`;
+
+      pdf.save(fileName);
+      showToast("¡Documento PDF descargado con éxito y máxima resolución!", "success");
+    } else {
+      showToast("No se encontró la biblioteca jsPDF.", "error");
+    }
   } catch (error) {
     console.error("Error al exportar PDF:", error);
     showToast("Error al generar el PDF: " + error.message, "error");
+    const existingStage = document.getElementById("tree-pdf-export-stage");
+    if (existingStage && existingStage.parentNode) {
+      existingStage.parentNode.removeChild(existingStage);
+    }
+  } finally {
+    if (exportBtn) {
+      exportBtn.disabled = false;
+      exportBtn.innerHTML = originalBtnHtml;
+    }
   }
 }
 
@@ -3353,8 +3577,8 @@ function setupPhotoUploadHandling() {
       const rawDataUrl = loadEvent.target.result;
       const img = new Image();
       img.onload = () => {
-        // Redimensionar a max 320x320 manteniendo proporción para rendimiento óptimo
-        const maxDim = 320;
+        // Redimensionar a max 1280x1280 manteniendo proporción para máxima nitidez Retina y HD
+        const maxDim = 1280;
         let width = img.width;
         let height = img.height;
 
@@ -3374,9 +3598,11 @@ function setupPhotoUploadHandling() {
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext("2d");
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
         ctx.drawImage(img, 0, 0, width, height);
 
-        const optimizedDataUrl = canvas.toDataURL("image/jpeg", 0.85);
+        const optimizedDataUrl = canvas.toDataURL("image/jpeg", 0.90);
         photoInput.value = optimizedDataUrl;
         photoPreview.src = optimizedDataUrl;
         if (removeBtn) removeBtn.style.display = "inline-flex";

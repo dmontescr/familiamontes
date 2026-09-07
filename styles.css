@@ -1464,44 +1464,75 @@ body {
 }
 
 .photo-lightbox-image-wrapper {
-  max-width: min(85vw, 680px);
-  max-height: min(72vh, 680px);
+  max-width: min(88vw, 760px);
+  max-height: min(76vh, 760px);
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.15);
-  background: #111827;
+  box-shadow: 0 24px 55px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.18);
+  background: #0b0f19;
+  padding: 6px;
 }
 
 .photo-lightbox-img {
-  width: 100%;
-  height: 100%;
-  max-height: min(72vh, 680px);
+  max-width: 100%;
+  max-height: min(74vh, 740px);
+  width: auto;
+  height: auto;
   object-fit: contain;
   display: block;
+  border-radius: calc(var(--radius-lg) - 4px);
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: high-quality;
+  filter: contrast(1.02) brightness(1.01);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
 .photo-lightbox-caption {
-  margin-top: 1rem;
+  margin-top: 1.1rem;
   text-align: center;
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .photo-lightbox-name {
   font-family: var(--font-heading);
-  font-size: 1.25rem;
+  font-size: 1.3rem;
   color: #ffffff;
   font-weight: 700;
   letter-spacing: 0.3px;
 }
 
 .photo-lightbox-dates {
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   color: #cbd5e1;
+}
+
+.photo-lightbox-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 0.4rem;
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.photo-lightbox-download:hover {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .drawer-content {
