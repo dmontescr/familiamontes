@@ -979,5 +979,20 @@
     "pids": [],
     "fid": 12,
     "mid": 63
+  },
+  {
+    "id": 66,
+    "name": "Manuel Carrera Fernández",
+    "gender": "male",
+    "birth_place": "Navianos de la Vega (León)",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 12,
+    "mid": 63
   }
 ]
