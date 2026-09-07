@@ -1428,5 +1428,20 @@
     "pids": [],
     "fid": 69,
     "mid": 14
+  },
+  {
+    "id": 95,
+    "name": "Lorenzo Manjón Carrera",
+    "gender": "male",
+    "birth_place": "Navianos de la Vega (León)",
+    "city": "Pamplona (Navarra)",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "En honor a su hermano.",
+    "pids": [],
+    "fid": 69,
+    "mid": 14
   }
 ]
