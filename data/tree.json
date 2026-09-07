@@ -1353,5 +1353,20 @@
     "pids": [],
     "fid": 69,
     "mid": 14
+  },
+  {
+    "id": 90,
+    "name": "Reimundo Manjón Carrera - Mundo",
+    "gender": "male",
+    "birth_place": "Navianos de la Vega (León)",
+    "city": "Pamplona (Navarra)",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 69,
+    "mid": 14
   }
 ]
