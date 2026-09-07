@@ -890,5 +890,19 @@
     "pids": [],
     "fid": 47,
     "mid": 48
+  },
+  {
+    "id": 60,
+    "name": "Maruja",
+    "gender": "female",
+    "birth_place": "Navianos de la Vega (León)",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "mid": 18
   }
 ]
