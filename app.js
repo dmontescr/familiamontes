@@ -3092,16 +3092,16 @@ async function exportTreeLandscapePDF() {
       minX = 0; minY = 0; maxX = 2000; maxY = 900;
     }
 
-    const padX = 80;
-    const padY = 60;
-    const headerH = 90;
+    const padX = 100;
+    const padY = 80;
+    const headerH = 110;
     const totalW = (maxX - minX) + padX * 2;
     const totalH = (maxY - minY) + padY * 2 + headerH;
     const offsetX = -minX + padX;
     const offsetY = -minY + padY + headerH;
 
-    // Escala métrica: 1 px de layout = 0.25 mm en papel (tarjeta física de 65 x 21 mm)
-    const scale = 0.25;
+    // Escala métrica generosa: 0.35 mm por px (tarjeta física de 91 x 29.4 mm, textos grandes y cómodos)
+    const scale = 0.35;
     const pdfW = Math.round(totalW * scale);
     const pdfH = Math.round(totalH * scale);
 
@@ -3116,72 +3116,72 @@ async function exportTreeLandscapePDF() {
     doc.setFillColor(250, 248, 245);
     doc.rect(0, 0, pdfW, pdfH, "F");
 
-    // 1. Cabecera editorial vectorial
+    // 1. Cabecera editorial vectorial amplia
     const headerHMm = headerH * scale;
     doc.setFillColor(255, 252, 248);
     doc.rect(0, 0, pdfW, headerHMm, "F");
     doc.setDrawColor(226, 217, 205);
-    doc.setLineWidth(0.4);
+    doc.setLineWidth(0.6);
     doc.line(0, headerHMm, pdfW, headerHMm);
 
     // Título institucional
     doc.setFont("times", "bold");
-    doc.setFontSize(18);
+    doc.setFontSize(24);
     doc.setTextColor(120, 53, 15);
-    doc.text("FAMILIA MONTES", 15, headerHMm * 0.45);
+    doc.text("FAMILIA MONTES", 20, headerHMm * 0.45);
 
     const titleW = doc.getTextWidth("FAMILIA MONTES");
     doc.setDrawColor(214, 203, 191);
-    doc.setLineWidth(0.4);
-    doc.line(15 + titleW + 5, headerHMm * 0.2, 15 + titleW + 5, headerHMm * 0.8);
+    doc.setLineWidth(0.6);
+    doc.line(20 + titleW + 8, headerHMm * 0.18, 20 + titleW + 8, headerHMm * 0.82);
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.5);
+    doc.setFontSize(11);
     doc.setTextColor(87, 83, 78);
-    doc.text("Memoria y Genealogía · Navianos de la Vega (León)", 15 + titleW + 10, headerHMm * 0.4);
+    doc.text("Memoria y Genealogía · Navianos de la Vega (León)", 20 + titleW + 16, headerHMm * 0.4);
 
-    doc.setFontSize(7.5);
+    doc.setFontSize(9.5);
     doc.setTextColor(140, 130, 122);
-    doc.text(branchName, 15 + titleW + 10, headerHMm * 0.68);
+    doc.text(branchName, 20 + titleW + 16, headerHMm * 0.68);
 
     // Conteo y fecha en la esquina derecha
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
+    doc.setFontSize(11);
     doc.setTextColor(68, 64, 60);
-    doc.text(visibleData.length + " familiares registrados", pdfW - 15, headerHMm * 0.4, { align: "right" });
+    doc.text(visibleData.length + " familiares registrados", pdfW - 20, headerHMm * 0.4, { align: "right" });
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
+    doc.setFontSize(9);
     doc.setTextColor(146, 135, 125);
     const dateStr = "Documento oficial generado el " + new Date().toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
-    doc.text(dateStr, pdfW - 15, headerHMm * 0.68, { align: "right" });
+    doc.text(dateStr, pdfW - 20, headerHMm * 0.68, { align: "right" });
 
     // 2. Conectores Vectoriales Nativos (Líneas 100% nítidas a cualquier zoom)
     // 2a. Hermandad raíz
     if (Array.isArray(engine.rootSiblingGroups)) {
       doc.setDrawColor(148, 163, 184);
       doc.setFillColor(148, 163, 184);
-      doc.setLineWidth(0.5);
+      doc.setLineWidth(0.75);
       engine.rootSiblingGroups.forEach(group => {
         const sibPositions = group.map(id => engine.positions.get(id)).filter(Boolean);
         if (sibPositions.length < 2) return;
         const centerXs = sibPositions.map(pos => (pos.x + engine.cardW / 2 + offsetX) * scale);
         const minLineX = Math.min(...centerXs);
         const maxLineX = Math.max(...centerXs);
-        const busY = (Math.min(...sibPositions.map(pos => pos.y + offsetY)) - 14) * scale;
+        const busY = (Math.min(...sibPositions.map(pos => pos.y + offsetY)) - 18) * scale;
 
         doc.line(minLineX, busY, maxLineX, busY);
         sibPositions.forEach(pos => {
           const cx = (pos.x + engine.cardW / 2 + offsetX) * scale;
           const cy = (pos.y + offsetY) * scale;
           doc.line(cx, busY, cx, cy);
-          doc.circle(cx, cy, 0.7, "F");
+          doc.circle(cx, cy, 1.0, "F");
         });
       });
     }
 
     // 2b. Matrimonios (Línea discontinua dorada con nodo de unión)
     doc.setDrawColor(217, 119, 6);
-    doc.setLineWidth(0.55);
+    doc.setLineWidth(0.8);
     engine.couples.forEach(c => {
       const pos1 = engine.positions.get(c.p1.id);
       const pos2 = engine.positions.get(c.p2.id);
@@ -3190,21 +3190,21 @@ async function exportTreeLandscapePDF() {
       const rightX = (Math.max(pos1.x, pos2.x) + offsetX) * scale;
       const y = (pos1.y + engine.cardH / 2 + offsetY) * scale;
 
-      doc.setLineDashPattern([1.5, 1], 0);
+      doc.setLineDashPattern([2.0, 1.4], 0);
       doc.line(leftX, y, rightX, y);
       doc.setLineDashPattern([], 0);
 
       const midX = (leftX + rightX) / 2;
       doc.setFillColor(217, 119, 6);
-      doc.circle(midX, y, 1.2, "F");
+      doc.circle(midX, y, 1.6, "F");
       doc.setFillColor(255, 255, 255);
-      doc.circle(midX, y, 0.5, "F");
+      doc.circle(midX, y, 0.7, "F");
     });
 
     // 2c. Hacia Hijos (Buses ortogonales limpios)
     doc.setDrawColor(148, 163, 184);
     doc.setFillColor(148, 163, 184);
-    doc.setLineWidth(0.5);
+    doc.setLineWidth(0.75);
     engine.childGroups.forEach(group => {
       const childPositions = group.children.map(id => engine.positions.get(id)).filter(Boolean);
       if (childPositions.length === 0) return;
@@ -3238,11 +3238,11 @@ async function exportTreeLandscapePDF() {
       });
     });
 
-    // 3. Pre-renderizado de Avatares circulares en alta definición (240x240 px)
+    // 3. Pre-renderizado de Avatares circulares HD (320x320 px)
     const avatarMap = new Map();
     const avatarCanvas = document.createElement("canvas");
-    avatarCanvas.width = 240;
-    avatarCanvas.height = 240;
+    avatarCanvas.width = 320;
+    avatarCanvas.height = 320;
     const actx = avatarCanvas.getContext("2d");
 
     for (const p of visibleData) {
@@ -3256,18 +3256,18 @@ async function exportTreeLandscapePDF() {
           img.onload = res;
           img.onerror = res;
         });
-        actx.clearRect(0, 0, 240, 240);
+        actx.clearRect(0, 0, 320, 320);
         actx.save();
         actx.beginPath();
-        actx.arc(120, 120, 118, 0, Math.PI * 2);
+        actx.arc(160, 160, 157, 0, Math.PI * 2);
         actx.closePath();
         actx.clip();
-        actx.drawImage(img, 0, 0, 240, 240);
+        actx.drawImage(img, 0, 0, 320, 320);
         actx.restore();
         actx.strokeStyle = "#d6cbbf";
-        actx.lineWidth = 5;
+        actx.lineWidth = 6;
         actx.beginPath();
-        actx.arc(120, 120, 117.5, 0, Math.PI * 2);
+        actx.arc(160, 160, 156, 0, Math.PI * 2);
         actx.stroke();
         avatarMap.set(p.id, avatarCanvas.toDataURL("image/png"));
       } catch (e) {
@@ -3275,9 +3275,9 @@ async function exportTreeLandscapePDF() {
       }
     }
 
-    // 4. Renderizado Vectorial de Tarjetas y Tipografía Nativa
-    const cardWMm = engine.cardW * scale;
-    const cardHMm = engine.cardH * scale;
+    // 4. Tarjetas amplias, elegantes y vectoriales
+    const cardWMm = engine.cardW * scale; // 91 mm
+    const cardHMm = engine.cardH * scale; // 29.4 mm
 
     visibleData.forEach(p => {
       const pos = engine.positions.get(p.id);
@@ -3288,13 +3288,13 @@ async function exportTreeLandscapePDF() {
 
       // Sombra vectorial limpia
       doc.setFillColor(236, 230, 222);
-      doc.roundedRect(x + 0.4, y + 0.5, cardWMm, cardHMm, 2.5, 2.5, "F");
+      doc.roundedRect(x + 0.6, y + 0.7, cardWMm, cardHMm, 3.5, 3.5, "F");
 
       // Tarjeta blanca pura con borde nítido
       doc.setFillColor(255, 255, 255);
       doc.setDrawColor(226, 232, 240);
-      doc.setLineWidth(0.35);
-      doc.roundedRect(x, y, cardWMm, cardHMm, 2.5, 2.5, "FD");
+      doc.setLineWidth(0.45);
+      doc.roundedRect(x, y, cardWMm, cardHMm, 3.5, 3.5, "FD");
 
       // Píldora redondeada de género
       const isFemale = (p.gender === "female");
@@ -3303,75 +3303,75 @@ async function exportTreeLandscapePDF() {
       } else {
         doc.setFillColor(37, 99, 235);
       }
-      doc.roundedRect(x + 1.2, y + 2.5, 1.4, cardHMm - 5.0, 0.7, 0.7, "F");
+      doc.roundedRect(x + 1.6, y + 3.2, 1.8, cardHMm - 6.4, 0.9, 0.9, "F");
 
-      // Avatar circular HD
-      const avatarSizeMm = 13.0;
-      const avatarX = x + 3.8;
+      // Avatar HD
+      const avatarSizeMm = 18.0;
+      const avatarX = x + 5.0;
       const avatarY = y + (cardHMm - avatarSizeMm) / 2;
       const avatarData = avatarMap.get(p.id);
       if (avatarData) {
         doc.addImage(avatarData, "PNG", avatarX, avatarY, avatarSizeMm, avatarSizeMm, undefined, "FAST");
       }
 
-      // Textos vectoriales
-      const textX = avatarX + avatarSizeMm + 3.2;
-      const maxTextW = cardWMm - (textX - x) - 2.5;
+      // Textos grandes y legibles
+      const textX = avatarX + avatarSizeMm + 4.2;
+      const maxTextW = cardWMm - (textX - x) - 3.5;
 
-      // Nombre
+      // Nombre (11 pt bold)
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(8.4);
+      doc.setFontSize(11);
       doc.setTextColor(30, 41, 59);
       let nameStr = p.name;
       while (doc.getTextWidth(nameStr) > maxTextW && nameStr.length > 4) {
         nameStr = nameStr.substring(0, nameStr.length - 2) + "…";
       }
-      doc.text(nameStr, textX, y + 5.6);
+      doc.text(nameStr, textX, y + 7.8);
 
-      // Fechas y edad
-      let currentY = y + 9.5;
+      // Fechas y edad (9 pt)
+      let currentY = y + 13.4;
       if (p.birth || p.death) {
         const dates = formatVitalDatesWithAge(p.birth, p.death);
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(6.8);
+        doc.setFontSize(9.0);
         doc.setTextColor(100, 116, 139);
         let dStr = dates;
         while (doc.getTextWidth(dStr) > maxTextW && dStr.length > 4) {
           dStr = dStr.substring(0, dStr.length - 2) + "…";
         }
         doc.text(dStr, textX, currentY);
-        currentY += 3.6;
+        currentY += 5.0;
       }
 
-      // Lugar de nacimiento
+      // Lugar de nacimiento (8 pt)
       if (p.birth_place && p.birth_place.trim()) {
         const bPlace = formatLocationWithProvince(p.birth_place);
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(6.0);
+        doc.setFontSize(8.0);
         doc.setTextColor(180, 83, 9);
         doc.setFillColor(180, 83, 9);
-        doc.circle(textX + 0.8, currentY - 0.7, 0.45, "F");
+        doc.circle(textX + 1.0, currentY - 0.9, 0.6, "F");
         let bpStr = bPlace;
-        while (doc.getTextWidth(bpStr) > maxTextW - 3 && bpStr.length > 4) {
+        while (doc.getTextWidth(bpStr) > maxTextW - 4 && bpStr.length > 4) {
           bpStr = bpStr.substring(0, bpStr.length - 2) + "…";
         }
-        doc.text(bpStr, textX + 2.5, currentY);
-        currentY += 3.4;
+        doc.text(bpStr, textX + 3.4, currentY);
+        currentY += 4.8;
       }
 
-      // Lugar de residencia
+      // Lugar de residencia (8 pt)
       if (p.city && p.city.trim()) {
         const cPlace = formatLocationWithProvince(p.city);
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(6.0);
+        doc.setFontSize(8.0);
         doc.setTextColor(225, 29, 72);
         doc.setFillColor(225, 29, 72);
-        doc.circle(textX + 0.8, currentY - 0.7, 0.45, "F");
+        doc.circle(textX + 1.0, currentY - 0.9, 0.6, "F");
         let cpStr = cPlace;
-        while (doc.getTextWidth(cpStr) > maxTextW - 3 && cpStr.length > 4) {
+        while (doc.getTextWidth(cpStr) > maxTextW - 4 && cpStr.length > 4) {
           cpStr = cpStr.substring(0, cpStr.length - 2) + "…";
         }
-        doc.text(cpStr, textX + 2.5, currentY);
+        doc.text(cpStr, textX + 3.4, currentY);
       }
     });
 
@@ -3621,8 +3621,8 @@ function setupPhotoUploadHandling() {
       const rawDataUrl = loadEvent.target.result;
       const img = new Image();
       img.onload = () => {
-        // Redimensionar a max 1280x1280 manteniendo proporción para máxima nitidez Retina y HD
-        const maxDim = 1280;
+        // Redimensionar a max 1920x1920 manteniendo proporción para máxima nitidez Full HD y Retina
+        const maxDim = 1920;
         let width = img.width;
         let height = img.height;
 
@@ -3646,7 +3646,7 @@ function setupPhotoUploadHandling() {
         ctx.imageSmoothingQuality = "high";
         ctx.drawImage(img, 0, 0, width, height);
 
-        const optimizedDataUrl = canvas.toDataURL("image/jpeg", 0.90);
+        const optimizedDataUrl = canvas.toDataURL("image/jpeg", 0.92);
         photoInput.value = optimizedDataUrl;
         photoPreview.src = optimizedDataUrl;
         if (removeBtn) removeBtn.style.display = "inline-flex";
