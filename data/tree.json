@@ -1398,5 +1398,20 @@
     "pids": [],
     "fid": 69,
     "mid": 14
+  },
+  {
+    "id": 93,
+    "name": "María Jesús Manjón Carrera",
+    "gender": "female",
+    "birth_place": "Navianos de la Vega (León)",
+    "city": "Pamplona (Navarra)",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 69,
+    "mid": 14
   }
 ]
