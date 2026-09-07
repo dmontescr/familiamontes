@@ -1218,5 +1218,20 @@
     "pids": [
       75
     ]
+  },
+  {
+    "id": 81,
+    "name": "Manuel Manjón Rodríguez",
+    "gender": "male",
+    "birth_place": "",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 75,
+    "mid": 80
   }
 ]
