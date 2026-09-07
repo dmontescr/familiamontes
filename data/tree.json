@@ -1186,5 +1186,20 @@
     "pids": [],
     "fid": 68,
     "mid": 13
+  },
+  {
+    "id": 79,
+    "name": "María Aurelia Manjón Carrera",
+    "gender": "male",
+    "birth_place": "Navianos de la Vega (León)",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 68,
+    "mid": 13
   }
 ]
