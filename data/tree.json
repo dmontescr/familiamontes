@@ -1475,5 +1475,20 @@
     "pids": [
       15
     ]
+  },
+  {
+    "id": 98,
+    "name": "Lorenzo Prieto Martínez",
+    "gender": "male",
+    "birth_place": "",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 97,
+    "mid": 15
   }
 ]
