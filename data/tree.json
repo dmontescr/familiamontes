@@ -73,10 +73,8 @@
     "death": "1976",
     "profession": "Albañil",
     "photo": "",
-    "notes": "",
-    "pids": [
-      6
-    ],
+    "notes": "Más pequeños de sus hermanos. \nLuchó en la guerra civil con el bando nacional en Bilbao y la batalla del Ebro. En Bilbao su mayor preocupación era que su hermano mayor Eloy, estaba luchando en el bando contrario.",
+    "pids": [],
     "fid": 7,
     "mid": 8
   },
@@ -91,9 +89,7 @@
     "profession": "",
     "photo": "",
     "notes": "La más pequeña de sus hermanos.\nSe casó con 18 años o un poco menos, el mismo día que su hermano Ceferino (que era el mayor), para no quedarse sola en casa.",
-    "pids": [
-      5
-    ],
+    "pids": [],
     "fid": 9,
     "mid": 10
   },
