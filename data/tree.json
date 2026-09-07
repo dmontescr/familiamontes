@@ -214,13 +214,15 @@
     "name": "Firia Martínez Rodríguez",
     "gender": "female",
     "birth_place": "",
-    "city": "Valladolid (Valladolid)",
+    "city": "",
     "birth": "",
     "death": "",
     "profession": "",
     "photo": "",
     "notes": "",
-    "pids": [],
+    "pids": [
+      97
+    ],
     "mid": 10,
     "fid": 21
   },
@@ -1470,7 +1472,9 @@
     "profession": "",
     "photo": "",
     "notes": "",
-    "pids": []
+    "pids": [
+      15
+    ]
   },
   {
     "id": 98,
