@@ -3032,7 +3032,7 @@ function persistLocalTree() {
 }
 
 // ==========================================================================
-// 6. EXPORTACIÓN A PDF CON FORMATO 100% IDÉNTICO A LA WEB Y MÁXIMA RESOLUCIÓN RETINA (300+ DPI)
+// 6. EXPORTACIÓN A PDF EN A4 MULTIPÁGINA CON FORMATO 100% IDÉNTICO A LA WEB
 // ==========================================================================
 async function exportTreeLandscapePDF() {
   const engine = AppState.treeInstance;
@@ -3054,13 +3054,13 @@ async function exportTreeLandscapePDF() {
       <svg viewBox="0 0 24 24" style="width: 15px; height: 15px; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; margin-right: 6px;">
         <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="32" stroke-linecap="round"/>
       </svg>
-      <span>Generando PDF en alta definición...</span>
+      <span>Preparando páginas A4...</span>
     `;
   }
 
-  showToast("Generando documento PDF en alta resolución con el diseño exacto de la web...", "info", 5000);
+  showToast("Calculando páginas en formato A4 con diseño idéntico a la web...", "info", 3000);
 
-  let stage = null;
+  let stageHost = null;
   try {
     const isBranchFiltered = AppState.currentBranch && AppState.currentBranch !== "all";
     let branchName = "Árbol Genealógico Completo";
@@ -3076,7 +3076,7 @@ async function exportTreeLandscapePDF() {
       return;
     }
 
-    // 1. Calcular límites exactos basados en las posiciones de las tarjetas
+    // 1. Calcular dimensiones globales del árbol
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     visibleData.forEach(p => {
       const pos = engine.positions.get(p.id);
@@ -3092,239 +3092,373 @@ async function exportTreeLandscapePDF() {
       minX = 0; minY = 0; maxX = 2000; maxY = 900;
     }
 
-    const padX = 80;
-    const padY = 60;
-    const headerH = 100;
-    const totalW = Math.round((maxX - minX) + padX * 2);
-    const totalH = Math.round((maxY - minY) + padY * 2 + headerH);
-    const offsetX = -minX + padX;
-    const offsetY = -minY + padY + headerH;
+    // 2. Parámetros geométricos A4 Apaisado (297mm x 210mm)
+    const a4WidthMm = 297;
+    const a4HeightMm = 210;
+    const marginMm = 8;
+    const headerHMm = 18;
+    const footerHMm = 8;
+    const usableWidthMm = a4WidthMm - marginMm * 2; // 281 mm
+    const usableHeightMm = a4HeightMm - headerHMm - footerHMm - marginMm * 2; // 168 mm
 
-    // 2. Escenario temporal fuera de pantalla con el diseño exacto de la web
-    stage = document.createElement("div");
-    stage.id = "tree-pdf-exact-stage";
-    stage.style.cssText = `
+    // Escala base: tarjeta de 270px -> 55mm de ancho en papel
+    const baseMmPerPx = 55 / engine.cardW;
+    const treeTotalH = Math.max(100, maxY - minY);
+    const treeHeightMmAtBase = treeTotalH * baseMmPerPx;
+    // Escala uniforme para que todas las generaciones quepan verticalmente en la página A4
+    const contentScale = (treeHeightMmAtBase > usableHeightMm) ? (usableHeightMm / treeHeightMmAtBase) : 1.0;
+    const effectiveMmPerPx = baseMmPerPx * contentScale;
+    const pageTreeW = Math.round(usableWidthMm / effectiveMmPerPx);
+
+    // 3. Algoritmo de partición inteligente: cortar entre tarjetas y sin separar matrimonios
+    const slices = [];
+    let currentStartX = minX;
+
+    while (currentStartX < maxX) {
+      let tentativeEndX = currentStartX + pageTreeW;
+      if (tentativeEndX >= maxX) {
+        slices.push({ startX: currentStartX, endX: maxX });
+        break;
+      }
+
+      let bestCutX = tentativeEndX;
+
+      // A. Evitar cortar tarjetas individuales por la mitad
+      for (const p of visibleData) {
+        const pos = engine.positions.get(p.id);
+        if (!pos) continue;
+        const cLeft = pos.x;
+        const cRight = pos.x + engine.cardW;
+        if (cLeft < tentativeEndX && cRight > tentativeEndX) {
+          bestCutX = Math.min(bestCutX, cLeft - 15);
+        }
+      }
+
+      // B. Evitar cortar entre cónyuges (mantener matrimonios juntos en la misma página)
+      if (engine.couples) {
+        for (const c of engine.couples) {
+          const p1Pos = engine.positions.get(c.p1.id);
+          const p2Pos = engine.positions.get(c.p2.id);
+          if (!p1Pos || !p2Pos) continue;
+          const coupLeft = Math.min(p1Pos.x, p2Pos.x);
+          const coupRight = Math.max(p1Pos.x, p2Pos.x) + engine.cardW;
+          if (coupLeft < tentativeEndX && coupRight > tentativeEndX) {
+            bestCutX = Math.min(bestCutX, coupLeft - 15);
+          }
+        }
+      }
+
+      // Asegurar avance mínimo para evitar bucles infinitos
+      if (bestCutX <= currentStartX + 200) {
+        bestCutX = tentativeEndX;
+      }
+
+      slices.push({ startX: currentStartX, endX: bestCutX });
+      currentStartX = bestCutX;
+    }
+
+    const numPages = slices.length;
+
+    // 4. Inicializar documento jsPDF en A4 Apaisado
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+      orientation: "landscape",
+      unit: "mm",
+      format: "a4"
+    });
+
+    // Dimensiones en píxeles de la plantilla A4
+    const a4RenderW = Math.round(a4WidthMm / baseMmPerPx);
+    const a4RenderH = Math.round(a4HeightMm / baseMmPerPx);
+    const headerPxH = Math.round(headerHMm / baseMmPerPx);
+    const footerPxH = Math.round(footerHMm / baseMmPerPx);
+    const marginPx = Math.round(marginMm / baseMmPerPx);
+    const usableHeightPx = a4RenderH - headerPxH - footerPxH - (marginPx * 2);
+
+    stageHost = document.createElement("div");
+    stageHost.id = "tree-pdf-a4-stage";
+    stageHost.style.cssText = `
       position: fixed;
       left: -99999px;
       top: 0;
-      width: ${totalW}px;
-      height: ${totalH}px;
+      width: ${a4RenderW}px;
+      height: ${a4RenderH}px;
       background-color: #faf8f5;
-      overflow: visible;
+      overflow: hidden;
       box-sizing: border-box;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       color: #1c1917;
       z-index: -9999;
     `;
+    document.body.appendChild(stageHost);
 
-    // Cabecera editorial
-    const headerEl = document.createElement("div");
-    headerEl.style.cssText = `
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: ${totalW}px;
-      height: ${headerH}px;
-      padding: 24px 60px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 2px solid #e7dfd5;
-      background: #fffcf8;
-      box-sizing: border-box;
-    `;
-    headerEl.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 24px;">
-        <div style="font-family: 'Cinzel', Georgia, serif; font-size: 32px; font-weight: 700; color: #78350f; letter-spacing: 1.5px;">FAMILIA MONTES</div>
-        <div style="height: 38px; width: 2px; background: #d6cbbf;"></div>
-        <div style="font-size: 15px; color: #57534e; font-weight: 500;">
-          <span>Memoria y Genealogía · Navianos de la Vega (León)</span>
-          <span style="display: block; font-size: 13px; color: #8c827a; font-weight: 400; margin-top: 3px;">${branchName}</span>
-        </div>
-      </div>
-      <div style="text-align: right; font-size: 13px; color: #78716c;">
-        <div style="font-weight: 600; color: #44403c; font-size: 14px;">${visibleData.length} familiares registrados</div>
-        <div style="color: #92877d; margin-top: 3px;">Documento oficial generado el ${new Date().toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })}</div>
-      </div>
-    `;
-    stage.appendChild(headerEl);
-
-    // Conectores SVG idénticos a la pantalla web
-    const svgEl = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svgEl.setAttribute("width", totalW);
-    svgEl.setAttribute("height", totalH);
-    svgEl.style.cssText = `
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: ${totalW}px;
-      height: ${totalH}px;
-      pointer-events: none;
-    `;
-
-    let svgInner = "";
-
-    // Hermandad raíz
-    if (Array.isArray(engine.rootSiblingGroups)) {
-      engine.rootSiblingGroups.forEach(group => {
-        const sibPositions = group.map(id => engine.positions.get(id)).filter(Boolean);
-        if (sibPositions.length < 2) return;
-        const centerXs = sibPositions.map(pos => pos.x + engine.cardW / 2 + offsetX);
-        const minLineX = Math.min(...centerXs);
-        const maxLineX = Math.max(...centerXs);
-        const busY = Math.min(...sibPositions.map(pos => pos.y + offsetY)) - 14;
-
-        svgInner += `<line x1="${minLineX}" y1="${busY}" x2="${maxLineX}" y2="${busY}" stroke="#94a3b8" stroke-width="2.5" />`;
-        sibPositions.forEach(pos => {
-          const cx = pos.x + engine.cardW / 2 + offsetX;
-          const cy = pos.y + offsetY;
-          svgInner += `<line x1="${cx}" y1="${busY}" x2="${cx}" y2="${cy}" stroke="#94a3b8" stroke-width="2.5" />`;
-          svgInner += `<circle cx="${cx}" cy="${cy}" r="3.5" fill="#94a3b8" />`;
-        });
-      });
-    }
-
-    // Matrimonios
-    engine.couples.forEach(c => {
-      const pos1 = engine.positions.get(c.p1.id);
-      const pos2 = engine.positions.get(c.p2.id);
-      if (!pos1 || !pos2) return;
-
-      const leftX = Math.min(pos1.x, pos2.x) + engine.cardW + offsetX;
-      const rightX = Math.max(pos1.x, pos2.x) + offsetX;
-      const y = pos1.y + engine.cardH / 2 + offsetY;
-
-      svgInner += `<line x1="${leftX}" y1="${y}" x2="${rightX}" y2="${y}" stroke="#d97706" stroke-width="2.5" stroke-dasharray="4 3" />`;
-      const midX = (leftX + rightX) / 2;
-      svgInner += `<circle cx="${midX}" cy="${y}" r="4.5" fill="#d97706" stroke="#ffffff" stroke-width="1.5" />`;
-    });
-
-    // Conexiones hacia hijos
-    engine.childGroups.forEach(group => {
-      const childPositions = group.children.map(id => engine.positions.get(id)).filter(Boolean);
-      if (childPositions.length === 0) return;
-
-      let sourceX, sourceY;
-      if (group.pids.length === 2) {
-        const p1 = engine.positions.get(group.pids[0]);
-        const p2 = engine.positions.get(group.pids[1]);
-        if (!p1 || !p2) return;
-        sourceX = (Math.min(p1.x, p2.x) + engine.cardW + Math.max(p1.x, p2.x)) / 2 + offsetX;
-        sourceY = p1.y + engine.cardH / 2 + offsetY;
-      } else {
-        const p = engine.positions.get(group.pids[0]);
-        if (!p) return;
-        sourceX = p.x + engine.cardW / 2 + offsetX;
-        sourceY = p.y + engine.cardH + offsetY;
+    // 5. Renderizar cada página A4 por separado
+    for (let pageIdx = 0; pageIdx < numPages; pageIdx++) {
+      if (exportBtn) {
+        exportBtn.innerHTML = `
+          <svg viewBox="0 0 24 24" style="width: 15px; height: 15px; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; margin-right: 6px;">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="32" stroke-linecap="round"/>
+          </svg>
+          <span>Página ${pageIdx + 1} de ${numPages}...</span>
+        `;
       }
 
-      const busY = sourceY + (engine.cardH / 2) + (engine.levelGap / 2) + (group.busYOffset || 0);
-      svgInner += `<line x1="${sourceX}" y1="${sourceY}" x2="${sourceX}" y2="${busY}" stroke="#94a3b8" stroke-width="2.5" />`;
+      const slice = slices[pageIdx];
+      const sliceW = slice.endX - slice.startX;
+      const extraTreeSpace = Math.max(0, pageTreeW - sliceW);
+      const offsetX = -slice.startX + Math.round(extraTreeSpace / 2);
+      const offsetY = -minY + 20;
 
-      const childCenterXs = childPositions.map(pos => pos.x + engine.cardW / 2 + offsetX);
-      const minBusX = Math.min(sourceX, ...childCenterXs);
-      const maxBusX = Math.max(sourceX, ...childCenterXs);
+      stageHost.innerHTML = "";
 
-      svgInner += `<line x1="${minBusX}" y1="${busY}" x2="${maxBusX}" y2="${busY}" stroke="#94a3b8" stroke-width="2.5" />`;
-
-      childPositions.forEach(pos => {
-        const cx = pos.x + engine.cardW / 2 + offsetX;
-        const cy = pos.y + offsetY;
-        svgInner += `<line x1="${cx}" y1="${busY}" x2="${cx}" y2="${cy}" stroke="#94a3b8" stroke-width="2.5" />`;
-      });
-    });
-
-    svgEl.innerHTML = svgInner;
-    stage.appendChild(svgEl);
-
-    // 3. Tarjetas Físicas con clases CSS idénticas a la web (sin botón interactivo "+")
-    visibleData.forEach(p => {
-      const pos = engine.positions.get(p.id);
-      if (!pos) return;
-
-      const card = document.createElement("div");
-      card.className = `tree-card ${p.gender || "male"}`;
-      card.style.position = "absolute";
-      card.style.left = (pos.x + offsetX) + "px";
-      card.style.top = (pos.y + offsetY) + "px";
-      card.style.width = engine.cardW + "px";
-      card.style.height = engine.cardH + "px";
-      card.style.boxSizing = "border-box";
-      card.style.margin = "0";
-      card.style.cursor = "default";
-
-      const photoUrl = getPersonPhotoUrl(p.photo, p.gender);
-      const dates = (p.birth || p.death) ? formatVitalDatesWithAge(p.birth, p.death) : "";
-      const birthStr = (p.birth_place && p.birth_place.trim()) ? formatLocationWithProvince(p.birth_place) : "";
-      const resStr = (p.city && p.city.trim()) ? formatLocationWithProvince(p.city) : "";
-
-      card.innerHTML = `
-        <img class="card-photo" src="${photoUrl}" alt="${p.name}">
-        <div class="card-info">
-          <div class="card-name" title="${p.name}">${p.name}</div>
-          ${dates ? `<div class="card-dates">${dates}</div>` : ""}
-          ${birthStr ? `
-            <div class="card-meta">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="#b45309"></polygon>
-              </svg>
-              <span>${birthStr}</span>
-            </div>
-          ` : ""}
-          ${resStr ? `
-            <div class="card-meta">
-              <svg viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
-                <circle cx="12" cy="10" r="3" fill="#ffffff"></circle>
-              </svg>
-              <span>${resStr}</span>
-            </div>
-          ` : ""}
+      // A. Cabecera editorial A4
+      const headerEl = document.createElement("div");
+      headerEl.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: ${a4RenderW}px;
+        height: ${headerPxH}px;
+        padding: 10px ${marginPx}px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 2px solid #e7dfd5;
+        background: #fffcf8;
+        box-sizing: border-box;
+      `;
+      headerEl.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div style="font-family: 'Cinzel', Georgia, serif; font-size: 22px; font-weight: 700; color: #78350f; letter-spacing: 1px;">FAMILIA MONTES</div>
+          <div style="height: 26px; width: 1.5px; background: #d6cbbf;"></div>
+          <div style="font-size: 13px; color: #57534e; font-weight: 500;">
+            <span>Memoria y Genealogía · Navianos de la Vega (León)</span>
+            <span style="display: block; font-size: 11px; color: #8c827a; font-weight: 400; margin-top: 1px;">${branchName}</span>
+          </div>
+        </div>
+        <div style="text-align: right; font-size: 11px; color: #78716c;">
+          <div style="font-weight: 600; color: #44403c;">Página ${pageIdx + 1} de ${numPages}</div>
+          <div style="color: #92877d; margin-top: 2px;">${new Date().toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })}</div>
         </div>
       `;
+      stageHost.appendChild(headerEl);
 
-      stage.appendChild(card);
-    });
+      // B. Pie de página A4
+      const footerEl = document.createElement("div");
+      footerEl.style.cssText = `
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: ${a4RenderW}px;
+        height: ${footerPxH}px;
+        padding: 0 ${marginPx}px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-top: 1px solid #eae2d8;
+        background: #faf8f5;
+        font-size: 10px;
+        color: #a8a29e;
+        box-sizing: border-box;
+      `;
+      footerEl.innerHTML = `
+        <span>Árbol Genealógico Familia Montes · Archivo Familiar Histórico</span>
+        <span>Página ${pageIdx + 1} de ${numPages}</span>
+      `;
+      stageHost.appendChild(footerEl);
 
-    document.body.appendChild(stage);
+      // C. Área de Árbol recortada y escalada uniformemente
+      const treeArea = document.createElement("div");
+      treeArea.style.cssText = `
+        position: absolute;
+        top: ${headerPxH}px;
+        bottom: ${footerPxH}px;
+        left: ${marginPx}px;
+        right: ${marginPx}px;
+        overflow: hidden;
+      `;
+      stageHost.appendChild(treeArea);
 
-    // Esperar precarga completa de imágenes
-    await Promise.all(Array.from(stage.querySelectorAll("img")).map(img => {
-      if (img.complete) return Promise.resolve();
-      return new Promise(res => {
-        img.onload = res;
-        img.onerror = res;
+      const innerW = Math.round((a4RenderW - marginPx * 2) / contentScale);
+      const innerH = Math.round(usableHeightPx / contentScale);
+      const scaleContainer = document.createElement("div");
+      scaleContainer.style.cssText = `
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: ${innerW}px;
+        height: ${innerH}px;
+        transform-origin: top left;
+        transform: scale(${contentScale});
+      `;
+      treeArea.appendChild(scaleContainer);
+
+      // D. Conectores SVG (árbol genealógico)
+      const svgEl = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svgEl.setAttribute("width", innerW);
+      svgEl.setAttribute("height", innerH);
+      svgEl.style.cssText = "position: absolute; left: 0; top: 0; pointer-events: none;";
+
+      let svgInner = "";
+
+      // Líneas de hermandad raíz
+      if (Array.isArray(engine.rootSiblingGroups)) {
+        engine.rootSiblingGroups.forEach(group => {
+          const sibPositions = group.map(id => engine.positions.get(id)).filter(Boolean);
+          if (sibPositions.length < 2) return;
+          const centerXs = sibPositions.map(pos => pos.x + engine.cardW / 2 + offsetX);
+          const minLineX = Math.min(...centerXs);
+          const maxLineX = Math.max(...centerXs);
+          const busY = Math.min(...sibPositions.map(pos => pos.y + offsetY)) - 14;
+
+          svgInner += `<line x1="${minLineX}" y1="${busY}" x2="${maxLineX}" y2="${busY}" stroke="#94a3b8" stroke-width="2.5" />`;
+          sibPositions.forEach(pos => {
+            const cx = pos.x + engine.cardW / 2 + offsetX;
+            const cy = pos.y + offsetY;
+            svgInner += `<line x1="${cx}" y1="${busY}" x2="${cx}" y2="${cy}" stroke="#94a3b8" stroke-width="2.5" />`;
+            svgInner += `<circle cx="${cx}" cy="${cy}" r="3.5" fill="#94a3b8" />`;
+          });
+        });
+      }
+
+      // Líneas de matrimonios
+      if (engine.couples) {
+        engine.couples.forEach(c => {
+          const pos1 = engine.positions.get(c.p1.id);
+          const pos2 = engine.positions.get(c.p2.id);
+          if (!pos1 || !pos2) return;
+
+          const leftX = Math.min(pos1.x, pos2.x) + engine.cardW + offsetX;
+          const rightX = Math.max(pos1.x, pos2.x) + offsetX;
+          const y = pos1.y + engine.cardH / 2 + offsetY;
+
+          svgInner += `<line x1="${leftX}" y1="${y}" x2="${rightX}" y2="${y}" stroke="#d97706" stroke-width="2.5" stroke-dasharray="4 3" />`;
+          const midX = (leftX + rightX) / 2;
+          svgInner += `<circle cx="${midX}" cy="${y}" r="4.5" fill="#d97706" stroke="#ffffff" stroke-width="1.5" />`;
+        });
+      }
+
+      // Líneas hacia hijos
+      if (engine.childGroups) {
+        engine.childGroups.forEach(group => {
+          const childPositions = group.children.map(id => engine.positions.get(id)).filter(Boolean);
+          if (childPositions.length === 0) return;
+
+          let sourceX, sourceY;
+          if (group.pids.length === 2) {
+            const p1 = engine.positions.get(group.pids[0]);
+            const p2 = engine.positions.get(group.pids[1]);
+            if (!p1 || !p2) return;
+            sourceX = (Math.min(p1.x, p2.x) + engine.cardW + Math.max(p1.x, p2.x)) / 2 + offsetX;
+            sourceY = p1.y + engine.cardH / 2 + offsetY;
+          } else {
+            const p = engine.positions.get(group.pids[0]);
+            if (!p) return;
+            sourceX = p.x + engine.cardW / 2 + offsetX;
+            sourceY = p.y + engine.cardH + offsetY;
+          }
+
+          const busY = sourceY + (engine.cardH / 2) + (engine.levelGap / 2) + (group.busYOffset || 0);
+          svgInner += `<line x1="${sourceX}" y1="${sourceY}" x2="${sourceX}" y2="${busY}" stroke="#94a3b8" stroke-width="2.5" />`;
+
+          const childCenterXs = childPositions.map(pos => pos.x + engine.cardW / 2 + offsetX);
+          const minBusX = Math.min(sourceX, ...childCenterXs);
+          const maxBusX = Math.max(sourceX, ...childCenterXs);
+
+          svgInner += `<line x1="${minBusX}" y1="${busY}" x2="${maxBusX}" y2="${busY}" stroke="#94a3b8" stroke-width="2.5" />`;
+
+          childPositions.forEach(pos => {
+            const cx = pos.x + engine.cardW / 2 + offsetX;
+            const cy = pos.y + offsetY;
+            svgInner += `<line x1="${cx}" y1="${busY}" x2="${cx}" y2="${cy}" stroke="#94a3b8" stroke-width="2.5" />`;
+          });
+        });
+      }
+
+      svgEl.innerHTML = svgInner;
+      scaleContainer.appendChild(svgEl);
+
+      // E. Tarjetas pertenecientes a esta página (con las clases y diseño idénticos a la web)
+      visibleData.forEach(p => {
+        const pos = engine.positions.get(p.id);
+        if (!pos) return;
+
+        // Filtrar estrictamente: solo tarjetas asignadas a este segmento de página
+        if (pos.x < slice.startX - 5 || pos.x >= slice.endX) return;
+
+        const cardLeft = pos.x + offsetX;
+        const card = document.createElement("div");
+        card.className = `tree-card ${p.gender || "male"}`;
+        card.style.position = "absolute";
+        card.style.left = cardLeft + "px";
+        card.style.top = (pos.y + offsetY) + "px";
+        card.style.width = engine.cardW + "px";
+        card.style.height = engine.cardH + "px";
+        card.style.boxSizing = "border-box";
+        card.style.margin = "0";
+        card.style.cursor = "default";
+
+        const photoUrl = getPersonPhotoUrl(p.photo, p.gender);
+        const dates = (p.birth || p.death) ? formatVitalDatesWithAge(p.birth, p.death) : "";
+        const birthStr = (p.birth_place && p.birth_place.trim()) ? formatLocationWithProvince(p.birth_place) : "";
+        const resStr = (p.city && p.city.trim()) ? formatLocationWithProvince(p.city) : "";
+
+        card.innerHTML = `
+          <img class="card-photo" src="${photoUrl}" alt="${p.name}">
+          <div class="card-info">
+            <div class="card-name" title="${p.name}">${p.name}</div>
+            ${dates ? `<div class="card-dates">${dates}</div>` : ""}
+            ${birthStr ? `
+              <div class="card-meta">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="#b45309"></polygon>
+                </svg>
+                <span>${birthStr}</span>
+              </div>
+            ` : ""}
+            ${resStr ? `
+              <div class="card-meta">
+                <svg viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+                  <circle cx="12" cy="10" r="3" fill="#ffffff"></circle>
+                </svg>
+                <span>${resStr}</span>
+              </div>
+            ` : ""}
+          </div>
+        `;
+
+        scaleContainer.appendChild(card);
       });
-    }));
 
-    // 4. Captura en canvas con escala 3.0 (Retina HD / >300 DPI)
-    // Usando formato PNG para CERO pérdida de compresión y fondos completamente limpios
-    const canvas = await html2canvas(stage, {
-      backgroundColor: "#faf8f5",
-      scale: 3.0,
-      width: totalW,
-      height: totalH,
-      useCORS: true,
-      logging: false,
-      allowTaint: true
-    });
+      // Precargar imágenes de la página actual
+      await Promise.all(Array.from(stageHost.querySelectorAll("img")).map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise(res => {
+          img.onload = res;
+          img.onerror = res;
+        });
+      }));
 
-    // 5. Documento PDF proporcional
-    const { jsPDF } = window.jspdf;
-    // Escala física: ~65 mm de ancho de tarjeta en papel para lectura cómoda y amplia
-    const mmPerPx = 65 / engine.cardW;
-    const pdfW = Math.round(totalW * mmPerPx);
-    const pdfH = Math.round(totalH * mmPerPx);
+      // Renderizar página en alta resolución (Escala 2x Retina para nítida legibilidad)
+      const pageCanvas = await html2canvas(stageHost, {
+        backgroundColor: "#faf8f5",
+        scale: 2.0,
+        width: a4RenderW,
+        height: a4RenderH,
+        useCORS: true,
+        logging: false
+      });
 
-    const doc = new jsPDF({
-      orientation: (pdfW >= pdfH) ? "landscape" : "portrait",
-      unit: "mm",
-      format: [pdfW, pdfH]
-    });
+      if (pageIdx > 0) {
+        doc.addPage("a4", "landscape");
+      }
 
-    const imgData = canvas.toDataURL("image/png");
-    doc.addImage(imgData, "PNG", 0, 0, pdfW, pdfH, undefined, "FAST");
+      // Formato JPEG a 0.90 para máxima nitidez visual con peso ligero (~200KB por página)
+      const pageImg = pageCanvas.toDataURL("image/jpeg", 0.90);
+      doc.addImage(pageImg, "JPEG", 0, 0, a4WidthMm, a4HeightMm, undefined, "FAST");
+    }
 
     const slugBranch = branchName
       .normalize("NFD")
@@ -3332,16 +3466,17 @@ async function exportTreeLandscapePDF() {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "_")
       .replace(/^_+|_+$/g, "");
-    const fileName = `arbol_genealogico_familia_montes_${slugBranch}.pdf`;
+    const fileName = `arbol_genealogico_familia_montes_${slugBranch}_A4.pdf`;
 
+    window.__lastExportedPdf = doc;
     doc.save(fileName);
-    showToast("¡Documento PDF en alta definición descargado con éxito!", "success");
+    showToast(`¡Documento PDF en formato A4 generado con éxito (${numPages} páginas)!`, "success");
   } catch (error) {
     console.error("Error al exportar PDF:", error);
     showToast("Error al generar el PDF: " + error.message, "error");
   } finally {
-    if (stage && stage.parentNode) {
-      stage.parentNode.removeChild(stage);
+    if (stageHost && stageHost.parentNode) {
+      stageHost.parentNode.removeChild(stageHost);
     }
     if (exportBtn) {
       exportBtn.disabled = false;
