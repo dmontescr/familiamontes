@@ -3101,8 +3101,8 @@ async function exportTreeLandscapePDF() {
     const usableWidthMm = a3WidthMm - marginMm * 2; // 396 mm
     const usableHeightMm = a3HeightMm - headerHMm - footerHMm - marginMm * 2; // 241 mm
 
-    // Escala base: tarjeta de 270px -> 62mm de ancho en papel A3
-    const baseMmPerPx = 62 / engine.cardW;
+    // Escala base en papel A3: tarjeta de 270px -> 38mm de ancho (permite albergar ramas enteras en menos hojas)
+    const baseMmPerPx = 38 / engine.cardW;
     const treeTotalH = Math.max(100, maxY - minY);
     const treeHeightMmAtBase = treeTotalH * baseMmPerPx;
     // Escala uniforme para que todas las generaciones quepan verticalmente en la página A3
