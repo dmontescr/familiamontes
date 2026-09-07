@@ -931,7 +931,19 @@ class MontesTreeEngine {
     this.initDOM();
     this.layout();
     this.render();
-    this.fit();
+
+    if (this.options && this.options.focusPersonId && this.positions.has(parseInt(this.options.focusPersonId, 10))) {
+      this.center(parseInt(this.options.focusPersonId, 10), false);
+    } else if (this.options && this.options.preserveView && this.options.scale !== undefined) {
+      this.scale = this.options.scale;
+      this.panX = this.options.panX || 0;
+      this.panY = this.options.panY || 0;
+      this.clampPan();
+      this.applyTransform();
+    } else {
+      this.fit();
+    }
+
     this.setupInteractions();
   }
 
@@ -1604,7 +1616,7 @@ class MontesTreeEngine {
     this.applyTransform();
   }
 
-  center(personId) {
+  center(personId, animate = true) {
     const idNum = parseInt(personId, 10);
     const pos = this.positions.get(idNum);
     if (!pos) return;
@@ -1612,10 +1624,22 @@ class MontesTreeEngine {
     const containerW = this.container.clientWidth || window.innerWidth;
     const containerH = this.container.clientHeight || (window.innerHeight - 64);
     const isMobile = (containerW <= 768);
-    const targetScale = isMobile ? 0.78 : Math.max(this.scale, 0.85);
+    const targetScale = isMobile ? 0.78 : (this.scale >= 0.6 ? this.scale : 0.85);
 
-    const targetPanX = (containerW / 2) - (pos.x + this.cardW / 2) * targetScale;
+    const isDrawerOpen = !isMobile && !!document.getElementById("person-drawer")?.classList?.contains("active");
+    const visibleCenterX = isDrawerOpen ? (containerW - 380) / 2 : (containerW / 2);
+
+    const targetPanX = visibleCenterX - (pos.x + this.cardW / 2) * targetScale;
     const targetPanY = (containerH / 2) - (pos.y + this.cardH / 2) * targetScale;
+
+    if (!animate) {
+      this.scale = targetScale;
+      this.panX = targetPanX;
+      this.panY = targetPanY;
+      this.clampPan();
+      this.applyTransform();
+      return;
+    }
 
     const startPanX = this.panX;
     const startPanY = this.panY;
@@ -1623,7 +1647,7 @@ class MontesTreeEngine {
     const startTime = performance.now();
     const duration = 280;
 
-    const animate = (now) => {
+    const stepAnimate = (now) => {
       const elapsed = now - startTime;
       const progress = Math.min(1, elapsed / duration);
       const ease = progress * (2 - progress);
@@ -1635,10 +1659,10 @@ class MontesTreeEngine {
       this.applyTransform();
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        requestAnimationFrame(stepAnimate);
       }
     };
-    requestAnimationFrame(animate);
+    requestAnimationFrame(stepAnimate);
   }
 
   zoom(inOut) {
@@ -1834,7 +1858,7 @@ window.restoreLastValidTree = function() {
   }
 };
 
-function initTreeVisualization() {
+function initTreeVisualization(options = {}) {
   const container = document.getElementById("tree-canvas");
   if (!container) return;
 
@@ -1880,7 +1904,7 @@ function initTreeVisualization() {
   }
 
   // Inicializar MontesTreeEngine nativo
-  AppState.treeInstance = new MontesTreeEngine(container, AppState.treeData);
+  AppState.treeInstance = new MontesTreeEngine(container, AppState.treeData, options);
   AppState.lastValidTreeData = JSON.parse(JSON.stringify(AppState.treeData));
   updateHeaderSummary();
 }
@@ -2381,6 +2405,8 @@ function populateParentAndPartnerSelectors(excludePersonId = null, preselected =
 }
 
 function openAddRootPersonModal() {
+  closePersonDrawer();
+  AppState.selectedPersonId = null;
   const form = document.getElementById("form-person");
   form.reset();
 
@@ -2406,6 +2432,8 @@ function openAddRootPersonModal() {
 }
 
 function openAddChildModal(parentPersonId) {
+  closePersonDrawer();
+  AppState.selectedPersonId = null;
   const parent = AppState.treeData.find(p => p.id === parentPersonId);
   if (!parent) return;
 
@@ -2454,6 +2482,8 @@ function openAddChildModal(parentPersonId) {
 }
 
 function openAddPartnerModal(personId) {
+  closePersonDrawer();
+  AppState.selectedPersonId = null;
   const person = AppState.treeData.find(p => p.id === personId);
   if (!person) return;
 
@@ -2488,6 +2518,8 @@ function openAddPartnerModal(personId) {
 }
 
 function openAddSiblingModal(personId) {
+  closePersonDrawer();
+  AppState.selectedPersonId = null;
   const person = AppState.treeData.find(p => p.id === personId);
   if (!person) return;
 
@@ -2524,6 +2556,8 @@ function openAddSiblingModal(personId) {
 }
 
 function openAddParentModal(childId, role) {
+  closePersonDrawer();
+  AppState.selectedPersonId = null;
   const child = AppState.treeData.find(p => p.id === childId);
   if (!child) return;
 
@@ -2667,9 +2701,12 @@ async function savePersonFromForm() {
     finalPhoto = "";
   }
 
+  let targetPersonId = null;
+
   // CASO A: EDITAR PERSONA EXISTENTE
   if (idInput) {
     const personId = parseInt(idInput, 10);
+    targetPersonId = personId;
     const index = AppState.treeData.findIndex(p => p.id === personId);
     if (index !== -1) {
       const oldPerson = AppState.treeData[index];
@@ -2743,6 +2780,7 @@ async function savePersonFromForm() {
   // CASO B: AÑADIR NUEVA PERSONA
   else {
     const newId = generateNextId();
+    targetPersonId = newId;
     const newPerson = {
       id: newId,
       name,
@@ -2838,11 +2876,13 @@ async function savePersonFromForm() {
   // Guardar en caché local y refrescar árbol
   persistLocalTree();
   closeAllModals();
-  initTreeVisualization();
+
+  AppState.selectedPersonId = targetPersonId;
+  initTreeVisualization({ focusPersonId: targetPersonId });
   updateHeaderSummary();
 
-  if (AppState.selectedPersonId) {
-    openPersonDrawer(AppState.selectedPersonId);
+  if (targetPersonId) {
+    openPersonDrawer(targetPersonId);
   }
 
   // Guardar automáticamente a través de la API en segundo plano
