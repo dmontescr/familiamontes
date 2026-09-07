@@ -3032,12 +3032,18 @@ function persistLocalTree() {
 }
 
 // ==========================================================================
-// 6. EXPORTACIÓN A PDF HORIZONTAL DE ALTA RESOLUCIÓN Y MÁXIMA NITIDEZ
+// ==========================================================================
+// 6. EXPORTACIÓN A PDF VECTORIAL PURO DE MÁXIMA NITIDEZ (SIN PIXELADO)
 // ==========================================================================
 async function exportTreeLandscapePDF() {
   const engine = AppState.treeInstance;
   if (!engine || !engine.positions || engine.positions.size === 0) {
     showToast("No se encontró el árbol en pantalla para exportar.", "error");
+    return;
+  }
+
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    showToast("No se encontró la biblioteca jsPDF.", "error");
     return;
   }
 
@@ -3049,11 +3055,11 @@ async function exportTreeLandscapePDF() {
       <svg viewBox="0 0 24 24" style="width: 15px; height: 15px; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; margin-right: 6px;">
         <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="32" stroke-linecap="round"/>
       </svg>
-      <span>Generando PDF...</span>
+      <span>Generando PDF Vectorial...</span>
     `;
   }
 
-  showToast("Generando documento PDF en alta resolución...", "info", 5000);
+  showToast("Generando documento PDF vectorial de máxima nitidez...", "info", 4000);
 
   try {
     const isBranchFiltered = AppState.currentBranch && AppState.currentBranch !== "all";
@@ -3088,114 +3094,117 @@ async function exportTreeLandscapePDF() {
 
     const padX = 80;
     const padY = 60;
-    const headerH = 100;
-    const totalW = Math.round((maxX - minX) + padX * 2);
-    const totalH = Math.round((maxY - minY) + padY * 2 + headerH);
-
+    const headerH = 90;
+    const totalW = (maxX - minX) + padX * 2;
+    const totalH = (maxY - minY) + padY * 2 + headerH;
     const offsetX = -minX + padX;
     const offsetY = -minY + padY + headerH;
 
-    // 2. Crear contenedor de renderizado fuera de pantalla (Off-screen Staging)
-    // Esto previene cualquier corte de overflow:hidden y solapamientos de CSS transforms
-    const stage = document.createElement("div");
-    stage.id = "tree-pdf-export-stage";
-    stage.style.cssText = `
-      position: fixed;
-      left: -99999px;
-      top: 0;
-      width: ${totalW}px;
-      height: ${totalH}px;
-      background-color: #faf8f5;
-      overflow: visible;
-      box-sizing: border-box;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      color: #1c1917;
-      z-index: -9999;
-    `;
+    // Escala métrica: 1 px de layout = 0.25 mm en papel (tarjeta física de 65 x 21 mm)
+    const scale = 0.25;
+    const pdfW = Math.round(totalW * scale);
+    const pdfH = Math.round(totalH * scale);
 
-    // 3. Cabecera editorial del documento genealógico
-    const headerEl = document.createElement("div");
-    headerEl.style.cssText = `
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: ${totalW}px;
-      height: ${headerH}px;
-      padding: 24px 60px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 2px solid #e7dfd5;
-      background: #fffcf8;
-      box-sizing: border-box;
-    `;
-    headerEl.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 24px;">
-        <div style="font-family: 'Cinzel', Georgia, serif; font-size: 32px; font-weight: 700; color: #78350f; letter-spacing: 1.5px;">FAMILIA MONTES</div>
-        <div style="height: 38px; width: 2px; background: #d6cbbf;"></div>
-        <div style="font-size: 15px; color: #57534e; font-weight: 500;">
-          <span>Memoria y Genealogía · Navianos de la Vega (León)</span>
-          <span style="display: block; font-size: 13px; color: #8c827a; font-weight: 400; margin-top: 3px;">${branchName}</span>
-        </div>
-      </div>
-      <div style="text-align: right; font-size: 13px; color: #78716c;">
-        <div style="font-weight: 600; color: #44403c; font-size: 14px;">${visibleData.length} familiares registrados</div>
-        <div style="color: #92877d; margin-top: 3px;">Documento oficial generado el ${new Date().toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })}</div>
-      </div>
-    `;
-    stage.appendChild(headerEl);
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+      orientation: (pdfW >= pdfH) ? "landscape" : "portrait",
+      unit: "mm",
+      format: [pdfW, pdfH]
+    });
 
-    // 4. Capa SVG de conectores desplazados con exactitud absoluta
-    const svgEl = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svgEl.setAttribute("width", totalW);
-    svgEl.setAttribute("height", totalH);
-    svgEl.style.cssText = `
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: ${totalW}px;
-      height: ${totalH}px;
-      pointer-events: none;
-    `;
+    // Fondo del documento
+    doc.setFillColor(250, 248, 245);
+    doc.rect(0, 0, pdfW, pdfH, "F");
 
-    let svgInner = "";
+    // 1. Cabecera editorial vectorial
+    const headerHMm = headerH * scale;
+    doc.setFillColor(255, 252, 248);
+    doc.rect(0, 0, pdfW, headerHMm, "F");
+    doc.setDrawColor(226, 217, 205);
+    doc.setLineWidth(0.4);
+    doc.line(0, headerHMm, pdfW, headerHMm);
 
-    // 4a. Líneas de hermandad raíz
+    // Título institucional
+    doc.setFont("times", "bold");
+    doc.setFontSize(18);
+    doc.setTextColor(120, 53, 15);
+    doc.text("FAMILIA MONTES", 15, headerHMm * 0.45);
+
+    const titleW = doc.getTextWidth("FAMILIA MONTES");
+    doc.setDrawColor(214, 203, 191);
+    doc.setLineWidth(0.4);
+    doc.line(15 + titleW + 5, headerHMm * 0.2, 15 + titleW + 5, headerHMm * 0.8);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(87, 83, 78);
+    doc.text("Memoria y Genealogía · Navianos de la Vega (León)", 15 + titleW + 10, headerHMm * 0.4);
+
+    doc.setFontSize(7.5);
+    doc.setTextColor(140, 130, 122);
+    doc.text(branchName, 15 + titleW + 10, headerHMm * 0.68);
+
+    // Conteo y fecha en la esquina derecha
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(68, 64, 60);
+    doc.text(visibleData.length + " familiares registrados", pdfW - 15, headerHMm * 0.4, { align: "right" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(146, 135, 125);
+    const dateStr = "Documento oficial generado el " + new Date().toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
+    doc.text(dateStr, pdfW - 15, headerHMm * 0.68, { align: "right" });
+
+    // 2. Conectores Vectoriales Nativos (Líneas 100% nítidas a cualquier zoom)
+    // 2a. Hermandad raíz
     if (Array.isArray(engine.rootSiblingGroups)) {
+      doc.setDrawColor(148, 163, 184);
+      doc.setFillColor(148, 163, 184);
+      doc.setLineWidth(0.5);
       engine.rootSiblingGroups.forEach(group => {
         const sibPositions = group.map(id => engine.positions.get(id)).filter(Boolean);
         if (sibPositions.length < 2) return;
-        const centerXs = sibPositions.map(pos => pos.x + engine.cardW / 2 + offsetX);
+        const centerXs = sibPositions.map(pos => (pos.x + engine.cardW / 2 + offsetX) * scale);
         const minLineX = Math.min(...centerXs);
         const maxLineX = Math.max(...centerXs);
-        const busY = Math.min(...sibPositions.map(pos => pos.y + offsetY)) - 14;
+        const busY = (Math.min(...sibPositions.map(pos => pos.y + offsetY)) - 14) * scale;
 
-        svgInner += `<line x1="${minLineX}" y1="${busY}" x2="${maxLineX}" y2="${busY}" stroke="#94a3b8" stroke-width="2.5" />`;
+        doc.line(minLineX, busY, maxLineX, busY);
         sibPositions.forEach(pos => {
-          const cx = pos.x + engine.cardW / 2 + offsetX;
-          const cy = pos.y + offsetY;
-          svgInner += `<line x1="${cx}" y1="${busY}" x2="${cx}" y2="${cy}" stroke="#94a3b8" stroke-width="2.5" />`;
-          svgInner += `<circle cx="${cx}" cy="${cy}" r="3.5" fill="#94a3b8" />`;
+          const cx = (pos.x + engine.cardW / 2 + offsetX) * scale;
+          const cy = (pos.y + offsetY) * scale;
+          doc.line(cx, busY, cx, cy);
+          doc.circle(cx, cy, 0.7, "F");
         });
       });
     }
 
-    // 4b. Líneas de matrimonio
+    // 2b. Matrimonios (Línea discontinua dorada con nodo de unión)
+    doc.setDrawColor(217, 119, 6);
+    doc.setLineWidth(0.55);
     engine.couples.forEach(c => {
       const pos1 = engine.positions.get(c.p1.id);
       const pos2 = engine.positions.get(c.p2.id);
       if (!pos1 || !pos2) return;
+      const leftX = (Math.min(pos1.x, pos2.x) + engine.cardW + offsetX) * scale;
+      const rightX = (Math.max(pos1.x, pos2.x) + offsetX) * scale;
+      const y = (pos1.y + engine.cardH / 2 + offsetY) * scale;
 
-      const leftX = Math.min(pos1.x, pos2.x) + engine.cardW + offsetX;
-      const rightX = Math.max(pos1.x, pos2.x) + offsetX;
-      const y = pos1.y + engine.cardH / 2 + offsetY;
+      doc.setLineDashPattern([1.5, 1], 0);
+      doc.line(leftX, y, rightX, y);
+      doc.setLineDashPattern([], 0);
 
-      svgInner += `<line x1="${leftX}" y1="${y}" x2="${rightX}" y2="${y}" stroke="#d97706" stroke-width="2.5" stroke-dasharray="4 3" />`;
       const midX = (leftX + rightX) / 2;
-      svgInner += `<circle cx="${midX}" cy="${y}" r="4.5" fill="#d97706" stroke="#ffffff" stroke-width="1.5" />`;
+      doc.setFillColor(217, 119, 6);
+      doc.circle(midX, y, 1.2, "F");
+      doc.setFillColor(255, 255, 255);
+      doc.circle(midX, y, 0.5, "F");
     });
 
-    // 4c. Líneas hacia hijos
+    // 2c. Hacia Hijos (Buses ortogonales limpios)
+    doc.setDrawColor(148, 163, 184);
+    doc.setFillColor(148, 163, 184);
+    doc.setLineWidth(0.5);
     engine.childGroups.forEach(group => {
       const childPositions = group.children.map(id => engine.positions.get(id)).filter(Boolean);
       if (childPositions.length === 0) return;
@@ -3205,146 +3214,181 @@ async function exportTreeLandscapePDF() {
         const p1 = engine.positions.get(group.pids[0]);
         const p2 = engine.positions.get(group.pids[1]);
         if (!p1 || !p2) return;
-        sourceX = (Math.min(p1.x, p2.x) + engine.cardW + Math.max(p1.x, p2.x)) / 2 + offsetX;
-        sourceY = p1.y + engine.cardH / 2 + offsetY;
+        sourceX = ((Math.min(p1.x, p2.x) + engine.cardW + Math.max(p1.x, p2.x)) / 2 + offsetX) * scale;
+        sourceY = (p1.y + engine.cardH / 2 + offsetY) * scale;
       } else {
         const p = engine.positions.get(group.pids[0]);
         if (!p) return;
-        sourceX = p.x + engine.cardW / 2 + offsetX;
-        sourceY = p.y + engine.cardH + offsetY;
+        sourceX = (p.x + engine.cardW / 2 + offsetX) * scale;
+        sourceY = (p.y + engine.cardH + offsetY) * scale;
       }
 
-      const busY = sourceY + (engine.cardH / 2) + (engine.levelGap / 2) + (group.busYOffset || 0);
-      svgInner += `<line x1="${sourceX}" y1="${sourceY}" x2="${sourceX}" y2="${busY}" stroke="#94a3b8" stroke-width="2.5" />`;
+      const busY = (sourceY / scale + (engine.cardH / 2) + (engine.levelGap / 2) + (group.busYOffset || 0)) * scale;
+      doc.line(sourceX, sourceY, sourceX, busY);
 
-      const childCenterXs = childPositions.map(pos => pos.x + engine.cardW / 2 + offsetX);
+      const childCenterXs = childPositions.map(pos => (pos.x + engine.cardW / 2 + offsetX) * scale);
       const minBusX = Math.min(sourceX, ...childCenterXs);
       const maxBusX = Math.max(sourceX, ...childCenterXs);
-
-      svgInner += `<line x1="${minBusX}" y1="${busY}" x2="${maxBusX}" y2="${busY}" stroke="#94a3b8" stroke-width="2.5" />`;
+      doc.line(minBusX, busY, maxBusX, busY);
 
       childPositions.forEach(pos => {
-        const cx = pos.x + engine.cardW / 2 + offsetX;
-        const cy = pos.y + offsetY;
-        svgInner += `<line x1="${cx}" y1="${busY}" x2="${cx}" y2="${cy}" stroke="#94a3b8" stroke-width="2.5" />`;
+        const cx = (pos.x + engine.cardW / 2 + offsetX) * scale;
+        const cy = (pos.y + offsetY) * scale;
+        doc.line(cx, busY, cx, cy);
       });
     });
 
-    svgEl.innerHTML = svgInner;
-    stage.appendChild(svgEl);
+    // 3. Pre-renderizado de Avatares circulares en alta definición (240x240 px)
+    const avatarMap = new Map();
+    const avatarCanvas = document.createElement("canvas");
+    avatarCanvas.width = 240;
+    avatarCanvas.height = 240;
+    const actx = avatarCanvas.getContext("2d");
 
-    // 5. Renderizado de Tarjetas Físicas estáticas y limpias (sin botones interactivos de edición)
+    for (const p of visibleData) {
+      const photoUrl = getPersonPhotoUrl(p.photo, p.gender);
+      try {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = photoUrl;
+        await new Promise((res) => {
+          if (img.complete) return res();
+          img.onload = res;
+          img.onerror = res;
+        });
+        actx.clearRect(0, 0, 240, 240);
+        actx.save();
+        actx.beginPath();
+        actx.arc(120, 120, 118, 0, Math.PI * 2);
+        actx.closePath();
+        actx.clip();
+        actx.drawImage(img, 0, 0, 240, 240);
+        actx.restore();
+        actx.strokeStyle = "#d6cbbf";
+        actx.lineWidth = 5;
+        actx.beginPath();
+        actx.arc(120, 120, 117.5, 0, Math.PI * 2);
+        actx.stroke();
+        avatarMap.set(p.id, avatarCanvas.toDataURL("image/png"));
+      } catch (e) {
+        console.warn("Error al precargar avatar:", e);
+      }
+    }
+
+    // 4. Renderizado Vectorial de Tarjetas y Tipografía Nativa
+    const cardWMm = engine.cardW * scale;
+    const cardHMm = engine.cardH * scale;
+
     visibleData.forEach(p => {
       const pos = engine.positions.get(p.id);
       if (!pos) return;
 
-      const card = document.createElement("div");
-      card.className = `tree-card ${p.gender || "male"}`;
-      card.style.cssText = `
-        position: absolute;
-        left: ${pos.x + offsetX}px;
-        top: ${pos.y + offsetY}px;
-        width: ${engine.cardW}px;
-        height: ${engine.cardH}px;
-        box-sizing: border-box;
-        margin: 0;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-      `;
+      const x = (pos.x + offsetX) * scale;
+      const y = (pos.y + offsetY) * scale;
 
-      const photoUrl = getPersonPhotoUrl(p.photo, p.gender);
-      const dates = (p.birth || p.death) ? formatVitalDatesWithAge(p.birth, p.death) : "";
-      const birthStr = (p.birth_place && p.birth_place.trim()) ? formatLocationWithProvince(p.birth_place) : "";
-      const resStr = (p.city && p.city.trim()) ? formatLocationWithProvince(p.city) : "";
+      // Sombra vectorial limpia
+      doc.setFillColor(236, 230, 222);
+      doc.roundedRect(x + 0.4, y + 0.5, cardWMm, cardHMm, 2.5, 2.5, "F");
 
-      card.innerHTML = `
-        <img class="card-photo" src="${photoUrl}" alt="${p.name}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex-shrink: 0;">
-        <div class="card-info" style="flex: 1; min-width: 0;">
-          <div class="card-name" style="font-weight: 700; font-size: 13px; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${p.name}</div>
-          ${dates ? `<div class="card-dates" style="font-size: 11px; color: #64748b; margin-top: 1px;">${dates}</div>` : ""}
-          ${birthStr ? `
-            <div class="card-meta" style="font-size: 10px; color: #b45309; display: flex; align-items: center; gap: 4px; margin-top: 2px;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2" style="width: 11px; height: 11px; flex-shrink: 0;"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="#b45309"/></svg>
-              <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${birthStr}</span>
-            </div>
-          ` : ""}
-          ${resStr ? `
-            <div class="card-meta" style="font-size: 10px; color: #e11d48; display: flex; align-items: center; gap: 4px; margin-top: 1px;">
-              <svg viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1.5" style="width: 11px; height: 11px; flex-shrink: 0;"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3" fill="#ffffff"/></svg>
-              <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${resStr}</span>
-            </div>
-          ` : ""}
-        </div>
-      `;
+      // Tarjeta blanca pura con borde nítido
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.35);
+      doc.roundedRect(x, y, cardWMm, cardHMm, 2.5, 2.5, "FD");
 
-      stage.appendChild(card);
+      // Píldora redondeada de género
+      const isFemale = (p.gender === "female");
+      if (isFemale) {
+        doc.setFillColor(236, 72, 153);
+      } else {
+        doc.setFillColor(37, 99, 235);
+      }
+      doc.roundedRect(x + 1.2, y + 2.5, 1.4, cardHMm - 5.0, 0.7, 0.7, "F");
+
+      // Avatar circular HD
+      const avatarSizeMm = 13.0;
+      const avatarX = x + 3.8;
+      const avatarY = y + (cardHMm - avatarSizeMm) / 2;
+      const avatarData = avatarMap.get(p.id);
+      if (avatarData) {
+        doc.addImage(avatarData, "PNG", avatarX, avatarY, avatarSizeMm, avatarSizeMm, undefined, "FAST");
+      }
+
+      // Textos vectoriales
+      const textX = avatarX + avatarSizeMm + 3.2;
+      const maxTextW = cardWMm - (textX - x) - 2.5;
+
+      // Nombre
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.4);
+      doc.setTextColor(30, 41, 59);
+      let nameStr = p.name;
+      while (doc.getTextWidth(nameStr) > maxTextW && nameStr.length > 4) {
+        nameStr = nameStr.substring(0, nameStr.length - 2) + "…";
+      }
+      doc.text(nameStr, textX, y + 5.6);
+
+      // Fechas y edad
+      let currentY = y + 9.5;
+      if (p.birth || p.death) {
+        const dates = formatVitalDatesWithAge(p.birth, p.death);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(6.8);
+        doc.setTextColor(100, 116, 139);
+        let dStr = dates;
+        while (doc.getTextWidth(dStr) > maxTextW && dStr.length > 4) {
+          dStr = dStr.substring(0, dStr.length - 2) + "…";
+        }
+        doc.text(dStr, textX, currentY);
+        currentY += 3.6;
+      }
+
+      // Lugar de nacimiento
+      if (p.birth_place && p.birth_place.trim()) {
+        const bPlace = formatLocationWithProvince(p.birth_place);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(6.0);
+        doc.setTextColor(180, 83, 9);
+        doc.setFillColor(180, 83, 9);
+        doc.circle(textX + 0.8, currentY - 0.7, 0.45, "F");
+        let bpStr = bPlace;
+        while (doc.getTextWidth(bpStr) > maxTextW - 3 && bpStr.length > 4) {
+          bpStr = bpStr.substring(0, bpStr.length - 2) + "…";
+        }
+        doc.text(bpStr, textX + 2.5, currentY);
+        currentY += 3.4;
+      }
+
+      // Lugar de residencia
+      if (p.city && p.city.trim()) {
+        const cPlace = formatLocationWithProvince(p.city);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(6.0);
+        doc.setTextColor(225, 29, 72);
+        doc.setFillColor(225, 29, 72);
+        doc.circle(textX + 0.8, currentY - 0.7, 0.45, "F");
+        let cpStr = cPlace;
+        while (doc.getTextWidth(cpStr) > maxTextW - 3 && cpStr.length > 4) {
+          cpStr = cpStr.substring(0, cpStr.length - 2) + "…";
+        }
+        doc.text(cpStr, textX + 2.5, currentY);
+      }
     });
 
-    document.body.appendChild(stage);
+    // 5. Guardar documento con nombre limpio
+    const slugBranch = branchName
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+    const fileName = `arbol_genealogico_familia_montes_${slugBranch}.pdf`;
 
-    // Esperar a que las imágenes carguen
-    await Promise.all(Array.from(stage.querySelectorAll("img")).map(img => {
-      if (img.complete) return Promise.resolve();
-      return new Promise(res => {
-        img.onload = res;
-        img.onerror = res;
-      });
-    }));
-
-    // 6. Captura en canvas de alta resolución controlando memoria de canvas
-    const maxSafeCanvasW = 16384;
-    const renderScale = Math.max(1.0, Math.min(2.0, maxSafeCanvasW / totalW));
-
-    const canvas = await html2canvas(stage, {
-      backgroundColor: "#faf8f5",
-      scale: renderScale,
-      width: totalW,
-      height: totalH,
-      useCORS: true,
-      logging: false,
-      allowTaint: true
-    });
-
-    // Retirar stage del DOM
-    document.body.removeChild(stage);
-
-    // 7. Generar documento PDF con dimensiones proporcionales a alta definición
-    if (window.jspdf && window.jspdf.jsPDF) {
-      const { jsPDF } = window.jspdf;
-
-      // Escala física: ~48 mm de ancho por tarjeta en el papel para lectura perfecta
-      const mmPerPx = 48 / engine.cardW;
-      const pdfW = Math.round(totalW * mmPerPx);
-      const pdfH = Math.round(totalH * mmPerPx);
-
-      const pdf = new jsPDF({
-        orientation: (pdfW >= pdfH) ? "landscape" : "portrait",
-        unit: "mm",
-        format: [pdfW, pdfH]
-      });
-
-      const imgData = canvas.toDataURL("image/jpeg", 0.94);
-      pdf.addImage(imgData, "JPEG", 0, 0, pdfW, pdfH, undefined, "FAST");
-
-      const slugBranch = branchName
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "_")
-        .replace(/^_+|_+$/g, "");
-      const fileName = `arbol_genealogico_familia_montes_${slugBranch}.pdf`;
-
-      pdf.save(fileName);
-      showToast("¡Documento PDF descargado con éxito y máxima resolución!", "success");
-    } else {
-      showToast("No se encontró la biblioteca jsPDF.", "error");
-    }
+    doc.save(fileName);
+    showToast("¡Documento PDF vectorial generado con éxito y nitidez absoluta!", "success");
   } catch (error) {
     console.error("Error al exportar PDF:", error);
     showToast("Error al generar el PDF: " + error.message, "error");
-    const existingStage = document.getElementById("tree-pdf-export-stage");
-    if (existingStage && existingStage.parentNode) {
-      existingStage.parentNode.removeChild(existingStage);
-    }
   } finally {
     if (exportBtn) {
       exportBtn.disabled = false;
