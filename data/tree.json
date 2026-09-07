@@ -182,7 +182,9 @@
     "profession": "",
     "photo": "",
     "notes": "2º Hija",
-    "pids": [],
+    "pids": [
+      68
+    ],
     "fid": 9,
     "mid": 10
   },
@@ -1009,5 +1011,20 @@
     "pids": [],
     "fid": 12,
     "mid": 63
+  },
+  {
+    "id": 68,
+    "name": "Faustino Manjón",
+    "gender": "male",
+    "birth_place": "",
+    "city": "Bilbao (Bizkaia)",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [
+      13
+    ]
   }
 ]
