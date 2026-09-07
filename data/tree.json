@@ -1081,5 +1081,20 @@
       10,
       70
     ]
+  },
+  {
+    "id": 72,
+    "name": "Rosa Manjón Carrera",
+    "gender": "female",
+    "birth_place": "Navianos de la Vega (León)",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [],
+    "fid": 68,
+    "mid": 13
   }
 ]
