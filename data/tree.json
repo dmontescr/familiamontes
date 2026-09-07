@@ -165,7 +165,9 @@
     "profession": "",
     "photo": "",
     "notes": "Hermano mayor",
-    "pids": [],
+    "pids": [
+      63
+    ],
     "fid": 9,
     "mid": 10
   },
@@ -932,5 +934,20 @@
     "notes": "",
     "pids": [],
     "mid": 18
+  },
+  {
+    "id": 63,
+    "name": "Abelina Fernández",
+    "gender": "female",
+    "birth_place": "",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [
+      12
+    ]
   }
 ]
