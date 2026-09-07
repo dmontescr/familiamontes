@@ -199,7 +199,9 @@
     "profession": "",
     "photo": "",
     "notes": "3º Hija",
-    "pids": [],
+    "pids": [
+      69
+    ],
     "fid": 9,
     "mid": 10
   },
@@ -1025,6 +1027,21 @@
     "notes": "",
     "pids": [
       13
+    ]
+  },
+  {
+    "id": 69,
+    "name": "Gumersindo Manjón",
+    "gender": "male",
+    "birth_place": "",
+    "city": "",
+    "birth": "",
+    "death": "",
+    "profession": "",
+    "photo": "",
+    "notes": "",
+    "pids": [
+      14
     ]
   }
 ]
